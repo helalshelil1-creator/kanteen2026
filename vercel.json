@@ -3,7 +3,6 @@
   "name": "kanteen",
   "cleanUrls": true,
   "trailingSlash": false,
-  "public": false,
   "github": { "silent": true },
   "rewrites": [
     {
