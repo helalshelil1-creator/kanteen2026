@@ -2,17 +2,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // ═══ HELPERS ═══
     function isSignedIn() {
       return request.auth != null;
     }
-    
     function isAdmin() {
       return isSignedIn() &&
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'superadmin';
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
-    
     function onlyFieldsChanged(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
@@ -34,22 +32,32 @@ service cloud.firestore {
 
     // ═══ MERCHANTS ═══
     match /merchants/{merchantId} {
-      allow read: if true;
-      
-      // ✅ Admin يقدر يضيف تاجر مباشرة
+
+      // قراءة: admin / owner / تاجر معتمد (للعرض العام)
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.ownerUid != null && resource.data.ownerUid == request.auth.uid)
+        || resource.data.status == 'approved';
+
+      // ✅ إنشاء: أي تاجر يقدر يسجّل بحالة pending
+      //    (admin يقدر ينشئ بأي حالة)
       allow create: if isAdmin()
-        || (isSignedIn()
-            && request.resource.data.ownerUid == request.auth.uid
-            && request.resource.data.status == 'pending');
-      
-      // ✅ Admin + المالك
+        || (
+          request.resource.data.status == 'pending'
+          && (
+            request.resource.data.ownerUid == null
+            || (isSignedIn() && request.resource.data.ownerUid == request.auth.uid)
+          )
+        );
+
+      // تعديل: admin / owner (بحقول محددة)
       allow update: if isAdmin()
         || (isSignedIn()
+            && resource.data.ownerUid != null
             && resource.data.ownerUid == request.auth.uid
             && onlyFieldsChanged(['name','address','phone','whatsapp','lat','lng',
                                   'products','hours','description','photoURL',
                                   'updatedAt','category','deliveryFee']));
-      
+
       allow delete: if isAdmin();
     }
 
@@ -58,22 +66,23 @@ service cloud.firestore {
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.customerUid == request.auth.uid)
         || (isSignedIn() && resource.data.driverId == request.auth.uid)
-        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
-      
+        || (isSignedIn() && resource.data.merchantId != null
+            && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid);
+
       allow create: if isSignedIn()
         && request.resource.data.customerUid == request.auth.uid;
-      
+
       allow update: if isAdmin()
         || (isSignedIn() && resource.data.driverId == request.auth.uid
             && onlyFieldsChanged(['status','pickedAt','deliveredAt','acceptedAt',
                                   'driverLat','driverLng','driverNotes','cancellationReason',
                                   'statusHistory','paymentStatus']))
-        || (isSignedIn() && resource.data.ownerUid == request.auth.uid
-            && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes',
-                                  'statusHistory']))
+        || (isSignedIn() && resource.data.merchantId != null
+            && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid
+            && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes','statusHistory']))
         || (isSignedIn() && resource.data.customerUid == request.auth.uid
             && onlyFieldsChanged(['status','cancelledAt','cancellationReason','statusHistory']));
-      
+
       allow delete: if isAdmin();
 
       match /chat/{messageId} {
@@ -87,24 +96,21 @@ service cloud.firestore {
     // ═══ DRIVERS ═══
     match /drivers/{driverId} {
       allow read: if isSignedIn();
-      
       allow create: if isSignedIn() && request.auth.uid == driverId
         && request.resource.data.status == 'pending';
-      
       allow update: if isAdmin()
         || (isSignedIn() && request.auth.uid == driverId
             && onlyFieldsChanged(['name','phone','whatsapp','email','vehicle','area',
                                   'online','lat','lng','lastSeen','fcmToken',
                                   'profilePhoto','idCardFront','idCardBack',
                                   'locationAddress','updatedAt']));
-      
       allow delete: if isAdmin();
     }
 
     // ═══ NOTIFICATIONS ═══
     match /notifications/{notifId} {
       allow read: if isAdmin();
-      allow create: if isSignedIn();
+      allow create: if true;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -119,13 +125,13 @@ service cloud.firestore {
 
     // ═══ COUPONS ═══
     match /coupons/{couponId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     // ═══ CONFIG ═══
     match /config/{configId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
@@ -136,7 +142,6 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
-    // ═══ TEST ═══
     match /_test/{doc} {
       allow read, write: if false;
     }
