@@ -1419,6 +1419,7 @@ function route(){
   }
   if (view === 'home'){ document.body.classList.add('kt-home-page'); }
   else { document.body.classList.remove('kt-home-page'); }
+  document.body.classList.toggle('kt-checkout-page', view === 'checkout');
   render(); window.scrollTo({top: 0, behavior: 'auto'});
 }
 window.addEventListener('hashchange', route);
@@ -1564,13 +1565,15 @@ function viewCheckout(){
   } else if(checkoutStep === 5){
     var items5 = state.cart.map(function(i){ return {item:i, p:findBy(i.id)}; }).filter(function(x){ return x.p; });
     body = '<h3 class="h4" style="margin-bottom:18px">' + (KT_LANG === 'en' ? 'Items' : 'المنتجات') + ' (' + items5.length + ')</h3>' + items5.map(function(x){ var item = x.item, p = x.p; return '<div style="display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:30px">' + p.emoji + '</span><div style="flex:1"><div style="font-weight:700;font-size:14.5px">' + esc(productName(p)) + '</div><div class="muted tiny">' + item.qty + ' × ' + money(finalPrice(p)) + '</div></div><div style="font-weight:800;color:var(--gold);font-size:15px">' + money(finalPrice(p) * item.qty) + '</div></div>'; }).join('');
-  } else {
-    body = '<div style="text-align:center;padding:28px 0"><div style="font-size:88px;margin-bottom:18px">✅</div><h2 class="h2" style="margin-bottom:10px">' + t('co_ready') + '</h2><div style="display:flex;justify-content:space-between;padding:18px 0;font-size:26px;font-weight:800"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div></div>';
+ } else {
+    body = '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;margin-bottom:10px;line-height:1">✅</div><h2 style="font-size:18px;font-weight:800;margin-bottom:12px;font-family:\'Reem Kufi\',serif">' + t('co_ready') + '</h2><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:19px;font-weight:800;background:var(--glass);border:1px solid var(--line-2);border-radius:14px"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div></div>';
   }
   var stepsHTML = '<div style="display:flex;gap:0;margin-bottom:36px;overflow-x:auto;padding-bottom:10px">' + steps.map(function(s, i){ var n = i + 1, cls = n < checkoutStep ? 'done' : n === checkoutStep ? 'on' : ''; return '<div style="flex:1;min-width:110px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;margin-bottom:10px;font-weight:700;font-size:14px;background:' + (cls === 'done' ? 'var(--fresh)' : cls === 'on' ? 'var(--gold)' : 'var(--glass)') + ';color:' + (cls ? '#1a1206' : 'inherit') + '">' + (cls === 'done' ? '✓' : n) + '</div><div style="font-size:12.5px;color:' + (cls === 'on' ? 'var(--gold)' : cls === 'done' ? 'var(--fresh)' : 'var(--ink-3)') + ';font-weight:600">' + s + '</div></div>'; }).join('') + '</div>';
   var navBtns = checkoutStep > 1 ? '<button class="btn btn-glass" onclick="checkoutStep--;render()">← ' + t('action_back') + '</button>' : '';
-  var nextBtn = checkoutStep < 6 ? '<button class="btn btn-primary" onclick="checkoutNext()">' + t('action_continue') + '</button>' : '<button class="btn btn-gold btn-lg" style="flex:1" onclick="placeOrder()">' + t('co_confirm_order') + '</button>';
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('co_title') + '</h1>' + stepsHTML + '<div class="card" style="padding:32px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
+  var nextBtn = checkoutStep < 6
+    ? '<button class="btn btn-primary" onclick="checkoutNext()">' + t('action_continue') + '</button>'
+    : '<button class="btn btn-gold" style="flex:1;padding:15px 24px;font-size:15px" onclick="placeOrder()">' + t('co_confirm_order') + '</button>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('co_title') + '</h1>' + stepsHTML + '<div class="card" style="padding:22px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
 }
 function checkoutNext(){
   if(checkoutStep === 1){ var n = $('#co-name').value.trim(), p = $('#co-phone').value.trim(); if(!n || !p){ ktToast(t('co_fill_data'), 'error'); return; } checkoutData.name = n; checkoutData.phone = p; checkoutData.email = $('#co-email').value.trim(); }
@@ -1607,11 +1610,17 @@ function placeOrder(){
   var order = { id: orderCode2, user: state.user ? state.user.id : 'guest', customer: Object.assign({}, checkoutData), items: items, subtotal: cartTotal(), delivery: deliveryFee(), discount: discountAmt(), total: grandTotal(), coupon: state.coupon ? state.coupon.code : null, payment: checkoutData.payment, paymentStatus: 'cod', status: 'placed', createdAt: new Date().toISOString() };
   state.orders.unshift(order); persist('orders');
   if (window.KT_FB){
-    KT_FB.saveOrder(order).then(function(id){
-      if (id) ktShowFbStatus(KT_LANG === 'en' ? '✅ Order saved' : '✅ تم حفظ الطلب', false);
-      else ktShowFbStatus(KT_LANG === 'en' ? '⚠️ Save failed' : '⚠️ فشل الحفظ', true);
-    });
-    KT_FB.saveNotification({ type: 'new_order', orderId: orderCode2, customer: order.customer, total: order.total, method: 'cash', createdAt: order.createdAt, read: false });
+    try {
+      if (typeof KT_FB.saveOrder === 'function'){
+        KT_FB.saveOrder(order).then(function(id){
+          if (id) ktShowFbStatus(KT_LANG === 'en' ? '✅ Order saved' : '✅ تم حفظ الطلب', false);
+          else ktShowFbStatus(KT_LANG === 'en' ? '⚠️ Save failed' : '⚠️ فشل الحفظ', true);
+        }).catch(function(e){ console.warn('saveOrder:', e); });
+      }
+      if (typeof KT_FB.saveNotification === 'function'){
+        KT_FB.saveNotification({ type: 'new_order', orderId: orderCode2, customer: order.customer, total: order.total, method: 'cash', createdAt: order.createdAt, read: false });
+      }
+    } catch(e){ console.warn('KT_FB call failed:', e); }
   }
   if (window.KT_SOUND) KT_SOUND.success();
   try { window.open(ktSendOrderToWhatsApp(order), '_blank'); } catch(e){}

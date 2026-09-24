@@ -1374,3 +1374,145 @@ h1, h2, h3, h4, h5, h6, p, span, li, div, dt, dd {
   .k-prod-qty-ctrl button{width:34px;font-size:18px}
   .k-prod-qty-ctrl .k-prod-qty-val{min-width:30px;font-size:13.5px}
 }
+/* ═══════════════════════════════════════════════════════════
+   ⭐ زر القائمة (Mega Button) — دهبي لامع
+   ═══════════════════════════════════════════════════════════ */
+
+/* الزر الرئيسي — دهبي معدني لامع */
+.k-bnav.kt-mega-btn .kt-mega-icon{
+  background:linear-gradient(180deg,#FFF8E0 0%,#FFE9A8 15%,#FFD060 35%,#E8A820 55%,#B87A0E 75%,#8B5A08 90%,#C8921E 100%) !important;
+  border:1px solid rgba(255,215,100,.6) !important;
+  box-shadow:
+    0 6px 20px rgba(255,184,0,.6),
+    0 0 30px rgba(255,184,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -2px 4px rgba(139,90,8,.5) !important;
+  position:relative;
+  overflow:hidden;
+}
+
+/* لمعة متحركة على الزر */
+.k-bnav.kt-mega-btn .kt-mega-icon::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.55) 50%,
+    transparent 100%);
+  animation:ktGoldShine 2.5s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes ktGoldShine{
+  0%{left:-100%}
+  50%,100%{left:200%}
+}
+
+/* الأيقونة (علامة +) تبقى باللون البني الغامق */
+.k-bnav.kt-mega-btn .kt-mega-icon svg.lucide{
+  stroke:#1a1005 !important;
+  stroke-width:3 !important;
+  filter:drop-shadow(0 1px 1px rgba(255,255,255,.5)) !important;
+  position:relative;
+  z-index:2;
+}
+
+/* عند الـ hover */
+.k-bnav.kt-mega-btn:hover .kt-mega-icon{
+  transform:scale(1.1) !important;
+  box-shadow:
+    0 10px 30px rgba(255,184,0,.75),
+    0 0 45px rgba(255,184,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.8),
+    inset 0 -2px 4px rgba(139,90,8,.5) !important;
+  filter:brightness(1.08);
+}
+
+/* عند الفتح — نحولها للأحمر عشان توضح إنها مفتوحة */
+.k-bnav.kt-mega-btn.open .kt-mega-icon{
+  background:linear-gradient(180deg,#FFB8B8 0%,#FF8A8A 30%,#EF4444 70%,#B91C1C 100%) !important;
+  box-shadow:
+    0 8px 26px rgba(239,68,68,.6),
+    0 0 30px rgba(239,68,68,.4),
+    inset 0 1px 0 rgba(255,255,255,.5) !important;
+  transform:rotate(135deg) scale(1.05) !important;
+}
+.k-bnav.kt-mega-btn.open .kt-mega-icon svg.lucide{
+  stroke:#fff !important;
+  transform:rotate(-135deg);
+}
+
+/* النص تحت الزر — دهبي برضه */
+.k-bnav.kt-mega-btn span:not(.k-badge):not(.kt-mega-icon):not(.kt-mega-status){
+  background:linear-gradient(180deg,#FFE9A8 0%,#FFD060 50%,#C8921E 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
+  font-weight:900 !important;
+}
+.k-bnav.kt-mega-btn.open span:not(.k-badge):not(.kt-mega-icon):not(.kt-mega-status){
+  background:linear-gradient(180deg,#FFB8B8 0%,#F87171 50%,#B91C1C 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:transparent;
+}
+
+/* نقطة الحالة — تبقى بحدود ذهبية */
+.k-bnav.kt-mega-btn .kt-mega-status{
+  border-color:#1a1005 !important;
+  box-shadow:0 0 10px currentColor,0 0 0 1px rgba(255,215,100,.5) !important;
+}
+/* ═══════════════════════════════════════════════════════════
+   🎨 CHECKOUT PAGE — إخفاء أزرار الهيدر + تصغير البوكس
+   ═══════════════════════════════════════════════════════════ */
+
+/* اخفي كل أزرار الهيدر ما عدا اللوجو + الحساب (عند صفحة checkout) */
+body.kt-checkout-page #k-search-btn,
+body.kt-checkout-page .k-search-desktop,
+body.kt-checkout-page .k-menu,
+body.kt-checkout-page .kt-lang-pill,
+body.kt-checkout-page #k-wish-btn,
+body.kt-checkout-page #k-cart-btn,
+body.kt-checkout-page #ktDriverHeaderBtn,
+body.kt-checkout-page #ktAdminHeaderBtn,
+body.kt-checkout-page #ktShopNowBtn,
+body.kt-checkout-page #k-burger-btn{
+  display:none !important;
+}
+
+/* خلي الحساب آخر حاجة على الشمال */
+body.kt-checkout-page .k-actions{
+  margin-inline-start:auto;
+}
+
+/* صغّر البطاقات في صفحة checkout */
+body.kt-checkout-page .k-sec .card{
+  padding:22px !important;
+}
+
+/* صغّر مؤشرات الخطوات (steps) */
+body.kt-checkout-page .k-sec > .wrap > div[style*="margin-bottom:36px"] > div > div:first-child{
+  width:30px !important;
+  height:30px !important;
+  font-size:12px !important;
+}
+
+/* زرار الرجوع صغّره */
+body.kt-checkout-page .btn-glass{
+  padding:11px 20px !important;
+  font-size:13.5px !important;
+}
+
+/* على الموبايل — أصغر شوية كمان */
+@media(max-width:520px){
+  body.kt-checkout-page .k-sec .card{padding:16px !important}
+  body.kt-checkout-page .k-sec > .wrap > div[style*="margin-bottom:36px"] > div > div:first-child{
+    width:26px !important;
+    height:26px !important;
+  }
+}
