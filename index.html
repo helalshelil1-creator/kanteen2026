@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
+<meta name="theme-color" content="#02060f">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="كانتِين">
+<title>كانتِين | Kanteen — توصيل بقالة ومستلزمات وأدوية في 10 دقائق في مصر</title>
+<meta name="description" content="كانتِين | Kanteen — منصة مصرية رائدة لتوصيل البقالة والأدوية والمستلزمات اليومية في 10 دقائق.">
+<meta name="keywords" content="كانتين, Kanteen, توصيل بقالة, توصيل ادوية, صيدلية الدكتور هشام, توصيل سريع, بقالة مصر">
+<meta name="author" content="المهندس هلال شليل">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://kanteen2026.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kanteen2026.vercel.app/">
+<meta property="og:image" content="https://kanteen2026.vercel.app/logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://kanteen2026.vercel.app/logo.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://images.pexels.com">
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Reem+Kufi:wght@400;500;600;700&family=El+Messiri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="config.js"></script>
+<script src="firebase-config.js"></script>
+<script src="firebase-helpers.js"></script>
+<script src="kt-sound.js"></script>
+</head>
+<body>
+
+<!-- ═══ BACKGROUND ═══ -->
+<video class="k-bg-video" id="k-bg-video" autoplay muted loop playsinline preload="auto" aria-hidden="true"
+  poster="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/130837c4-0244-4f37-9c61-8d801d93fd29.jpg"
+  src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104303_0c6d60b2-9353-408e-9449-585108a22fb5.mp4"></video>
+<div class="k-bg-overlay" aria-hidden="true"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOCATION BAR — مخفي بشكل افتراضي
+     ═══════════════════════════════════════════════════════════ -->
+<div class="kt-locbar k-hidden" id="ktLocBar">
+  <button type="button" class="kt-locbar-btn" onclick="ktUseCurrentLocation()">📍 موقعي الحالي</button>
+  <div class="kt-locbar-location loading" id="ktLocStatus">
+    <svg data-lucide="loader"></svg>
+    <span id="ktLocText">جاري تحديد موقعك...</span>
+  </div>
+  <div class="kt-locbar-input-wrap">
+    <svg class="kt-loc-icon" data-lucide="map-pin" onclick="ktFocusAddressInput()"></svg>
+    <input type="text" id="ktAddressInput" placeholder="ابحث عن منطقة، شارع، معلم..." autocomplete="off" oninput="ktShowSearchSuggestions(this.value)" onfocus="ktShowSearchSuggestions(this.value)" onblur="ktHideSearchSuggestions()">
+    <svg class="kt-loc-icon" data-lucide="search" onclick="ktSearchAddress()"></svg>
+    <div class="kt-loc-suggest" id="ktSearchSuggest"></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;width:100%">
+    <button type="button" class="kt-locbar-submit" onclick="ktSubmitAddress()" style="flex:1">ادخل عنوان التوصيل</button>
+    <button type="button" class="kt-locbar-submit" onclick="ktOpenNearbyStores()" style="flex:1;background:linear-gradient(135deg,var(--fresh),var(--fresh-2))">🏪 المتاجر القريبة</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+     ═══════════════════════════════════════════════════════════ -->
+<header class="k-header" id="k-header">
+  <a class="k-logo" href="#/" aria-label="كانتِين">
+    <img src="logo.png" alt="كانتِين - Kanteen" class="k-logo-img" onerror="this.dataset.error='true';this.insertAdjacentHTML('afterend','<span class=&quot;k-logo-fallback&quot;>كانتِين</span>')">
+  </a>
+  <nav class="k-menu">
+    <a href="#/categories">الأقسام</a>
+    <a href="#/search?deals=1">العروض</a>
+    <a href="#/search?sort=popular">الأكثر مبيعاً</a>
+    <a href="#/orders">طلباتي</a>
+  </nav>
+
+  <!-- 🔍 زر البحث (للموبايل) -->
+  <button class="k-icon-btn k-search-btn" id="k-search-btn" aria-label="بحث" title="بحث">
+    <svg data-lucide="search"></svg>
+  </button>
+
+  <!-- 🔍 حقل البحث (للديسكتوب) -->
+  <div class="k-search k-search-desktop">
+    <input type="search" id="k-search-input" placeholder="ابحث عن منتج..." autocomplete="off">
+    <svg class="k-search-ico" data-lucide="search"></svg>
+  </div>
+
+  <div class="k-actions">
+    <button class="kt-lang-pill" id="ktLangBtn" onclick="ktToggleLang()" aria-label="Language" title="العربية / English">
+      <svg data-lucide="languages"></svg> EN
+    </button>
+    <button class="k-icon-btn" id="k-wish-btn" aria-label="المفضلة"><svg data-lucide="heart"></svg><span class="k-badge" id="k-wish-badge">0</span></button>
+    <button class="k-icon-btn" id="k-cart-btn" aria-label="السلة"><svg data-lucide="shopping-bag"></svg><span class="k-badge gold" id="k-cart-badge">0</span></button>
+    <button class="k-icon-btn" id="k-user-btn" aria-label="حسابي"><svg data-lucide="user"></svg></button>
+    <a href="driver.html" class="k-icon-btn k-driver-header" id="ktDriverHeaderBtn" aria-label="مندوب توصيل" title="مندوب توصيل"><svg data-lucide="bike"></svg></a>
+    <a href="admin.html" class="kt-admin-btn" id="ktAdminHeaderBtn" aria-label="الإدارة" title="الإدارة"><svg data-lucide="settings-2"></svg></a>
+    <a class="k-pill-header" id="ktShopNowBtn" href="#/search">تسوّق الآن</a>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN + FOOTER
+     ═══════════════════════════════════════════════════════════ -->
+<main id="k-main"></main>
+<footer class="k-footer" id="k-footer"></footer>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BOTTOM NAV — مع MEGA BUTTON في المنتصف
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="k-bottom">
+  <a class="k-bnav" data-nav="home" href="#/">
+    <svg data-lucide="home"></svg>
+    <span>الرئيسية</span>
+  </a>
+  <a class="k-bnav" data-nav="cats" href="#/categories">
+    <svg data-lucide="layout-grid"></svg>
+    <span>الأقسام</span>
+  </a>
+  
+  <!-- ⭐ MEGA BUTTON — مركز الفوتر -->
+  <button class="k-bnav kt-mega-btn" data-nav="mega" onclick="ktToggleMegaMenu()" aria-label="قائمة سريعة">
+    <span class="kt-mega-icon">
+      <svg data-lucide="plus"></svg>
+    </span>
+    <span class="kt-mega-status checking" id="ktMegaStatus"></span>
+    <span>قائمة</span>
+  </button>
+  
+  <a class="k-bnav" data-nav="cart" href="#/cart">
+    <svg data-lucide="shopping-bag"></svg>
+    <span>السلة</span>
+    <span class="k-badge" id="k-cart-badge-b">0</span>
+  </a>
+  <a class="k-bnav" data-nav="account" href="#/account">
+    <svg data-lucide="user-circle-2"></svg>
+    <span>حسابي</span>
+  </a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MEGA MENU — القائمة المنسدلة
+     ═══════════════════════════════════════════════════════════ -->
+<div class="kt-mega-backdrop" id="ktMegaBackdrop" onclick="ktCloseMegaMenu()"></div>
+<div class="kt-mega-menu" id="ktMegaMenu">
+  
+  <!-- حالة التوصيل -->
+  <button class="kt-mega-menu-item zone checking" id="ktMegaZone" onclick="ktCheckZoneDetails();ktCloseMegaMenu()">
+    <span class="ico"><svg data-lucide="map-pin"></svg></span>
+    <span class="txt" id="ktZoneText">جاري التحقق...</span>
+  </button>
+  
+  <!-- بحث سريع -->
+  <button class="kt-mega-menu-item search" onclick="ktCloseMegaMenu();setTimeout(ktToggleSearchBar,150)">
+    <span class="ico"><svg data-lucide="search"></svg></span>
+    <span class="txt">بحث سريع</span>
+  </button>
+  
+  <!-- متاجر قريبة -->
+  <button class="kt-mega-menu-item nearby" onclick="ktCloseMegaMenu();setTimeout(ktOpenNearbyStores,150)">
+    <span class="ico"><svg data-lucide="store"></svg></span>
+    <span class="txt">متاجر قريبة</span>
+  </button>
+  
+  <!-- مساعد كانتِين -->
+  <button class="kt-mega-menu-item chat" onclick="ktCloseMegaMenu();setTimeout(ktOpenChat,150)">
+    <span class="ico"><svg data-lucide="message-square"></svg></span>
+    <span class="txt">مساعد كانتِين</span>
+  </button>
+  
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DRAWER (Cart)
+     ═══════════════════════════════════════════════════════════ -->
+<aside class="k-drawer" id="k-drawer">
+  <div class="k-drawer-head">
+    <h3 class="h4" style="margin:0">سلة التسوق</h3>
+    <button class="k-icon-btn" style="margin-inline-start:auto" onclick="ktCloseDrawer()" aria-label="إغلاق"><svg data-lucide="x"></svg></button>
+  </div>
+  <div class="k-drawer-body" id="drawer-body"></div>
+  <div class="k-drawer-foot" id="drawer-foot"></div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════════
+     OVERLAY + TOASTS
+     ═══════════════════════════════════════════════════════════ -->
+<div class="k-overlay" id="k-overlay"></div>
+<div class="k-toast-wrap" id="k-toasts"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PWA BANNER
+     ═══════════════════════════════════════════════════════════ -->
+<div class="k-pwa-banner" id="kPwaBanner">
+  <div class="k-pwa-banner-head">
+    <div class="k-pwa-banner-icon">📱</div>
+    <div class="k-pwa-banner-info">
+      <b>ثبّت تطبيق كانتِين</b>
+      <span>تجربة أسرع + يعمل أوفلاين</span>
+    </div>
+    <button class="k-pwa-banner-close" onclick="ktDismissPwa()" aria-label="إغلاق"><svg data-lucide="x"></svg></button>
+  </div>
+  <div class="k-pwa-banner-actions">
+    <button class="k-pwa-install-btn" onclick="ktInstallPwa()">📥 تثبيت الآن</button>
+    <button class="k-pwa-later-btn" onclick="ktDismissPwa()">لاحقاً</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CHAT PANEL
+     ═══════════════════════════════════════════════════════════ -->
+<div class="kt-chat-panel" id="kt-chat-panel">
+  <div class="kt-chat-head">
+    <div class="kt-chat-av">ك</div>
+    <div class="kt-chat-info"><b>مساعد كانتِين</b><span>متصل — يرد فوراً</span></div>
+    <button class="close" id="kt-chat-close" aria-label="إغلاق"><svg data-lucide="x"></svg></button>
+  </div>
+  <div class="kt-chat-body" id="kt-chat-body"></div>
+  <div class="kt-chat-quick" id="kt-chat-quick"></div>
+  <form class="kt-chat-input" id="kt-chat-form" onsubmit="event.preventDefault();ktSendChat()">
+    <input type="text" id="kt-chat-input" placeholder="اسألني..." autocomplete="off">
+    <button type="submit" aria-label="إرسال"><svg data-lucide="send"></svg></button>
+  </form>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FIREBASE STATUS
+     ═══════════════════════════════════════════════════════════ -->
+<div class="k-fb-status" id="kFbStatus">🔥 Firebase</div>
+
+<script src="app.js"></script>
+</body>
+</html>

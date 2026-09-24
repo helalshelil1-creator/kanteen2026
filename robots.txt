@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /merchant.html
+Disallow: /driver.html
+
+Sitemap: https://kanteen2026.vercel.app/sitemap.xml

@@ -1,0 +1,12 @@
+{
+  "name": "kanteen-functions",
+  "description": "Kanteen Cloud Functions",
+  "version": "2.0.0",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^5.1.0"
+  },
+  "private": true
+}

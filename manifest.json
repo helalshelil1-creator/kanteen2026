@@ -1,0 +1,50 @@
+{
+  "name": "كانتِين | Kanteen — توصيل بقالة ومستلزمات في 10 دقائق",
+  "short_name": "كانتِين",
+  "description": "كانتِين — منصة مصرية لتوصيل البقالة والأدوية والمستلزمات اليومية في 10 دقائق. اطلب الآن واستلم في أسرع وقت.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#02060f",
+  "theme_color": "#ff6b35",
+  "categories": ["shopping", "food", "health", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "logo.png", "sizes": "any", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "تصفح المنتجات",
+      "short_name": "المنتجات",
+      "description": "تسوّق جميع المنتجات",
+      "url": "/index.html#/categories",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "صيدلية الدكتور هشام",
+      "short_name": "الصيدلية",
+      "description": "اطلب أدويتك",
+      "url": "/index.html#/c/pharmacy",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "طلباتي",
+      "short_name": "طلباتي",
+      "description": "تابع طلباتك",
+      "url": "/index.html#/orders",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "السلة",
+      "short_name": "السلة",
+      "description": "سلتك الحالية",
+      "url": "/index.html#/cart",
+      "icons": [{ "src": "logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

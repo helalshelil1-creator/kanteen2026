@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=5">
+<meta name="theme-color" content="#02060f">
+<meta name="color-scheme" content="dark light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="كانتِين - المندوب">
+<title>لوحة المندوب | كانتِين Kanteen</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Reem+Kufi:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="config.js"></script>
+<script src="firebase-config.js"></script>
+<script src="firebase-helpers.js"></script>
+<script src="kt-sound.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   🛵 DRIVER APP v7.1 — Complete Modern CSS
+   ═══════════════════════════════════════════════════════════ */
+
+:root,[data-theme="dark"]{
+  --brand:#ff6b35;--brand-2:#ff8a5b;
+  --gold:#ffb800;--gold-2:#ffd9a0;
+  --fresh:#22c55e;--fresh-2:#4ade80;
+  --danger:#ef4444;--info:#3b82f6;
+  --driver:#3b82f6;--driver-2:#60a5fa;
+  --purple:#a78bfa;
+  --bg:#000;--bg-2:#0a0d15;--bg-3:#0d1524;
+  --ink:#fff;--ink-2:#c4d0dd;--ink-3:#8a95a3;--ink-4:#5a6472;
+  --line:rgba(196,214,232,.12);--line-2:rgba(196,214,232,.22);
+  --glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.1);
+  --r-lg:20px;--r-xl:26px;--r-pill:999px;
+  --ease:cubic-bezier(.25,.8,.35,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+}
+[data-theme="light"]{
+  --brand:#ff6b35;--brand-2:#ff8a5b;
+  --gold:#f59e0b;--gold-2:#fbbf24;
+  --fresh:#16a34a;--fresh-2:#22c55e;
+  --driver:#2563eb;--driver-2:#3b82f6;
+  --bg:#f7f8fb;--bg-2:#eef2f8;--bg-3:#e0e6ef;
+  --ink:#0a0f1e;--ink-2:#2a3448;--ink-3:#4a5568;--ink-4:#6b7488;
+  --line:rgba(15,23,41,.1);--line-2:rgba(15,23,41,.16);
+  --glass:rgba(255,255,255,.75);--glass-2:rgba(255,255,255,.95);
+}
+
+/* ═══ RESET ═══ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Readex Pro','Inter',system-ui,sans-serif;font-size:16px;line-height:1.6;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom,0px)}
+button,input,select,textarea{font:inherit;color:inherit;background:none;border:none;cursor:pointer;text-align:inherit;outline:none;font-family:inherit}
+a{color:inherit;text-decoration:none}
+img,svg{display:block;max-width:100%}
+h1,h2,h3,h4,p{margin:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg-2)}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--driver)}
+
+/* ═══ BACKGROUND ═══ */
+.k-bg-image{position:fixed;inset:0;z-index:-2;pointer-events:none;background:#000;display:flex;align-items:center;justify-content:center}
+.k-bg-image::before{content:'';position:absolute;inset:0;background-image:url('mandoop.jpg');background-size:contain;background-position:center center;background-repeat:no-repeat;filter:brightness(.55) saturate(.85) blur(1px);opacity:.85}
+.k-bg-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(120% 60% at 50% 30%,rgba(0,0,0,.5) 0%,rgba(0,0,0,.75) 60%,rgba(0,0,0,.95) 100%),
+  linear-gradient(180deg,rgba(0,0,0,.7) 0%,rgba(0,0,0,.55) 50%,rgba(0,0,0,.9) 100%)}
+[data-theme="light"] .k-bg-overlay{background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.55) 50%,rgba(255,255,255,.9) 100%)}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes ktFadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ktFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes ktScaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes ktPulseDot{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+@keyframes ktBadgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes ktSlideIn{from{transform:translateX(120px);opacity:0}to{transform:none;opacity:1}}
+@keyframes modalSlideUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes urgentPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+@keyframes newBlink{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes ktTimerPulse{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes ktLateShake{0%,100%{transform:translateX(0)}5%{transform:translateX(-3px)}10%{transform:translateX(3px)}15%,100%{transform:translateX(0)}}
+@keyframes ktFlame{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes ktSpin{to{transform:rotate(360deg)}}
+@keyframes ktProgressShine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes logoPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 4px 12px rgba(255,107,53,.4))}50%{transform:scale(1.05);filter:drop-shadow(0 8px 24px rgba(255,107,53,.7))}}
+
+.kt-anim-1{animation:ktFadeSlideUp .5s var(--ease-out) .05s both}
+.kt-anim-2{animation:ktFadeSlideUp .5s var(--ease-out) .15s both}
+.kt-anim-3{animation:ktFadeSlideUp .5s var(--ease-out) .25s both}
+.kt-anim-4{animation:ktFadeSlideUp .5s var(--ease-out) .35s both}
+.kt-anim-5{animation:ktFadeSlideUp .5s var(--ease-out) .45s both}
+.kt-spin{animation:ktSpin 1s linear infinite}
+
+/* ═══ LOGIN ═══ */
+.k-login-screen{min-height:100vh;display:grid;place-items:center;padding:28px;position:relative;overflow:hidden}
+.k-login-card{width:100%;max-width:460px;background:rgba(7,13,27,.92);backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:40px 32px;box-shadow:0 40px 100px rgba(0,0,0,.85);text-align:center;position:relative;animation:ktScaleIn .5s var(--ease-out)}
+[data-theme="light"] .k-login-card{background:rgba(255,255,255,.96)}
+.k-login-logo{height:88px;width:auto;margin:0 auto 18px;display:block;animation:logoPulse 3s ease-in-out infinite}
+.k-login-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:999px;background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(96,165,250,.1));border:1px solid rgba(59,130,246,.4);color:var(--driver-2);font-size:12.5px;font-weight:800;margin-bottom:14px}
+.k-login-card h1{font-family:'Reem Kufi','El Messiri',serif;font-size:32px;font-weight:900;margin-bottom:6px}
+.k-login-card h1 .blue{background:linear-gradient(180deg,#60A5FA 0%,#3B82F6 30%,#2563EB 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-login-card h1 .gold{background:linear-gradient(180deg,#FBBF24 0%,#F97316 60%,#EA580C 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-login-card>p{font-size:14px;color:var(--ink-3);margin-bottom:28px}
+.k-login-field{margin-bottom:16px;text-align:start}
+.k-login-field label{display:block;font-size:13.5px;font-weight:700;margin-bottom:8px;color:var(--ink-2)}
+.k-login-field input{width:100%;padding:15px 16px;border-radius:13px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;transition:all .2s;font-family:inherit}
+.k-login-field input:focus{border-color:var(--driver);box-shadow:0 0 0 5px rgba(59,130,246,.18);outline:none}
+.k-login-field input::placeholder{color:var(--ink-4);opacity:.7}
+.k-login-btn{width:100%;padding:16px;border-radius:var(--r-pill);background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;font-size:15.5px;font-weight:800;box-shadow:0 12px 30px rgba(59,130,246,.5);transition:all .25s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;border:none;font-family:inherit}
+.k-login-btn:hover{transform:translateY(-3px);box-shadow:0 18px 44px rgba(59,130,246,.7)}
+.k-login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.k-login-btn svg{width:20px;height:20px}
+.k-login-err{display:none;margin-top:16px;padding:13px;border-radius:12px;background:rgba(239,68,68,.15);color:#f87171;font-size:13.5px;font-weight:600;text-align:center;border:1px solid rgba(239,68,68,.3)}
+.k-login-success{display:none;margin-top:16px;padding:13px;border-radius:12px;background:rgba(34,197,94,.15);color:#4ade80;font-size:13.5px;font-weight:600;text-align:center;border:1px solid rgba(34,197,94,.3)}
+.k-login-toggle{text-align:center;margin-top:20px;font-size:13.5px;color:var(--ink-3)}
+.k-login-toggle a{color:var(--driver-2);font-weight:800;cursor:pointer;transition:all .2s}
+.k-login-toggle a:hover{color:var(--gold)}
+.k-login-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--ink-4);font-size:12px;font-weight:700}
+.k-login-divider::before,.k-login-divider::after{content:'';flex:1;height:1px;background:var(--line-2)}
+.k-google-btn{width:100%;padding:14px;border-radius:var(--r-pill);background:var(--glass);border:1px solid var(--line-2);color:var(--ink);font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .25s;font-family:inherit}
+.k-google-btn:hover{background:var(--glass-2);border-color:var(--driver);transform:translateY(-2px)}
+.k-google-btn svg{width:20px;height:20px;flex:none}
+.k-auth-mode-tabs{display:flex;gap:6px;padding:5px;background:var(--glass);border:1px solid var(--line-2);border-radius:14px;margin-bottom:22px}
+.k-auth-mode-tab{flex:1;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:800;color:var(--ink-3);background:none;border:none;cursor:pointer;transition:all .25s;font-family:inherit}
+.k-auth-mode-tab.on{background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;box-shadow:0 6px 18px rgba(59,130,246,.4)}
+.k-auth-mode-tab:hover:not(.on){color:var(--ink);background:var(--glass-2)}
+
+/* ═══ REGISTRATION ═══ */
+.k-reg-screen{min-height:100vh;display:grid;place-items:start center;padding:28px 18px 100px;overflow-x:hidden}
+.k-reg-container{width:100%;max-width:640px}
+.k-reg-head{background:rgba(7,13,27,.92);backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:26px;margin-bottom:18px;text-align:center;animation:ktScaleIn .4s var(--ease-out)}
+[data-theme="light"] .k-reg-head{background:rgba(255,255,255,.96)}
+.k-reg-head .k-login-logo{height:64px;margin-bottom:12px}
+.k-reg-head h1{font-family:'Reem Kufi',serif;font-size:24px;font-weight:900;margin-bottom:6px}
+.k-reg-head p{font-size:13.5px;color:var(--ink-3)}
+.k-reg-steps{display:flex;align-items:center;justify-content:space-between;background:rgba(7,13,27,.92);backdrop-filter:blur(30px);border:1px solid var(--line-2);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:18px;gap:8px;animation:ktFadeSlideUp .5s var(--ease-out) .1s both}
+[data-theme="light"] .k-reg-steps{background:rgba(255,255,255,.96)}
+.k-reg-step-item{flex:1;text-align:center;position:relative}
+.k-reg-step-num{width:34px;height:34px;border-radius:50%;display:inline-grid;place-items:center;background:var(--glass-2);color:var(--ink-3);font-weight:800;font-size:14px;transition:all .3s;border:2px solid transparent}
+.k-reg-step-item.active .k-reg-step-num{background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;box-shadow:0 6px 20px rgba(59,130,246,.5);border-color:rgba(255,255,255,.2)}
+.k-reg-step-item.done .k-reg-step-num{background:linear-gradient(135deg,var(--fresh),var(--fresh-2));color:#fff}
+.k-reg-step-item.done .k-reg-step-num::before{content:'✓'}
+.k-reg-step-item.done .k-reg-step-num span{display:none}
+.k-reg-step-label{display:block;font-size:10.5px;color:var(--ink-3);margin-top:6px;font-weight:700;white-space:nowrap}
+.k-reg-step-item.active .k-reg-step-label{color:var(--driver-2)}
+.k-reg-card{background:rgba(7,13,27,.92);backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:26px;animation:ktFadeSlideUp .4s var(--ease-out)}
+[data-theme="light"] .k-reg-card{background:rgba(255,255,255,.96)}
+.k-reg-card h2{font-size:19px;font-weight:900;margin-bottom:6px;font-family:'Reem Kufi',serif}
+.k-reg-card .hint{font-size:13px;color:var(--ink-3);margin-bottom:20px;line-height:1.7}
+.k-field{margin-bottom:16px;display:flex;flex-direction:column;gap:8px}
+.k-field label{font-size:13.5px;font-weight:700;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.k-field label .req{color:var(--danger);font-size:15px}
+.k-field input,.k-field select,.k-field textarea{padding:14px 16px;border-radius:13px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;width:100%;font-family:inherit;transition:all .2s}
+.k-field input:focus,.k-field select:focus,.k-field textarea:focus{border-color:var(--driver);box-shadow:0 0 0 5px rgba(59,130,246,.15);outline:none}
+.k-field input:disabled{opacity:.5;cursor:not-allowed}
+.k-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.k-pw-wrap{position:relative}
+.k-pw-wrap input{padding-inline-end:48px}
+.k-pw-toggle{position:absolute;inset-inline-end:12px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--ink-3);cursor:pointer;background:transparent;border:none;transition:all .2s}
+.k-pw-toggle:hover{color:var(--driver-2);background:var(--glass)}
+.k-pw-toggle svg{width:18px;height:18px}
+.k-pw-strength{margin-top:6px;height:4px;border-radius:999px;background:var(--glass);overflow:hidden}
+.k-pw-strength-fill{height:100%;width:0;border-radius:999px;transition:all .3s;background:var(--danger)}
+.k-pw-strength-fill.weak{width:33%;background:var(--danger)}
+.k-pw-strength-fill.medium{width:66%;background:var(--gold)}
+.k-pw-strength-fill.strong{width:100%;background:var(--fresh)}
+
+/* ═══ MAP PICKER ═══ */
+.kt-map-picker{width:100%;height:280px;border-radius:16px;border:1px solid var(--line-2);overflow:hidden;margin-top:10px;background:var(--bg-3);position:relative}
+.kt-map-picker.leaflet-container{font-family:inherit}
+.kt-map-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kt-map-actions button{flex:1;min-width:120px;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;border:1px solid var(--line-2);background:var(--glass);color:var(--ink);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
+.kt-map-actions button:hover{background:var(--glass-2);border-color:var(--driver)}
+.kt-map-actions button.primary{background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;border-color:transparent}
+.kt-map-coords{margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--bg-3);border:1px dashed var(--line-2);font-family:'Courier New',monospace;font-size:12.5px;color:var(--gold);text-align:center}
+.kt-map-ok{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:6px 12px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);color:var(--fresh);font-size:12px;font-weight:800}
+
+/* ═══ IMAGE UPLOAD ═══ */
+.kt-upload{position:relative;aspect-ratio:1;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:2px dashed var(--line-2);cursor:pointer;transition:all .25s;display:grid;place-items:center;text-align:center;padding:12px}
+.kt-upload:hover{border-color:var(--driver);background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(59,130,246,.03))}
+.kt-upload.filled{border-style:solid;border-color:var(--fresh);padding:0}
+.kt-upload.filled:hover{border-color:var(--fresh)}
+.kt-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.kt-upload .icon{font-size:38px;margin-bottom:8px}
+.kt-upload .label{font-size:13px;font-weight:800;color:var(--ink-2);line-height:1.4}
+.kt-upload .sub{font-size:11px;color:var(--ink-3);margin-top:4px;line-height:1.4}
+.kt-upload img.preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.kt-upload.filled img.preview{display:block}
+.kt-upload.filled .icon,.kt-upload.filled .label,.kt-upload.filled .sub{display:none}
+.kt-upload.filled::after{content:'✓ تم';position:absolute;top:8px;inset-inline-end:8px;background:linear-gradient(135deg,var(--fresh),var(--fresh-2));color:#fff;font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;box-shadow:0 4px 12px rgba(34,197,94,.5);z-index:2}
+.kt-upload .change-hint{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));color:#fff;font-size:11.5px;font-weight:700;padding:20px 10px 10px;text-align:center;display:none;z-index:1}
+.kt-upload.filled:hover .change-hint{display:block}
+.kt-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kt-upload-grid .profile-upload{grid-column:1/-1;max-width:200px;margin:0 auto}
+.kt-upload-status{margin-top:14px;padding:12px 16px;border-radius:12px;font-size:13px;font-weight:700;text-align:center;display:none}
+.kt-upload-status.show{display:block}
+.kt-upload-status.ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.35);color:var(--fresh)}
+.kt-upload-status.err{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171}
+.kt-reg-actions{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
+.kt-reg-actions .k-btn{flex:1;min-width:140px}
+
+/* ═══ BUTTONS ═══ */
+.k-btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 24px;border-radius:var(--r-pill);font-size:14.5px;font-weight:700;transition:all .25s;white-space:nowrap;cursor:pointer;border:1px solid transparent;font-family:inherit}
+.k-btn-primary{background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;box-shadow:0 8px 22px rgba(59,130,246,.4)}
+.k-btn-primary:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(59,130,246,.6)}
+.k-btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.k-btn-success{background:linear-gradient(135deg,var(--fresh),var(--fresh-2));color:#fff}
+.k-btn-success:hover{transform:translateY(-3px)}
+.k-btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#1a1206}
+.k-btn-danger{background:var(--danger);color:#fff}
+.k-btn-glass{background:var(--glass);border-color:var(--line-2);color:var(--ink);backdrop-filter:blur(14px)}
+.k-btn-glass:hover{background:var(--glass-2);border-color:var(--driver)}
+.k-btn-block{width:100%}
+.k-btn-sm{padding:10px 16px;font-size:13px}
+.k-btn-lg{padding:18px 32px;font-size:16px}
+.k-btn svg{width:18px;height:18px}
+
+/* ═══ SHELL ═══ */
+.k-shell{display:none}
+.k-shell.active{display:block}
+
+/* ═══════════════════════════════════════════════════════════
+   ⭐ TOPBAR — Modern Premium
+   ═══════════════════════════════════════════════════════════ */
+.k-topbar{
+  position:sticky;top:0;z-index:60;
+  background:linear-gradient(180deg,rgba(7,13,27,.92) 0%,rgba(7,13,27,.85) 100%);
+  backdrop-filter:blur(50px) saturate(200%);
+  -webkit-backdrop-filter:blur(50px) saturate(200%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  padding:12px 18px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 4px 30px rgba(0,0,0,.4);
+}
+[data-theme="light"] .k-topbar{background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.85) 100%);border-bottom-color:rgba(0,0,0,.06)}
+
+.k-topbar-logo{height:42px;width:auto;flex:none;filter:drop-shadow(0 4px 12px rgba(255,107,53,.4))}
+.k-topbar-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2.5px solid transparent;background:linear-gradient(135deg,var(--driver),var(--driver-2)) padding-box,linear-gradient(135deg,var(--driver),var(--gold)) border-box;flex:none;box-shadow:0 4px 16px rgba(59,130,246,.4),0 0 0 3px rgba(59,130,246,.15)}
+.k-topbar-title{flex:1;min-width:0}
+.k-topbar-title b{display:block;font-size:15.5px;font-weight:900;line-height:1.2;letter-spacing:-.01em;background:linear-gradient(180deg,#fff 0%,#c4d0dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="light"] .k-topbar-title b{background:linear-gradient(180deg,#0a0f1e 0%,#2a3448 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-topbar-title small{display:block;font-size:11px;color:var(--ink-4);margin-top:3px;font-weight:600;letter-spacing:.02em}
+
+.k-status-btn{
+  position:relative;display:inline-flex;align-items:center;gap:8px;
+  padding:9px 14px;border-radius:999px;
+  font-size:12px;font-weight:900;
+  transition:all .35s cubic-bezier(.25,.8,.35,1);
+  border:none;cursor:pointer;overflow:hidden;
+  font-family:inherit;letter-spacing:.01em;
+}
+.k-status-btn::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.05));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+.k-status-btn.online{background:linear-gradient(135deg,#16a34a 0%,#22c55e 50%,#4ade80 100%);color:#fff;box-shadow:0 6px 20px rgba(34,197,94,.5),0 0 0 3px rgba(34,197,94,.15),inset 0 1px 0 rgba(255,255,255,.3)}
+.k-status-btn.offline{background:linear-gradient(135deg,#991b1b 0%,#dc2626 50%,#ef4444 100%);color:#fff;box-shadow:0 6px 20px rgba(239,68,68,.4),0 0 0 3px rgba(239,68,68,.12),inset 0 1px 0 rgba(255,255,255,.2)}
+.k-status-btn:hover{transform:translateY(-2px)}
+.k-status-btn:active{transform:translateY(0)}
+.k-status-btn .dot{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.9);flex:none}
+.k-status-btn.online .dot{animation:ktPulseDot 1.5s infinite}
+
+.k-content{padding:22px 20px 100px;max-width:900px;margin:0 auto}
+
+/* ═══════════════════════════════════════════════════════════
+   ⭐ K-STATS — Modern Premium Cards
+   ═══════════════════════════════════════════════════════════ */
+.k-stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:22px}
+
+.k-stat{
+  position:relative;
+  padding:22px 18px 20px;
+  border-radius:22px;
+  background:linear-gradient(160deg,rgba(255,255,255,.11) 0%,rgba(255,255,255,.04) 50%,rgba(255,255,255,.02) 100%);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 8px 32px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.15),inset 0 -1px 0 rgba(0,0,0,.2);
+  text-align:center;
+  overflow:hidden;
+  cursor:pointer;
+  transition:all .4s cubic-bezier(.25,.8,.35,1);
+  animation:ktScaleIn .5s cubic-bezier(.16,1,.3,1) both;
+  isolation:isolate;
+}
+
+.k-stat::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;
+  background:linear-gradient(160deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.08) 25%,rgba(255,255,255,0) 50%,rgba(255,255,255,.08) 75%,rgba(255,255,255,.28) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;z-index:0;
+}
+
+.k-stat::after{
+  content:'';position:absolute;top:-40%;right:-40%;
+  width:80%;height:80%;border-radius:50%;
+  background:radial-gradient(circle,var(--brand) 0%,transparent 70%);
+  opacity:.15;filter:blur(30px);pointer-events:none;
+  transition:all .5s;z-index:0;
+}
+
+.k-stat:hover{
+  transform:translateY(-8px) scale(1.03);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 40px rgba(255,107,53,.25),inset 0 1px 0 rgba(255,255,255,.2);
+}
+.k-stat:hover::after{opacity:.35;transform:scale(1.3)}
+.k-stat:active{transform:translateY(-4px) scale(1.01)}
+
+.k-stat.green::after{background:radial-gradient(circle,var(--fresh) 0%,transparent 70%)}
+.k-stat.gold::after{background:radial-gradient(circle,var(--gold) 0%,transparent 70%)}
+.k-stat.danger::after{background:radial-gradient(circle,var(--danger) 0%,transparent 70%)}
+.k-stat.purple::after{background:radial-gradient(circle,var(--purple) 0%,transparent 70%)}
+
+.k-stat-icon{
+  position:relative;width:56px;height:56px;border-radius:18px;
+  display:grid;place-items:center;margin:0 auto 14px;
+  background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(96,165,250,.08));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 4px 12px rgba(0,0,0,.3);
+  transition:all .4s cubic-bezier(.16,1,.3,1);
+  z-index:1;
+}
+.k-stat-icon::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(135deg,var(--driver),var(--driver-2));
+  opacity:.12;z-index:-1;
+}
+.k-stat-icon svg{width:26px;height:26px;color:var(--driver-2);stroke-width:2.2;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+.k-stat:hover .k-stat-icon{transform:scale(1.1) rotate(-5deg)}
+.k-stat:hover .k-stat-icon svg{filter:drop-shadow(0 4px 12px currentColor)}
+
+.k-stat.green .k-stat-icon{background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(74,222,128,.08))}
+.k-stat.green .k-stat-icon::before{background:linear-gradient(135deg,var(--fresh),var(--fresh-2));opacity:.18}
+.k-stat.green .k-stat-icon svg{color:var(--fresh)}
+
+.k-stat.gold .k-stat-icon{background:linear-gradient(135deg,rgba(255,184,0,.18),rgba(255,217,160,.08))}
+.k-stat.gold .k-stat-icon::before{background:linear-gradient(135deg,var(--gold),var(--gold-2));opacity:.18}
+.k-stat.gold .k-stat-icon svg{color:var(--gold)}
+
+.k-stat.danger .k-stat-icon{background:linear-gradient(135deg,rgba(239,68,68,.18),rgba(248,113,113,.08))}
+.k-stat.danger .k-stat-icon::before{background:linear-gradient(135deg,var(--danger),#f87171);opacity:.18}
+.k-stat.danger .k-stat-icon svg{color:var(--danger)}
+
+.k-stat.purple .k-stat-icon{background:linear-gradient(135deg,rgba(167,139,250,.18),rgba(196,181,253,.08))}
+.k-stat.purple .k-stat-icon::before{background:linear-gradient(135deg,var(--purple),#c4b5fd);opacity:.18}
+.k-stat.purple .k-stat-icon svg{color:var(--purple)}
+
+.k-stat-label{
+  font-size:11px;color:var(--ink-3);font-weight:900;
+  margin-bottom:8px;text-transform:uppercase;
+  letter-spacing:.14em;position:relative;z-index:1;
+}
+.k-stat-value{
+  font-size:34px;font-weight:900;line-height:1;
+  letter-spacing:-.02em;position:relative;z-index:1;
+  background:linear-gradient(180deg,#fff 0%,#e0e8f0 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+}
+[data-theme="light"] .k-stat-value{background:linear-gradient(180deg,#0a0f1e 0%,#2a3448 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-stat.green .k-stat-value{background:linear-gradient(180deg,#4ade80 0%,#16a34a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-stat.gold .k-stat-value{background:linear-gradient(180deg,#ffd9a0 0%,#ffb800 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-stat.danger .k-stat-value{background:linear-gradient(180deg,#f87171 0%,#dc2626 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.k-stat.purple .k-stat-value{background:linear-gradient(180deg,#c4b5fd 0%,#7c3aed 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+
+.k-stat-arrow{position:absolute;top:14px;inset-inline-end:14px;font-size:16px;opacity:.25;transition:all .3s;z-index:2;color:var(--ink-3)}
+.k-stat:hover .k-stat-arrow{opacity:1;transform:translate(3px,-3px);color:var(--driver-2)}
+
+.k-stat-progress{margin-top:14px;height:6px;border-radius:999px;background:rgba(0,0,0,.3);overflow:hidden;position:relative;z-index:1;box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.k-stat-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--driver),var(--driver-2),#93c5fd);box-shadow:0 0 12px rgba(59,130,246,.6);transition:width 1s cubic-bezier(.16,1,.3,1);position:relative}
+.k-stat-progress-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:ktProgressShine 2s infinite}
+.k-stat.green .k-stat-progress-fill{background:linear-gradient(90deg,var(--fresh),var(--fresh-2),#86efac);box-shadow:0 0 12px rgba(34,197,94,.6)}
+.k-stat.gold .k-stat-progress-fill{background:linear-gradient(90deg,var(--gold),var(--gold-2),#fde68a);box-shadow:0 0 12px rgba(255,184,0,.6)}
+.k-stat.danger .k-stat-progress-fill{background:linear-gradient(90deg,var(--danger),#f87171,#fca5a5);box-shadow:0 0 12px rgba(239,68,68,.6)}
+.k-stat.purple .k-stat-progress-fill{background:linear-gradient(90deg,var(--purple),#c4b5fd,#ddd6fe);box-shadow:0 0 12px rgba(167,139,250,.6)}
+.k-stat-progress-label{margin-top:8px;font-size:11px;color:var(--ink-3);font-weight:800;text-align:end;position:relative;z-index:1;letter-spacing:.02em}
+
+.k-stat:nth-child(1){animation-delay:.05s}
+.k-stat:nth-child(2){animation-delay:.1s}
+.k-stat:nth-child(3){animation-delay:.15s}
+.k-stat:nth-child(4){animation-delay:.2s}
+.k-stat:nth-child(5){animation-delay:.25s}
+.k-stat:nth-child(6){animation-delay:.3s}
+
+/* ═══ GROUP HEADER ═══ */
+.kt-group-head{display:flex;align-items:center;gap:12px;margin:26px 0 16px;padding:0 4px}
+.kt-group-head .ico{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);flex:none}
+.kt-group-head .ico svg{width:20px;height:20px}
+.kt-group-head h3{font-size:15px;font-weight:900;letter-spacing:-.01em;background:linear-gradient(180deg,#fff 0%,#c4d0dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="light"] .kt-group-head h3{background:linear-gradient(180deg,#0a0f1e 0%,#2a3448 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.kt-group-head .line{flex:1;height:1px;background:linear-gradient(90deg,rgba(196,214,232,.2),transparent)}
+
+/* ═══ CARDS ═══ */
+.k-card{background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));backdrop-filter:blur(24px);border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+[data-theme="light"] .k-card{background:rgba(255,255,255,.92)}
+.k-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.k-card-head h3{font-size:18px;font-weight:800;display:flex;align-items:center;gap:10px}
+.k-card-head h3 svg{width:22px;height:22px;color:var(--driver-2)}
+
+/* ═══ ORDER CARD ═══ */
+.k-order-card{background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(255,107,53,.04));border:1px solid rgba(59,130,246,.3);border-radius:var(--r-lg);padding:20px;margin-bottom:14px;cursor:pointer;transition:all .25s}
+.k-order-card:hover{transform:translateY(-3px);border-color:var(--driver);box-shadow:0 14px 40px rgba(59,130,246,.2)}
+.k-order-card.urgent{border-color:rgba(239,68,68,.5);animation:urgentPulse 2s infinite}
+.k-order-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.k-order-id{font-family:'Courier New',monospace;font-size:14px;font-weight:800;color:var(--driver-2);flex:1}
+.k-order-badge{padding:4px 12px;border-radius:999px;font-size:11.5px;font-weight:800;background:var(--gold);color:#1a1206}
+.k-order-badge.new{background:linear-gradient(135deg,var(--fresh),var(--fresh-2));color:#fff;animation:newBlink 1.5s infinite}
+.k-order-body{display:grid;gap:10px}
+.k-order-row{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.k-order-row svg{width:16px;height:16px;color:var(--ink-3);flex:none}
+.k-order-foot{display:flex;align-items:center;justify-content:space-between;padding-top:14px;margin-top:14px;border-top:1px solid var(--line);gap:10px}
+.k-order-total{font-size:20px;font-weight:900;color:var(--gold)}
+.k-order-distance{font-size:12.5px;color:var(--ink-3)}
+
+/* ═══════════════════════════════════════════════════════════
+   ⭐ BOTTOM NAV — Modern Premium
+   ═══════════════════════════════════════════════════════════ */
+.k-bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:90;
+  background:linear-gradient(180deg,rgba(7,13,27,.85) 0%,rgba(2,6,15,.98) 100%);
+  backdrop-filter:blur(50px) saturate(200%);
+  -webkit-backdrop-filter:blur(50px) saturate(200%);
+  border-top:1px solid rgba(255,255,255,.06);
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));
+  display:grid;grid-template-columns:repeat(5,1fr);
+  max-width:900px;margin:0 auto;
+  box-shadow:0 -10px 40px rgba(0,0,0,.5);
+}
+[data-theme="light"] .k-bnav{background:linear-gradient(180deg,rgba(255,255,255,.9) 0%,rgba(255,255,255,.98) 100%);border-top-color:rgba(0,0,0,.06)}
+
+.k-bnav-btn{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;color:var(--ink-4);font-size:10px;font-weight:800;background:none;border:none;cursor:pointer;transition:all .3s cubic-bezier(.25,.8,.35,1);font-family:inherit;letter-spacing:.02em}
+.k-bnav-btn svg{width:24px;height:24px;stroke-width:1.9;transition:all .35s cubic-bezier(.16,1,.3,1);position:relative;z-index:1}
+
+.k-bnav-btn::before{content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%) scale(.5);width:44px;height:32px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(96,165,250,.08));opacity:0;transition:all .35s cubic-bezier(.16,1,.3,1);z-index:0}
+.k-bnav-btn:hover{color:var(--ink-2)}
+.k-bnav-btn:hover::before{transform:translateX(-50%) scale(.8);opacity:.6}
+
+.k-bnav-btn.active{color:var(--driver-2)}
+.k-bnav-btn.active::before{transform:translateX(-50%) scale(1);opacity:1;background:linear-gradient(135deg,rgba(59,130,246,.22),rgba(96,165,250,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.k-bnav-btn.active svg{stroke:var(--driver-2);stroke-width:2.4;transform:translateY(-3px) scale(1.12);filter:drop-shadow(0 4px 10px rgba(59,130,246,.5))}
+
+.k-bnav-btn::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%) scaleX(0);width:24px;height:3px;border-radius:0 0 4px 4px;background:linear-gradient(90deg,var(--driver),var(--driver-2));transition:transform .35s cubic-bezier(.16,1,.3,1);box-shadow:0 2px 8px rgba(59,130,246,.6)}
+.k-bnav-btn.active::after{transform:translateX(-50%) scaleX(1)}
+
+.k-bnav-btn .k-badge{position:absolute;top:4px;inset-inline-end:calc(50% - 22px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-size:9.5px;font-weight:900;display:grid;place-items:center;border:2px solid var(--bg);box-shadow:0 2px 8px rgba(239,68,68,.6);animation:ktBadgePulse 2s infinite}
+
+.k-bnav-btn span:not(.k-badge){position:relative;z-index:1;font-size:10px;transition:all .3s}
+.k-bnav-btn.active span:not(.k-badge){color:var(--driver-2);font-weight:900}
+
+/* ═══ MODAL ═══ */
+.k-modal-bd{position:fixed;inset:0;background:rgba(2,6,15,.92);backdrop-filter:blur(16px);z-index:999;display:none;align-items:flex-end;justify-content:center;padding:0}
+.k-modal-bd.open{display:flex}
+.k-modal{background:rgba(7,13,27,.95);backdrop-filter:blur(50px);border:1px solid var(--line-2);border-top-left-radius:28px;border-top-right-radius:28px;padding:24px;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;box-shadow:0 -20px 60px rgba(0,0,0,.7);animation:modalSlideUp .35s var(--ease-out)}
+[data-theme="light"] .k-modal{background:rgba(255,255,255,.98)}
+.k-modal::before{content:'';display:block;width:50px;height:5px;border-radius:999px;background:var(--line-2);margin:0 auto 20px}
+.k-modal-head{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.k-modal-head h3{flex:1;font-size:20px;font-weight:800;display:flex;align-items:center;gap:10px}
+.k-modal-head h3 svg{width:22px;height:22px;color:var(--driver-2)}
+.k-modal-close{width:42px;height:42px;border-radius:50%;background:var(--glass);color:var(--ink-3);display:grid;place-items:center;cursor:pointer;flex:none;border:none}
+
+/* ═══ MAP ═══ */
+.k-map{width:100%;height:240px;border-radius:16px;background:var(--bg-3);border:1px solid var(--line-2);overflow:hidden;margin:16px 0}
+.k-map iframe{width:100%;height:100%;border:0}
+
+/* ═══ TRANSACTIONS ═══ */
+.k-tx{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.k-tx:last-child{border-bottom:none}
+.k-tx-ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none;background:var(--glass-2)}
+.k-tx-info{flex:1;min-width:0}
+.k-tx-info b{font-size:14.5px;font-weight:800;display:block;margin-bottom:3px}
+.k-tx-info span{font-size:12px;color:var(--ink-3)}
+.k-tx-amt{font-size:16px;font-weight:900;color:var(--fresh)}
+
+/* ═══ EMPTY ═══ */
+.k-empty{text-align:center;padding:60px 24px;color:var(--ink-3)}
+.k-empty svg{width:64px;height:64px;margin:0 auto 16px;opacity:.4}
+.k-empty h3{font-size:18px;color:var(--ink);margin-bottom:8px;font-weight:700}
+.k-empty p{font-size:14px}
+
+/* ═══ TOAST ═══ */
+.k-toast{position:fixed;bottom:100px;inset-inline-end:20px;padding:16px 22px;background:rgba(2,6,15,.96);backdrop-filter:blur(20px);border:1px solid var(--line-2);border-radius:16px;color:#fff;font-weight:600;font-size:14.5px;z-index:9999;display:flex;align-items:center;gap:12px;animation:ktSlideIn .4s var(--ease-out);box-shadow:0 20px 50px rgba(0,0,0,.5);max-width:calc(100vw - 40px)}
+[data-theme="light"] .k-toast{background:#fff;color:var(--ink)}
+.k-toast::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--gold);flex:none}
+.k-toast.success::before{background:var(--fresh)}
+.k-toast.error::before{background:var(--danger)}
+
+/* ═══ PILLS ═══ */
+.k-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:999px;font-size:12px;font-weight:800}
+.k-pill-blue{background:rgba(59,130,246,.15);color:var(--driver-2);border:1px solid rgba(59,130,246,.35)}
+.k-pill-fresh{background:rgba(34,197,94,.15);color:var(--fresh);border:1px solid rgba(34,197,94,.35)}
+.k-pill-gold{background:rgba(255,184,0,.15);color:var(--gold);border:1px solid rgba(255,184,0,.35)}
+.k-pill-danger{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)}
+
+/* ═══ FB STATUS ═══ */
+.k-fb-status{position:fixed;bottom:calc(90px + env(safe-area-inset-bottom,0px));inset-inline-end:10px;z-index:9999;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#4ade80;font-family:'Courier New',monospace;backdrop-filter:blur(10px);opacity:0;transition:opacity .3s;pointer-events:none}
+.k-fb-status.show{opacity:1}
+.k-fb-status.err{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#f87171}
+
+/* ═══ FLOW ═══ */
+.k-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:16px 0}
+.k-flow-step{padding:14px 12px;border-radius:14px;text-align:center;background:var(--glass);border:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-3);position:relative}
+.k-flow-step.done{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(74,222,128,.08));color:var(--fresh);border-color:rgba(34,197,94,.4)}
+.k-flow-step.current{background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;border-color:transparent;box-shadow:0 8px 22px rgba(59,130,246,.4)}
+.k-flow-step .num{display:block;font-size:18px;font-weight:900;margin-bottom:4px}
+
+/* ═══ RADIUS CONTROL ═══ */
+.k-radius-control{display:flex;align-items:center;gap:12px;padding:12px 16px;background:linear-gradient(135deg,rgba(255,107,53,.08),rgba(255,184,0,.04));border:1px solid rgba(255,107,53,.3);border-radius:14px;margin-bottom:16px;flex-wrap:wrap}
+.k-radius-control .icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--gold));display:grid;place-items:center;font-size:20px;flex:none}
+.k-radius-control .label{flex:1;min-width:120px}
+.k-radius-control .label b{font-size:13.5px;display:block}
+.k-radius-control .label span{font-size:11.5px;color:var(--ink-3)}
+.k-radius-control select{padding:8px 12px;border-radius:10px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:13px;font-weight:700;cursor:pointer}
+
+/* ═══ LATE WARNING ═══ */
+.k-late-warning{background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.08));border:2px solid rgba(239,68,68,.6);border-radius:16px;padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;animation:ktLateShake 3s infinite}
+.k-late-warning .icon{font-size:36px;flex:none;animation:ktFlame 1s infinite}
+.k-late-warning .info{flex:1}
+.k-late-warning .info b{color:#f87171;font-size:15px;display:block;margin-bottom:4px}
+.k-late-warning .info span{color:var(--ink-2);font-size:12.5px;line-height:1.5;display:block}
+.k-timer-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:var(--fresh);font-size:12px;font-weight:800}
+.k-timer-badge.warn{background:rgba(255,184,0,.15);border-color:rgba(255,184,0,.5);color:var(--gold);animation:ktTimerPulse 1s infinite}
+.k-timer-badge.danger{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:#f87171;animation:ktTimerPulse .6s infinite}
+
+/* ═══ WEEKLY STATS ═══ */
+.k-week-chart{display:flex;align-items:flex-end;gap:8px;height:160px;padding:16px 8px;background:var(--bg-3);border-radius:16px;border:1px solid var(--line);margin-bottom:16px}
+.k-week-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+.k-week-bar .bar{width:100%;min-height:4px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--driver-2),var(--driver));transition:all .6s var(--ease-out)}
+.k-week-bar .bar.today{background:linear-gradient(180deg,var(--gold-2),var(--gold));box-shadow:0 0 14px rgba(255,184,0,.5)}
+.k-week-bar .count{font-size:11px;font-weight:800;color:var(--driver-2)}
+.k-week-bar .day{font-size:10.5px;color:var(--ink-3);font-weight:700}
+.k-week-bar.today .count,.k-week-bar.today .day{color:var(--gold)}
+.k-week-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+.k-week-summary .item{background:var(--bg-3);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.k-week-summary .item b{display:block;font-size:22px;font-weight:900;color:var(--gold);line-height:1;margin-bottom:6px}
+.k-week-summary .item span{font-size:11.5px;color:var(--ink-3);font-weight:700}
+
+/* ═══ LEADERBOARD ═══ */
+.k-lb-top3{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px;margin-bottom:20px;align-items:end}
+.k-lb-podium{background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:18px;padding:16px 12px;text-align:center}
+.k-lb-podium.first{background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.08));border-color:rgba(251,191,36,.5);padding:22px 12px;box-shadow:0 12px 36px rgba(251,191,36,.3)}
+.k-lb-podium.second{background:linear-gradient(135deg,rgba(212,212,216,.15),rgba(161,161,170,.05));border-color:rgba(212,212,216,.4)}
+.k-lb-podium.third{background:linear-gradient(135deg,rgba(217,119,6,.15),rgba(146,64,14,.05));border-color:rgba(217,119,6,.4)}
+.k-lb-medal{font-size:32px;margin-bottom:6px;display:block}
+.k-lb-podium.first .k-lb-medal{font-size:42px}
+.k-lb-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;font-size:24px;margin:0 auto 8px;color:#fff;font-weight:900;border:3px solid var(--bg-3);overflow:hidden}
+.k-lb-avatar img{width:100%;height:100%;object-fit:cover}
+.k-lb-podium.first .k-lb-avatar{width:66px;height:66px;font-size:28px;border-color:rgba(251,191,36,.6);background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a1206}
+.k-lb-name{font-size:12.5px;font-weight:800;color:#fff;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k-lb-points{font-size:14px;font-weight:900;color:var(--gold)}
+.k-lb-podium.first .k-lb-points{font-size:17px}
+.k-lb-list{display:flex;flex-direction:column;gap:8px}
+.k-lb-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+.k-lb-row.me{background:linear-gradient(135deg,rgba(255,184,0,.12),rgba(255,107,53,.05));border-color:rgba(255,184,0,.4)}
+.k-lb-rank{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:13px;font-weight:900;flex:none}
+.k-lb-row.me .k-lb-rank{background:var(--gold);color:#1a1206}
+.k-lb-row .av-mini{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;color:#fff;font-weight:800;font-size:14px;flex:none;overflow:hidden}
+.k-lb-row .av-mini img{width:100%;height:100%;object-fit:cover}
+.k-lb-row .info{flex:1;min-width:0}
+.k-lb-row .info b{font-size:14px;display:block;margin-bottom:2px}
+.k-lb-row .info span{font-size:11.5px;color:var(--ink-3)}
+.k-lb-row .pts{font-weight:900;color:var(--gold);font-size:16px;flex:none}
+.k-lb-empty{text-align:center;padding:30px 20px;color:var(--ink-3);font-size:14px}
+
+/* ═══ CHAT ═══ */
+.k-chat-modal{display:flex !important;flex-direction:column;max-height:90vh !important;padding:0 !important}
+.k-chat-head{padding:18px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(59,130,246,.12),transparent)}
+.k-chat-head .av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;font-size:22px;color:#fff;flex:none}
+.k-chat-head .info{flex:1;min-width:0}
+.k-chat-head .info b{font-size:15.5px;display:block}
+.k-chat-head .info span{font-size:12px;color:var(--fresh);display:flex;align-items:center;gap:6px;margin-top:2px}
+.k-chat-head .info span::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--fresh);box-shadow:0 0 10px var(--fresh);animation:ktPulseDot 2s infinite}
+.k-chat-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:320px;max-height:500px}
+.k-chat-msg{max-width:80%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.5;word-wrap:break-word}
+.k-chat-msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--driver),var(--driver-2));color:#fff;border-end-end-radius:4px}
+.k-chat-msg.them{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--line-2);color:var(--ink);border-end-start-radius:4px}
+.k-chat-msg .time{display:block;font-size:10px;opacity:.6;margin-top:4px;text-align:end}
+.k-chat-empty{text-align:center;color:var(--ink-3);font-size:13px;padding:40px 20px}
+.k-chat-quick{display:flex;gap:6px;padding:10px 16px;flex-wrap:wrap;border-top:1px solid var(--line);background:rgba(0,0,0,.15)}
+.k-chat-quick button{padding:7px 13px;border-radius:999px;font-size:12px;border:1px solid var(--line-2);background:var(--glass);color:var(--ink-2);font-weight:700;cursor:pointer;font-family:inherit}
+.k-chat-input-wrap{padding:14px 16px;display:flex;gap:10px;align-items:center;border-top:1px solid var(--line)}
+.k-chat-input-wrap input{flex:1;padding:13px 18px;border-radius:999px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:14px}
+.k-chat-input-wrap button{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;color:#fff;border:none;cursor:pointer;flex:none}
+.k-chat-input-wrap button svg{width:20px;height:20px}
+
+/* ═══ NO RADIUS ORDERS ═══ */
+.k-no-radius-orders{text-align:center;padding:40px 24px;background:linear-gradient(135deg,rgba(255,184,0,.06),transparent);border:1px dashed rgba(255,184,0,.35);border-radius:18px}
+.k-no-radius-orders .icon{font-size:52px;margin-bottom:12px}
+.k-no-radius-orders h3{font-size:16px;margin-bottom:8px}
+.k-no-radius-orders p{font-size:13px;color:var(--ink-3);margin-bottom:16px}
+
+/* ═══ PENDING / STATUS CARDS ═══ */
+.kt-pending-card{background:rgba(7,13,27,.92);backdrop-filter:blur(40px);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:32px;text-align:center;max-width:520px;margin:40px auto;animation:ktScaleIn .5s var(--ease-out)}
+[data-theme="light"] .kt-pending-card{background:rgba(255,255,255,.96)}
+.kt-pending-card .icon{font-size:80px;margin-bottom:16px;display:block;animation:ktPulseDot 2s infinite}
+.kt-pending-card h2{font-size:22px;font-weight:900;margin-bottom:10px;font-family:'Reem Kufi',serif}
+.kt-pending-card p{font-size:14px;color:var(--ink-3);line-height:1.7;margin-bottom:20px}
+.kt-doc-preview{display:grid;grid-template-columns:80px 80px 80px;gap:10px;justify-content:center;margin:20px 0}
+.kt-doc-preview > div{aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--bg-3);border:1px solid var(--line);position:relative}
+.kt-doc-preview img{width:100%;height:100%;object-fit:cover}
+.kt-doc-preview .lbl{display:block;font-size:10px;color:var(--ink-3);text-align:center;margin-top:6px;font-weight:700;position:absolute;bottom:-18px;left:0;right:0}
+.kt-approved-banner{background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(74,222,128,.08));border:2px solid rgba(34,197,94,.5);border-radius:20px;padding:28px 20px;text-align:center;margin-bottom:20px;animation:ktScaleIn .5s var(--ease-out)}
+.kt-approved-banner .icon{font-size:72px;margin-bottom:14px;display:block;animation:ktBadgePulse 1.5s infinite}
+.kt-approved-banner h2{font-size:24px;font-weight:900;color:var(--fresh);margin-bottom:8px;font-family:'Reem Kufi',serif}
+.kt-approved-banner p{font-size:14px;color:var(--ink-2);line-height:1.7}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:640px){
+  .k-content{padding:18px 14px 100px}
+  .k-topbar{padding:12px 14px;gap:10px}
+  .k-topbar-logo{height:38px}
+  .k-topbar-avatar{width:38px;height:38px}
+  .k-topbar-title b{font-size:14.5px}
+  .k-status-btn{padding:8px 12px;font-size:11.5px}
+  .k-stat{padding:18px 14px 16px;border-radius:20px}
+  .k-stat-icon{width:48px;height:48px;border-radius:16px;margin-bottom:12px}
+  .k-stat-icon svg{width:22px;height:22px}
+  .k-stat-value{font-size:28px}
+  .k-stat-label{font-size:10px;margin-bottom:6px;letter-spacing:.12em}
+  .k-card{padding:18px}
+  .k-modal{padding:20px;border-top-left-radius:22px;border-top-right-radius:22px}
+  .k-login-card{padding:32px 22px}
+  .k-login-card h1{font-size:26px}
+  .k-login-logo{height:68px}
+  .k-reg-step-label{font-size:9.5px}
+  .k-reg-step-num{width:30px;height:30px;font-size:13px}
+  .k-reg-card{padding:20px}
+  .k-lb-top3{grid-template-columns:1fr 1.2fr 1fr;gap:6px}
+  .k-lb-podium{padding:12px 8px}
+  .k-lb-avatar{width:42px;height:42px;font-size:20px}
+  .k-lb-podium.first .k-lb-avatar{width:54px;height:54px;font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div class="k-bg-image"></div>
+<div class="k-bg-overlay"></div>
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN SCREEN — Email + Password
+     ═══════════════════════════════════════════════ -->
+<div class="k-login-screen" id="loginScreen">
+  <div class="k-login-card">
+    <img src="logo.png" alt="كانتِين" class="k-login-logo" onerror="this.style.display='none'">
+    <span class="k-login-badge">🛵 بوابة المناديب</span>
+    <h1><span class="gold">لوحة</span> <span class="blue">المندوب</span></h1>
+    <p id="authSubtitle">سجّل دخولك أو أنشئ حساب جديد</p>
+
+    <!-- Mode tabs -->
+    <div class="k-auth-mode-tabs">
+      <button type="button" class="k-auth-mode-tab on" id="tabLogin" onclick="ktSwitchAuthMode('login')">🔑 دخول</button>
+      <button type="button" class="k-auth-mode-tab" id="tabSignup" onclick="ktSwitchAuthMode('signup')">✨ حساب جديد</button>
+    </div>
+
+    <!-- Login form -->
+    <div id="loginFormBox">
+      <div class="k-login-field">
+        <label>📧 البريد الإلكتروني</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" dir="ltr">
+      </div>
+      <div class="k-login-field">
+        <label>🔒 كلمة المرور</label>
+        <div class="k-pw-wrap">
+          <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="k-pw-toggle" onclick="ktTogglePw('loginPass',this)" aria-label="إظهار"><svg data-lucide="eye"></svg></button>
+        </div>
+      </div>
+      <button type="button" class="k-login-btn" id="loginBtn" onclick="ktEmailLogin()">
+        <i data-lucide="log-in"></i> تسجيل الدخول
+      </button>
+      <div class="k-login-err" id="loginErr"></div>
+    </div>
+
+    <!-- Signup form -->
+    <div id="signupFormBox" style="display:none">
+      <div class="k-login-field">
+        <label>📧 البريد الإلكتروني</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" autocomplete="email" dir="ltr">
+      </div>
+      <div class="k-login-field">
+        <label>🔒 كلمة المرور</label>
+        <div class="k-pw-wrap">
+          <input type="password" id="signupPass" placeholder="6 أحرف على الأقل" autocomplete="new-password" oninput="ktCheckPwStrength(this.value)">
+          <button type="button" class="k-pw-toggle" onclick="ktTogglePw('signupPass',this)" aria-label="إظهار"><svg data-lucide="eye"></svg></button>
+        </div>
+        <div class="k-pw-strength"><div class="k-pw-strength-fill" id="pwStrengthFill"></div></div>
+      </div>
+      <div class="k-login-field">
+        <label>🔒 تأكيد كلمة المرور</label>
+        <div class="k-pw-wrap">
+          <input type="password" id="signupPass2" placeholder="••••••••" autocomplete="new-password">
+          <button type="button" class="k-pw-toggle" onclick="ktTogglePw('signupPass2',this)" aria-label="إظهار"><svg data-lucide="eye"></svg></button>
+        </div>
+      </div>
+      <button type="button" class="k-login-btn" id="signupBtn" onclick="ktStartRegistration()">
+        <i data-lucide="user-plus"></i> إنشاء الحساب والبدء
+      </button>
+      <div class="k-login-err" id="signupErr"></div>
+    </div>
+
+    <div class="k-login-divider">أو</div>
+
+    <button type="button" class="k-google-btn" onclick="ktGoogleLogin()">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      المتابعة بحساب Google
+    </button>
+
+    <div class="k-login-toggle">
+      <a onclick="ktShowForgotPass()">نسيت كلمة المرور؟</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     REGISTRATION SCREEN — 4 Steps
+     ═══════════════════════════════════════════════ -->
+<div class="k-reg-screen" id="regScreen" style="display:none">
+  <div class="k-reg-container">
+    <div class="k-reg-head">
+      <img src="logo.png" alt="كانتِين" class="k-login-logo" onerror="this.style.display='none'">
+      <h1>📝 تسجيل مندوب جديد</h1>
+      <p>أكمل الخطوات الأربع لتفعيل حسابك</p>
+    </div>
+
+    <div class="k-reg-steps">
+      <div class="k-reg-step-item active" data-step="1">
+        <span class="k-reg-step-num"><span>1</span></span>
+        <span class="k-reg-step-label">البيانات</span>
+      </div>
+      <div class="k-reg-step-item" data-step="2">
+        <span class="k-reg-step-num"><span>2</span></span>
+        <span class="k-reg-step-label">الصورة</span>
+      </div>
+      <div class="k-reg-step-item" data-step="3">
+        <span class="k-reg-step-num"><span>3</span></span>
+        <span class="k-reg-step-label">البطاقة</span>
+      </div>
+      <div class="k-reg-step-item" data-step="4">
+        <span class="k-reg-step-num"><span>4</span></span>
+        <span class="k-reg-step-label">الموقع</span>
+      </div>
+    </div>
+
+    <div class="k-reg-card" id="regCard"></div>
+    <div class="kt-upload-status" id="uploadStatus"></div>
+
+    <div class="kt-reg-actions">
+      <button class="k-btn k-btn-glass" id="regPrevBtn" onclick="ktRegPrev()" style="display:none">← السابق</button>
+      <button class="k-btn k-btn-primary" id="regNextBtn" onclick="ktRegNext()">التالي →</button>
+      <button class="k-btn k-btn-glass" onclick="ktDriverLogout()" style="margin-inline-start:auto">🚪 خروج</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     STATUS SCREEN — Pending / Rejected / Suspended / Approved
+     ═══════════════════════════════════════════════ -->
+<div id="statusScreen" style="display:none;padding:28px 18px">
+  <div class="kt-pending-card" id="statusCard"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     APPROVED WELCOME SCREEN
+     ═══════════════════════════════════════════════ -->
+<div id="approvedScreen" style="display:none;padding:28px 18px">
+  <div style="max-width:560px;margin:0 auto">
+    <div class="kt-approved-banner">
+      <span class="icon">🎉</span>
+      <h2>مبروك! تمت الموافقة</h2>
+      <p>تم تفعيل حسابك بنجاح.<br>يمكنك الآن استقبال الطلبات والبدء في العمل.</p>
+    </div>
+    <div style="background:rgba(7,13,27,.92);backdrop-filter:blur(40px);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:24px;text-align:center">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div style="background:var(--bg-3);border-radius:14px;padding:16px">
+          <div style="font-size:28px;font-weight:900;color:var(--gold)">15</div>
+          <div style="font-size:11.5px;color:var(--ink-3);font-weight:700;margin-top:4px">ج.م / طلب</div>
+        </div>
+        <div style="background:var(--bg-3);border-radius:14px;padding:16px">
+          <div style="font-size:28px;font-weight:900;color:var(--fresh)">24/7</div>
+          <div style="font-size:11.5px;color:var(--ink-3);font-weight:700;margin-top:4px">ساعات عمل مرنة</div>
+        </div>
+      </div>
+      <button class="k-btn k-btn-success k-btn-block k-btn-lg" onclick="ktEnterDashboard()">
+        <i data-lucide="rocket"></i> ابدأ العمل الآن
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     APP SHELL — Dashboard
+     ═══════════════════════════════════════════════ -->
+<div class="k-shell" id="appShell">
+  <header class="k-topbar">
+    <img src="logo.png" alt="كانتِين" class="k-topbar-logo" onerror="this.style.display='none'">
+    <div class="k-topbar-title">
+      <b id="driverName">مندوب كانتِين</b>
+      <small id="driverPhone">—</small>
+    </div>
+    <button class="k-status-btn offline" id="statusBtn" onclick="ktToggleOnline()">
+      <span class="dot"></span>
+      <span id="statusText">غير متصل</span>
+    </button>
+  </header>
+
+  <div class="k-content" id="content"></div>
+
+  <nav class="k-bnav" id="bottomNav" style="display:none">
+    <button class="k-bnav-btn active" data-tab="orders" onclick="switchTab('orders')">
+      <i data-lucide="package"></i>
+      <span>الطلبات</span>
+      <span class="k-badge" id="ordersBadge" style="display:none">0</span>
+    </button>
+    <button class="k-bnav-btn" data-tab="current" onclick="switchTab('current')">
+      <i data-lucide="navigation"></i>
+      <span>مشوار حالي</span>
+    </button>
+    <button class="k-bnav-btn" data-tab="leaderboard" onclick="switchTab('leaderboard')">
+      <i data-lucide="trophy"></i>
+      <span>المتصدرين</span>
+    </button>
+    <button class="k-bnav-btn" data-tab="wallet" onclick="switchTab('wallet')">
+      <i data-lucide="wallet"></i>
+      <span>محفظتي</span>
+    </button>
+    <button class="k-bnav-btn" data-tab="profile" onclick="switchTab('profile')">
+      <i data-lucide="user"></i>
+      <span>حسابي</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODAL + LIGHTBOX
+     ═══════════════════════════════════════════════ -->
+<div class="k-modal-bd" id="modalBd" onclick="if(event.target===this)closeModal()">
+  <div class="k-modal" id="modalContent"></div>
+</div>
+
+<div class="k-fb-status" id="kFbStatus">🔥 Firebase</div>
+
+<!-- Lightbox for fullscreen images -->
+<div id="ktLightbox" style="position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:10000;display:none;align-items:center;justify-content:center;padding:22px;cursor:zoom-out" onclick="ktCloseLightbox()">
+  <img id="ktLightboxImg" src="" alt="" style="max-width:100%;max-height:100%;border-radius:14px;box-shadow:0 30px 90px rgba(0,0,0,.9)">
+</div>
+
+<!-- FCM hidden -->
+<div id="fcmReceiver" style="display:none"></div>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   🛵 DRIVER APP v7.0 — Email/Password Auth + Real-time Approval
+   ═══════════════════════════════════════════════════════════ */
+
+var $ = function(s){ return document.querySelector(s); };
+var $$ = function(s){ return Array.from(document.querySelectorAll(s)); };
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function money(n){ return Number(n||0).toFixed(0) + ' ج.م'; }
+function refreshIcons(){ if (window.lucide && lucide.createIcons) requestAnimationFrame(function(){ try{ lucide.createIcons(); }catch(e){} }); }
+function LS_get(k,d){ try{ var v = localStorage.getItem('kanteen:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function LS_set(k,v){ try{ localStorage.setItem('kanteen:'+k, JSON.stringify(v)); }catch(e){} }
+function LS_del(k){ try{ localStorage.removeItem('kanteen:'+k); }catch(e){} }
+
+/* ═══ Toast ═══ */
+function toast(msg, type){
+  var t = document.createElement('div');
+  t.className = 'k-toast' + (type ? ' ' + type : '');
+  t.innerHTML = '<span>' + msg + '</span>';
+  document.body.appendChild(t);
+  setTimeout(function(){
+    t.style.transition='opacity .3s';
+    t.style.opacity='0';
+    setTimeout(function(){ t.remove(); }, 300);
+  }, 3000);
+}
+function ktShowFbStatus(text, isError){
+  var el = document.getElementById('kFbStatus'); if (!el) return;
+  el.textContent = text; el.classList.add('show');
+  if (isError) el.classList.add('err'); else el.classList.remove('err');
+  setTimeout(function(){ el.classList.remove('show'); }, 3000);
+}
+
+/* ═══ Audio unlock ═══ */
+function ktUnlockAudio(){
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!window.__ktAudioCtx) window.__ktAudioCtx = new Ctx();
+    if (window.__ktAudioCtx.state === 'suspended') window.__ktAudioCtx.resume();
+  } catch(e){}
+}
+document.addEventListener('click', ktUnlockAudio, { once: true });
+document.addEventListener('touchstart', ktUnlockAudio, { once: true });
+
+/* ═══ STATE ═══ */
+var DRIVER = {
+  id: null, uid: null, name: '', phone: '', email: '', whatsapp: '',
+  vehicle: 'motorcycle', area: '', online: false, lat: null, lng: null,
+  locationAddress: '', status: 'new', currentOrderId: null, earnings: 0, completedToday: 0,
+  rating: 5.0, commissionPerOrder: 15, watchId: null,
+  profilePhoto: null, idCardFront: null, idCardBack: null
+};
+var currentTab = 'orders';
+var FB_ORDERS = [], FB_NOTIFS = [];
+var _lastOrdersCount = 0;
+var _unsubs = {};
+var ktLateCheckInterval = null;
+var ktReportedLateOrders = {};
+var KT_LATE_MINUTES = 20;
+var KT_DRIVER_RADIUS_KM = LS_get('driver_radius', 15);
+var ktLeaderboardCache = [];
+var ktChatUnsub = null;
+var ktChatOrderId = null;
+var _lastChatCount = 0;
+var _regStep = 1;
+var regMap = null, regMarker = null;
+var _authMode = 'login';
+var _approvalListenerUnsub = null;
+var _notificationsUnsub = null;
+
+/* ═══ Firebase Wait ═══ */
+var _fbWaitRetries = 0;
+function ktWaitFirebase(callback){
+  if (window.KT_FB && window.KT_FB.init){
+    try { var init = window.KT_FB.init(); if (init){ _fbWaitRetries = 0; callback(init); return; } } catch(e){}
+  }
+  if (_fbWaitRetries < 40){ _fbWaitRetries++; setTimeout(function(){ ktWaitFirebase(callback); }, 300); }
+}
+
+/* ═══════════════════════════════════════════════
+   🖼️ Image compression (returns DataURL)
+   ═══════════════════════════════════════════════ */
+function ktCompressImage(file, maxWidth, quality){
+  maxWidth = maxWidth || 800;
+  quality = quality || 0.72;
+  return new Promise(function(resolve, reject){
+    if (!file) return reject(new Error('ملف غير صالح'));
+    if (!file.type.match(/^image\//)) return reject(new Error('الملف مش صورة'));
+    if (file.size > 8 * 1024 * 1024) return reject(new Error('حجم الصورة كبير جداً'));
+
+    var reader = new FileReader();
+    reader.onerror = function(){ reject(new Error('فشل قراءة الملف')); };
+    reader.onload = function(e){
+      var img = new Image();
+      img.onerror = function(){ reject(new Error('فشل تحميل الصورة')); };
+      img.onload = function(){
+        try {
+          var canvas = document.createElement('canvas');
+          var w = img.width, h = img.height;
+          if (w > maxWidth){ h = h * (maxWidth / w); w = maxWidth; }
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          var dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        } catch(err){ reject(err); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   🔐 AUTH MODE SWITCHING (Login / Signup)
+   ═══════════════════════════════════════════════ */
+function ktSwitchAuthMode(mode){
+  _authMode = mode;
+  $('#tabLogin').classList.toggle('on', mode === 'login');
+  $('#tabSignup').classList.toggle('on', mode === 'signup');
+  $('#loginFormBox').style.display = mode === 'login' ? 'block' : 'none';
+  $('#signupFormBox').style.display = mode === 'signup' ? 'block' : 'none';
+  $('#authSubtitle').textContent = mode === 'login' ? 'سجّل دخولك للمتابعة' : 'أنشئ حساب جديد للبدء';
+  $('#loginErr').style.display = 'none';
+  $('#signupErr').style.display = 'none';
+  refreshIcons();
+}
+
+function ktTogglePw(id, btn){
+  var inp = document.getElementById(id);
+  if (!inp) return;
+  if (inp.type === 'password'){
+    inp.type = 'text';
+    btn.innerHTML = '<svg data-lucide="eye-off"></svg>';
+  } else {
+    inp.type = 'password';
+    btn.innerHTML = '<svg data-lucide="eye"></svg>';
+  }
+  refreshIcons();
+}
+
+function ktCheckPwStrength(v){
+  var fill = document.getElementById('pwStrengthFill');
+  if (!fill) return;
+  fill.classList.remove('weak','medium','strong');
+  if (!v){ fill.style.width = '0'; return; }
+  var strength = 0;
+  if (v.length >= 6) strength++;
+  if (v.length >= 10) strength++;
+  if (/[A-Z]/.test(v)) strength++;
+  if (/[0-9]/.test(v)) strength++;
+  if (/[^A-Za-z0-9]/.test(v)) strength++;
+  if (strength <= 2) fill.classList.add('weak');
+  else if (strength <= 3) fill.classList.add('medium');
+  else fill.classList.add('strong');
+}
+
+/* ═══════════════════════════════════════════════
+   🔑 EMAIL LOGIN
+   ═══════════════════════════════════════════════ */
+function ktEmailLogin(){
+  var email = ($('#loginEmail').value || '').trim().toLowerCase();
+  var pass = $('#loginPass').value || '';
+  var err = $('#loginErr');
+  err.style.display = 'none';
+
+  if (!email || !pass){
+    err.textContent = '❌ املأ جميع الحقول';
+    err.style.display = 'block';
+    return;
+  }
+
+  var btn = $('#loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ جاري الدخول...';
+
+  ktWaitFirebase(function(init){
+    init.auth.signInWithEmailAndPassword(email, pass)
+      .then(function(cred){
+        var user = cred.user;
+        DRIVER.uid = user.uid;
+        DRIVER.email = user.email;
+        ktCheckDriverStatus(init);
+      })
+      .catch(function(e){
+        console.error('login:', e);
+        var msg = 'فشل الدخول';
+        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') msg = '❌ البريد أو كلمة المرور غير صحيحة';
+        else if (e.code === 'auth/wrong-password') msg = '❌ كلمة المرور غير صحيحة';
+        else if (e.code === 'auth/invalid-email') msg = '❌ البريد غير صحيح';
+        else if (e.code === 'auth/too-many-requests') msg = '⚠️ حاولت كثيراً — انتظر دقيقة';
+        else if (e.message) msg = e.message.substring(0, 80);
+        err.textContent = msg;
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<svg data-lucide="log-in"></svg> تسجيل الدخول';
+        refreshIcons();
+        try { if (window.KT_SOUND) KT_SOUND.alert(); } catch(e){}
+      });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   ✨ EMAIL SIGNUP
+   ═══════════════════════════════════════════════ */
+function ktStartRegistration(){
+  var email = ($('#signupEmail').value || '').trim().toLowerCase();
+  var pass = $('#signupPass').value || '';
+  var pass2 = $('#signupPass2').value || '';
+  var err = $('#signupErr');
+  err.style.display = 'none';
+
+  if (!email || !pass){
+    err.textContent = '❌ املأ جميع الحقول';
+    err.style.display = 'block';
+    return;
+  }
+  if (email.indexOf('@') === -1){
+    err.textContent = '❌ بريد إلكتروني غير صحيح';
+    err.style.display = 'block';
+    return;
+  }
+  if (pass.length < 6){
+    err.textContent = '❌ كلمة المرور 6 أحرف على الأقل';
+    err.style.display = 'block';
+    return;
+  }
+  if (pass !== pass2){
+    err.textContent = '❌ كلمتا المرور غير متطابقتين';
+    err.style.display = 'block';
+    return;
+  }
+
+  var btn = $('#signupBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ جاري إنشاء الحساب...';
+
+  ktWaitFirebase(function(init){
+    init.auth.createUserWithEmailAndPassword(email, pass)
+      .then(function(cred){
+        var user = cred.user;
+        DRIVER.uid = user.uid;
+        DRIVER.email = user.email;
+        DRIVER.name = '';
+        DRIVER.phone = '';
+        DRIVER.status = 'new';
+        toast('✅ تم إنشاء الحساب! أكمل بياناتك الآن', 'success');
+        setTimeout(function(){
+          ktShowRegistration();
+        }, 500);
+      })
+      .catch(function(e){
+        console.error('signup:', e);
+        var msg = 'فشل إنشاء الحساب';
+        if (e.code === 'auth/email-already-in-use') msg = '❌ البريد مستخدم بالفعل — جرّب تسجيل الدخول';
+        else if (e.code === 'auth/invalid-email') msg = '❌ البريد غير صحيح';
+        else if (e.code === 'auth/weak-password') msg = '❌ كلمة المرور ضعيفة';
+        else if (e.message) msg = e.message.substring(0, 80);
+        err.textContent = msg;
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<svg data-lucide="user-plus"></svg> إنشاء الحساب والبدء';
+        refreshIcons();
+        try { if (window.KT_SOUND) KT_SOUND.alert(); } catch(e){}
+      });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   🌐 GOOGLE LOGIN (fallback)
+   ═══════════════════════════════════════════════ */
+function ktGoogleLogin(){
+  ktWaitFirebase(function(init){
+    var provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    init.auth.signInWithPopup(provider)
+      .then(function(cred){
+        var user = cred.user;
+        DRIVER.uid = user.uid;
+        DRIVER.email = user.email || '';
+        DRIVER.name = user.displayName || '';
+        DRIVER.phone = user.phoneNumber || '';
+        ktCheckDriverStatus(init);
+      })
+      .catch(function(e){
+        console.error('google:', e);
+        var msg = 'فشل الدخول';
+        if (e.code === 'auth/popup-closed-by-user') msg = 'أغلقت نافذة الدخول';
+        else if (e.code === 'auth/popup-blocked') msg = 'المتصفح منع النافذة';
+        else if (e.message) msg = e.message.substring(0, 80);
+        toast('❌ ' + msg, 'error');
+      });
+  });
+}
+
+/* ═══ Forgot password ═══ */
+function ktShowForgotPass(){
+  var email = prompt('📧 اكتب بريدك الإلكتروني لإرسال رابط إعادة التعيين:');
+  if (!email || email.indexOf('@') === -1) return;
+  ktWaitFirebase(function(init){
+    init.auth.sendPasswordResetEmail(email.trim().toLowerCase())
+      .then(function(){ toast('✅ تم إرسال رابط إعادة التعيين على بريدك', 'success'); })
+      .catch(function(e){ toast('❌ ' + (e.message || 'فشل'), 'error'); });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   📊 CHECK DRIVER STATUS
+   ═══════════════════════════════════════════════ */
+function ktHideAllScreens(){
+  $('#loginScreen').style.display = 'none';
+  $('#regScreen').style.display = 'none';
+  $('#statusScreen').style.display = 'none';
+  $('#approvedScreen').style.display = 'none';
+  $('#appShell').classList.remove('active');
+  var nav = document.getElementById('bottomNav');
+  if (nav) nav.style.display = 'none';
+}
+
+function ktCheckDriverStatus(init){
+  if (!init) { ktWaitFirebase(ktCheckDriverStatus); return; }
+  if (!DRIVER.uid) return;
+
+  init.db.collection('drivers').doc(DRIVER.uid).get().then(function(doc){
+    if (!doc.exists){
+      // حساب جديد — يبدأ التسجيل
+      DRIVER.status = 'new';
+      ktShowRegistration();
+      return;
+    }
+    var data = doc.data();
+    DRIVER = Object.assign(DRIVER, data, { _fbId: doc.id });
+    LS_set('driver_data', DRIVER);
+    ktStartApprovalListener(init);
+
+    if (data.status === 'pending'){ ktShowPendingScreen(); }
+    else if (data.status === 'rejected'){ ktShowRejectedScreen(); }
+    else if (data.status === 'suspended'){ ktShowSuspendedScreen(); }
+    else if (data.status === 'approved'){ DRIVER.status = 'approved'; ktShowApprovedOrDashboard(); }
+    else { ktShowRegistration(); }
+  }).catch(function(e){
+    console.warn('checkDriverStatus:', e);
+    if (e && e.code === 'permission-denied'){
+      toast('⚠️ مشكلة في الصلاحيات — راجع Firestore Rules', 'error');
+    }
+    ktShowRegistration();
+  });
+}
+
+function ktShowApprovedOrDashboard(){
+  // لو أول مرة يشوف الموافقة، نعرضله شاشة المبروك
+  var seenApproved = LS_get('seen_approved_' + DRIVER.uid, false);
+  if (!seenApproved){
+    ktShowApprovedScreen();
+  } else {
+    ktStartDashboard();
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   🔔 REAL-TIME APPROVAL LISTENER
+   ═══════════════════════════════════════════════ */
+function ktStartApprovalListener(init){
+  if (_approvalListenerUnsub){ try { _approvalListenerUnsub(); } catch(e){} }
+  if (!DRIVER.uid) return;
+
+  _approvalListenerUnsub = init.db.collection('drivers').doc(DRIVER.uid)
+    .onSnapshot(function(doc){
+      if (!doc.exists) return;
+      var data = doc.data();
+      var oldStatus = DRIVER.status;
+      DRIVER = Object.assign(DRIVER, data, { _fbId: doc.id });
+      LS_set('driver_data', DRIVER);
+
+      // لما الحالة تتغير من pending → approved
+      if (oldStatus !== 'approved' && data.status === 'approved'){
+        try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+        toast('🎉 مبروك! تمت الموافقة على حسابك', 'success');
+        // عرض شاشة المبروك
+        ktShowApprovedScreen();
+      }
+      // لو اتوقف
+      else if (data.status === 'suspended' && oldStatus !== 'suspended'){
+        ktStopGpsTracking();
+        DRIVER.status = 'suspended';
+        ktShowSuspendedScreen();
+      }
+    }, function(e){ console.warn('approvalListener:', e); });
+}
+
+/* ═══════════════════════════════════════════════
+   ✅ APPROVED SCREEN
+   ═══════════════════════════════════════════════ */
+function ktShowApprovedScreen(){
+  ktHideAllScreens();
+  $('#approvedScreen').style.display = 'block';
+  refreshIcons();
+}
+
+function ktEnterDashboard(){
+  LS_set('seen_approved_' + DRIVER.uid, true);
+  ktStartDashboard();
+}
+
+/* ═══════════════════════════════════════════════
+   📝 REGISTRATION FLOW (4 Steps)
+   ═══════════════════════════════════════════════ */
+function ktShowRegistration(){
+  ktHideAllScreens();
+  $('#regScreen').style.display = 'grid';
+  _regStep = 1;
+  ktRenderRegStep();
+}
+
+function ktUpdateRegActions(){
+  $$('.k-reg-step-item').forEach(function(el){
+    var s = parseInt(el.dataset.step, 10);
+    el.classList.remove('active', 'done');
+    if (s < _regStep) el.classList.add('done');
+    else if (s === _regStep) el.classList.add('active');
+  });
+  $('#regPrevBtn').style.display = _regStep > 1 ? '' : 'none';
+  var nextBtn = $('#regNextBtn');
+  if (_regStep === 4){
+    nextBtn.innerHTML = '✓ إتمام التسجيل';
+    nextBtn.classList.remove('k-btn-primary');
+    nextBtn.classList.add('k-btn-success');
+  } else {
+    nextBtn.innerHTML = 'التالي →';
+    nextBtn.classList.remove('k-btn-success');
+    nextBtn.classList.add('k-btn-primary');
+  }
+}
+
+function ktRenderRegStep(){
+  ktUpdateRegActions();
+  var html = '';
+
+  if (_regStep === 1){
+    html =
+      '<h2 class="kt-anim-1">📋 البيانات الأساسية</h2>' +
+      '<p class="hint kt-anim-1">معلوماتك الشخصية ومعلومات التواصل</p>' +
+      '<div class="kt-anim-2">' +
+        '<div class="k-form-grid">' +
+          '<div class="k-field"><label>الاسم الكامل <span class="req">*</span></label><input id="rfName" value="' + esc(DRIVER.name) + '" placeholder="اسمك بالكامل"></div>' +
+          '<div class="k-field"><label>رقم الهاتف <span class="req">*</span></label><input type="tel" id="rfPhone" value="' + esc(DRIVER.phone) + '" maxlength="11" placeholder="01xxxxxxxxx"></div>' +
+        '</div>' +
+        '<div class="k-form-grid">' +
+          '<div class="k-field"><label>البريد الإلكتروني</label><input type="email" id="rfEmail" value="' + esc(DRIVER.email) + '" readonly style="opacity:.6" dir="ltr"></div>' +
+          '<div class="k-field"><label>واتساب (اختياري)</label><input type="tel" id="rfWhatsapp" value="' + esc(DRIVER.whatsapp||'') + '" maxlength="11" placeholder="01xxxxxxxxx"></div>' +
+        '</div>' +
+        '<div class="k-form-grid">' +
+          '<div class="k-field"><label>نوع المركبة <span class="req">*</span></label>' +
+            '<select id="rfVehicle">' +
+              '<option value="motorcycle"' + (DRIVER.vehicle==='motorcycle'?' selected':'') + '>🛵 موتوسيكل</option>' +
+              '<option value="car"' + (DRIVER.vehicle==='car'?' selected':'') + '>🚗 سيارة</option>' +
+              '<option value="bicycle"' + (DRIVER.vehicle==='bicycle'?' selected':'') + '>🚲 دراجة</option>' +
+              '<option value="van"' + (DRIVER.vehicle==='van'?' selected':'') + '>🚐 فان</option>' +
+            '</select>' +
+          '</div>' +
+          '<div class="k-field"><label>المنطقة <span class="req">*</span></label><input id="rfArea" value="' + esc(DRIVER.area||'') + '" placeholder="القاهرة - مدينة نصر"></div>' +
+        '</div>' +
+      '</div>';
+  }
+  else if (_regStep === 2){
+    html =
+      '<h2 class="kt-anim-1">📸 صورتك الشخصية</h2>' +
+      '<p class="hint kt-anim-1">صورة واضحة لوجهك بدون نظارة شمسية أو قبعة</p>' +
+      '<div class="kt-upload-grid kt-anim-2">' +
+        '<div class="kt-upload profile-upload' + (DRIVER.profilePhoto ? ' filled' : '') + '" id="photoUpload">' +
+          '<input type="file" accept="image/*" capture="user" onchange="ktHandleProfilePhoto(this)">' +
+          '<div class="icon">📷</div>' +
+          '<div class="label">صورة شخصية</div>' +
+          '<div class="sub">اضغط لاختيار صورة</div>' +
+          '<img class="preview" src="' + (DRIVER.profilePhoto||'') + '" alt="">' +
+          '<div class="change-hint">🔄 اضغط لتغيير الصورة</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05));border:1px solid rgba(59,130,246,.3);border-radius:14px;padding:14px;margin-top:16px;font-size:13px;color:var(--driver-2);text-align:center;line-height:1.6">' +
+        '💡 <b>مهم:</b> صورة واضحة وحديثة عشان نتعرف عليك بسهولة' +
+      '</div>';
+  }
+  else if (_regStep === 3){
+    html =
+      '<h2 class="kt-anim-1">🪪 البطاقة الشخصية</h2>' +
+      '<p class="hint kt-anim-1">صوّر بطاقتك من الوش والضهر — لضمان حقوقك وحقوق العملاء</p>' +
+      '<div class="kt-upload-grid kt-anim-2">' +
+        '<div class="kt-upload' + (DRIVER.idCardFront ? ' filled' : '') + '" id="idFrontUpload">' +
+          '<input type="file" accept="image/*" onchange="ktHandleIdFront(this)">' +
+          '<div class="icon">🪪</div>' +
+          '<div class="label">وش البطاقة</div>' +
+          '<div class="sub">الصورة الأمامية</div>' +
+          '<img class="preview" src="' + (DRIVER.idCardFront||'') + '" alt="">' +
+          '<div class="change-hint">🔄 اضغط لتغيير</div>' +
+        '</div>' +
+        '<div class="kt-upload' + (DRIVER.idCardBack ? ' filled' : '') + '" id="idBackUpload">' +
+          '<input type="file" accept="image/*" onchange="ktHandleIdBack(this)">' +
+          '<div class="icon">🪪</div>' +
+          '<div class="label">ضهر البطاقة</div>' +
+          '<div class="sub">الصورة الخلفية</div>' +
+          '<img class="preview" src="' + (DRIVER.idCardBack||'') + '" alt="">' +
+          '<div class="change-hint">🔄 اضغط لتغيير</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(255,107,53,.05));border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:14px;margin-top:16px;font-size:13px;color:#f87171;text-align:center;line-height:1.6">' +
+        '🔒 <b>خصوصيتك محفوظة:</b> بيانات البطاقة تظهر للإدارة فقط' +
+      '</div>';
+  }
+  else if (_regStep === 4){
+    html =
+      '<h2 class="kt-anim-1">📍 موقعك الحالي</h2>' +
+      '<p class="hint kt-anim-1">حدد موقعك الحالي على الخريطة عشان الأدمن يشوف منطقتك بدقة</p>' +
+      '<div class="kt-anim-2">' +
+        '<div id="regMap" class="kt-map-picker"></div>' +
+        '<div class="kt-map-actions">' +
+          '<button type="button" class="primary" onclick="ktRegMapUseMyLocation()">📍 موقعي الحالي</button>' +
+          '<button type="button" onclick="ktRegMapSearchAddress()">🔍 من العنوان</button>' +
+        '</div>' +
+        '<div class="kt-map-coords" id="regMapCoords">' + (DRIVER.lat && DRIVER.lng ? '📍 ' + DRIVER.lat.toFixed(5) + ', ' + DRIVER.lng.toFixed(5) : 'لم يتم تحديد الموقع بعد') + '</div>' +
+        (DRIVER.lat && DRIVER.lng ? '<div style="text-align:center;margin-top:10px"><span class="kt-map-ok">✅ تم تحديد موقعك</span></div>' : '') +
+        '<div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05));border:1px solid rgba(59,130,246,.3);border-radius:14px;padding:14px;margin-top:14px;font-size:13px;color:var(--driver-2);text-align:center;line-height:1.6">' +
+          '💡 اسحب الدبوس لتحديد الموقع بدقة' +
+        '</div>' +
+      '</div>';
+
+    setTimeout(function(){
+      if (window.L && !regMap){
+        var el = document.getElementById('regMap');
+        if (!el) return;
+        var lat = DRIVER.lat || 30.0444;
+        var lng = DRIVER.lng || 31.2357;
+        var zoom = DRIVER.lat ? 15 : 11;
+        regMap = L.map(el).setView([lat, lng], zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(regMap);
+        regMarker = L.marker([lat, lng], { draggable: true }).addTo(regMap);
+        regMarker.on('dragend', function(){ var p = regMarker.getLatLng(); ktRegUpdateCoords(p.lat, p.lng); });
+        regMap.on('click', function(e){ regMarker.setLatLng(e.latlng); ktRegUpdateCoords(e.latlng.lat, e.latlng.lng); });
+        setTimeout(function(){ regMap.invalidateSize(); }, 200);
+      }
+    }, 300);
+  }
+
+  $('#regCard').innerHTML = html;
+  refreshIcons();
+}
+
+function ktRegUpdateCoords(lat, lng){
+  DRIVER.lat = lat;
+  DRIVER.lng = lng;
+  var el = document.getElementById('regMapCoords');
+  if (el) el.textContent = '📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+}
+
+function ktRegMapUseMyLocation(){
+  if (!navigator.geolocation){ toast('❌ المتصفح لا يدعم GPS', 'error'); return; }
+  toast('📍 جاري تحديد موقعك...');
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+    if (regMap && regMarker){
+      regMap.setView([lat, lng], 16);
+      regMarker.setLatLng([lat, lng]);
+      ktRegUpdateCoords(lat, lng);
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=ar')
+        .then(function(r){ return r.json(); })
+        .then(function(data){ DRIVER.locationAddress = data.display_name || ''; })
+        .catch(function(){});
+      toast('✅ تم تحديد موقعك', 'success');
+    }
+  }, function(){ toast('❌ لم نتمكن من تحديد موقعك', 'error'); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+function ktRegMapSearchAddress(){
+  var addr = $('#rfArea') ? $('#rfArea').value.trim() : '';
+  if (!addr){ toast('⚠️ اكتب اسم المنطقة أولاً', 'error'); return; }
+  toast('🔍 جاري البحث...');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1&accept-language=ar')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data && data.length){
+        var r = data[0];
+        var lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+        if (regMap && regMarker){
+          regMap.setView([lat, lng], 15);
+          regMarker.setLatLng([lat, lng]);
+          ktRegUpdateCoords(lat, lng);
+          DRIVER.locationAddress = r.display_name || addr;
+          toast('✅ تم تحديد الموقع', 'success');
+        }
+      } else { toast('❌ لم نجد هذا العنوان', 'error'); }
+    }).catch(function(){ toast('❌ فشل البحث', 'error'); });
+}
+
+function ktRegNext(){
+  if (_regStep === 1){
+    var name = $('#rfName').value.trim();
+    var phone = $('#rfPhone').value.trim().replace(/\s/g,'');
+    var vehicle = $('#rfVehicle').value;
+    var area = $('#rfArea').value.trim();
+    if (!name || !phone || !area){ toast('❌ املأ كل الحقول المطلوبة', 'error'); return; }
+    if (phone.length < 10){ toast('❌ رقم هاتف غير صحيح', 'error'); return; }
+    DRIVER.name = name;
+    DRIVER.phone = phone;
+    DRIVER.whatsapp = $('#rfWhatsapp').value.trim().replace(/\s/g,'');
+    DRIVER.vehicle = vehicle;
+    DRIVER.area = area;
+    _regStep = 2;
+    ktRenderRegStep();
+  }
+  else if (_regStep === 2){
+    if (!DRIVER.profilePhoto){ toast('❌ ارفع صورة شخصية أولاً', 'error'); return; }
+    _regStep = 3;
+    ktRenderRegStep();
+  }
+  else if (_regStep === 3){
+    if (!DRIVER.idCardFront || !DRIVER.idCardBack){ toast('❌ ارفع صورتي البطاقة (وش وضهر)', 'error'); return; }
+    _regStep = 4;
+    regMap = null; regMarker = null;
+    ktRenderRegStep();
+  }
+  else if (_regStep === 4){
+    if (!DRIVER.lat || !DRIVER.lng){ toast('❌ حدد موقعك على الخريطة', 'error'); return; }
+    ktSubmitRegistration();
+  }
+}
+
+function ktRegPrev(){
+  if (_regStep > 1){ _regStep--; regMap = null; regMarker = null; ktRenderRegStep(); }
+}
+
+/* ═══ Image Handlers ═══ */
+async function ktHandleProfilePhoto(input){
+  var file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    ktShowUploadStatus('⏳ جاري معالجة الصورة...', '');
+    var dataUrl = await ktCompressImage(file, 400, 0.7);
+    if (dataUrl.length > 250000) dataUrl = await ktCompressImage(file, 320, 0.6);
+    DRIVER.profilePhoto = dataUrl;
+    ktShowUploadStatus('✅ تم تحميل الصورة الشخصية', 'ok');
+    ktRenderRegStep();
+    try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+  } catch(e){
+    console.error(e);
+    ktShowUploadStatus('❌ ' + (e.message || 'فشل'), 'err');
+  }
+}
+
+async function ktHandleIdFront(input){
+  var file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    ktShowUploadStatus('⏳ جاري معالجة الصورة...', '');
+    var dataUrl = await ktCompressImage(file, 700, 0.7);
+    if (dataUrl.length > 300000) dataUrl = await ktCompressImage(file, 550, 0.6);
+    DRIVER.idCardFront = dataUrl;
+    ktShowUploadStatus('✅ تم تحميل وش البطاقة', 'ok');
+    ktRenderRegStep();
+    try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+  } catch(e){
+    console.error(e);
+    ktShowUploadStatus('❌ ' + (e.message || 'فشل'), 'err');
+  }
+}
+
+async function ktHandleIdBack(input){
+  var file = input.files && input.files[0];
+  if (!file) return;
+  try {
+    ktShowUploadStatus('⏳ جاري معالجة الصورة...');
+    var dataUrl = await ktCompressImage(file, 700, 0.7);
+    if (dataUrl.length > 300000) dataUrl = await ktCompressImage(file, 550, 0.6);
+    DRIVER.idCardBack = dataUrl;
+    ktShowUploadStatus('✅ تم تحميل ضهر البطاقة', 'ok');
+    ktRenderRegStep();
+    try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+  } catch(e){
+    console.error(e);
+    ktShowUploadStatus('❌ ' + (e.message || 'فشل'), 'err');
+  }
+}
+
+function ktShowUploadStatus(msg, type){
+  var el = $('#uploadStatus');
+  if (!el) return;
+  el.className = 'kt-upload-status show ' + (type || '');
+  el.textContent = msg;
+  if (type === 'ok' || type === 'err'){
+    setTimeout(function(){ el.classList.remove('show'); }, 3000);
+  }
+}
+
+/* ═══ Submit Registration ═══ */
+function ktSubmitRegistration(){
+  var totalSize = (DRIVER.profilePhoto||'').length + (DRIVER.idCardFront||'').length + (DRIVER.idCardBack||'').length;
+  console.log('Total photo size:', (totalSize / 1024).toFixed(1), 'KB');
+  if (totalSize > 850000){ toast('❌ الصور كبيرة جداً', 'error'); return; }
+
+  ktWaitFirebase(function(init){
+    var phone = DRIVER.phone;
+    var whatsapp = DRIVER.whatsapp;
+    if (phone.startsWith('0')) phone = '+20' + phone.slice(1);
+    if (whatsapp && whatsapp.startsWith('0')) whatsapp = '+20' + whatsapp.slice(1);
+
+    var data = {
+      id: DRIVER.uid, uid: DRIVER.uid,
+      name: DRIVER.name, phone: phone, email: DRIVER.email,
+      whatsapp: whatsapp, vehicle: DRIVER.vehicle, area: DRIVER.area,
+      lat: DRIVER.lat, lng: DRIVER.lng,
+      locationAddress: DRIVER.locationAddress || '',
+      profilePhoto: DRIVER.profilePhoto,
+      idCardFront: DRIVER.idCardFront,
+      idCardBack: DRIVER.idCardBack,
+      status: 'pending', online: false,
+      rating: 5.0, commissionPerOrder: 15,
+      completedToday: 0, earnings: 0, monthlyOrders: 0, completedTotal: 0,
+      createdAt: new Date().toISOString(),
+      _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    var btn = $('#regNextBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ جاري الإرسال...';
+
+    init.db.collection('drivers').doc(DRIVER.uid).set(data, { merge: true })
+      .then(function(){
+        // إشعار للأدمن
+        return init.db.collection('notifications').add({
+          type: 'new_driver',
+          driverId: DRIVER.uid,
+          driverName: DRIVER.name,
+          phone: phone, email: DRIVER.email, whatsapp: whatsapp,
+          area: DRIVER.area, vehicle: DRIVER.vehicle,
+          lat: DRIVER.lat, lng: DRIVER.lng,
+          profilePhoto: DRIVER.profilePhoto,
+          createdAt: new Date().toISOString(),
+          read: false,
+          _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(e){ console.warn('notif:', e); });
+      })
+      .then(function(){
+        DRIVER.status = 'pending';
+        LS_set('driver_data', DRIVER);
+        try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+        toast('🎉 تم إرسال طلبك — هيتم مراجعته قريباً', 'success');
+        // ابدأ الـ listener
+        ktStartApprovalListener(init);
+        ktShowPendingScreen();
+      })
+      .catch(function(e){
+        console.error(e);
+        btn.disabled = false;
+        btn.innerHTML = '✓ إتمام التسجيل';
+        toast('❌ ' + (e.message || 'فشل الإرسال'), 'error');
+      });
+  });
+}
+
+/* ═══ Status Screens ═══ */
+function ktShowPendingScreen(){
+  ktHideAllScreens();
+  $('#statusScreen').style.display = 'block';
+  var docsHTML = '';
+  if (DRIVER.profilePhoto || DRIVER.idCardFront || DRIVER.idCardBack){
+    docsHTML = '<div class="kt-doc-preview" style="margin-bottom:38px">' +
+      (DRIVER.profilePhoto ? '<div><img src="' + DRIVER.profilePhoto + '" alt=""><span class="lbl">شخصية</span></div>' : '') +
+      (DRIVER.idCardFront ? '<div><img src="' + DRIVER.idCardFront + '" alt=""><span class="lbl">وش البطاقة</span></div>' : '') +
+      (DRIVER.idCardBack ? '<div><img src="' + DRIVER.idCardBack + '" alt=""><span class="lbl">ضهر البطاقة</span></div>' : '') +
+    '</div>';
+  }
+  $('#statusCard').innerHTML =
+    '<span class="icon">⏳</span>' +
+    '<h2 style="color:var(--gold)">طلبك قيد المراجعة</h2>' +
+    '<p>سيتم مراجعة طلبك من الإدارة قريباً.<br>هيتم إشعارك تلقائياً بمجرد الموافقة.</p>' +
+    docsHTML +
+    '<div style="background:var(--bg-3);border-radius:14px;padding:16px;margin:20px 0;text-align:start;font-size:13.5px;line-height:1.9">' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--ink-3)">📱 الهاتف:</span><b>' + esc(DRIVER.phone || '—') + '</b></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--ink-3)">✉️ الإيميل:</span><b style="font-size:12.5px" dir="ltr">' + esc(DRIVER.email || '—') + '</b></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--ink-3)">📍 المنطقة:</span><b>' + esc(DRIVER.area || '—') + '</b></div>' +
+    '</div>' +
+    '<div style="background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(59,130,246,.05));border:1px solid rgba(59,130,246,.3);border-radius:14px;padding:14px;margin-bottom:20px;font-size:13px;color:var(--driver-2);text-align:center;line-height:1.6">' +
+      '🔔 هتوصلك رسالة تلقائياً هنا بمجرد الموافقة<br>مش محتاج تعمل حاجة' +
+    '</div>' +
+    '<button class="k-btn k-btn-primary k-btn-block" onclick="ktRefreshStatus()"><i data-lucide="refresh-cw"></i> تحديث الحالة</button>' +
+    '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:10px" onclick="ktDriverLogout()"><i data-lucide="log-out"></i> تسجيل خروج</button>';
+  refreshIcons();
+}
+
+function ktShowRejectedScreen(){
+  ktHideAllScreens();
+  $('#statusScreen').style.display = 'block';
+  $('#statusCard').innerHTML =
+    '<span class="icon">❌</span>' +
+    '<h2 style="color:var(--danger)">تم رفض طلبك</h2>' +
+    '<p>تم رفض طلب تسجيلك من الإدارة.<br>تواصل معنا للاستفسار.</p>' +
+    '<a href="https://wa.me/201124169656" target="_blank" class="k-btn k-btn-success k-btn-block"><i data-lucide="message-circle"></i> تواصل معنا</a>' +
+    '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:10px" onclick="ktDriverLogout()">تسجيل خروج</button>';
+  refreshIcons();
+}
+
+function ktShowSuspendedScreen(){
+  ktHideAllScreens();
+  $('#statusScreen').style.display = 'block';
+  $('#statusCard').innerHTML =
+    '<span class="icon">⏸️</span>' +
+    '<h2 style="color:var(--gold)">حسابك موقوف مؤقتاً</h2>' +
+    '<p>تم إيقاف حسابك مؤقتاً من الإدارة.<br>تواصل معنا للاستفسار.</p>' +
+    '<a href="https://wa.me/201124169656" target="_blank" class="k-btn k-btn-success k-btn-block"><i data-lucide="message-circle"></i> تواصل معنا</a>' +
+    '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:10px" onclick="ktDriverLogout()">تسجيل خروج</button>';
+  refreshIcons();
+}
+
+function ktRefreshStatus(){
+  toast('🔄 جاري التحديث...');
+  ktWaitFirebase(function(init){
+    init.db.collection('drivers').doc(DRIVER.uid).get().then(function(doc){
+      if (!doc.exists){ toast('⚠️ الطلب غير موجود'); return; }
+      var data = doc.data();
+      DRIVER = Object.assign(DRIVER, data, { _fbId: doc.id });
+      LS_set('driver_data', DRIVER);
+      if (data.status === 'approved'){
+        try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+        toast('🎉 تمت الموافقة!', 'success');
+        ktShowApprovedScreen();
+      } else if (data.status === 'rejected'){ ktShowRejectedScreen(); }
+      else if (data.status === 'suspended'){ ktShowSuspendedScreen(); }
+      else { toast('⏳ لسه قيد المراجعة'); }
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   📊 DASHBOARD
+   ═══════════════════════════════════════════════ */
+function ktStartDashboard(){
+  ktHideAllScreens();
+  $('#appShell').classList.add('active');
+  var nav = document.getElementById('bottomNav');
+  if (nav) nav.style.display = 'grid';
+
+  $('#driverName').textContent = DRIVER.name || 'مندوب كانتِين';
+  $('#driverPhone').textContent = DRIVER.phone || DRIVER.email || '';
+
+  var topbar = document.querySelector('.k-topbar');
+  if (topbar && DRIVER.profilePhoto && !topbar.querySelector('.k-topbar-avatar')){
+    var logo = topbar.querySelector('.k-topbar-logo');
+    if (logo) logo.style.display = 'none';
+    var img = document.createElement('img');
+    img.className = 'k-topbar-avatar';
+    img.src = DRIVER.profilePhoto;
+    img.alt = DRIVER.name;
+    topbar.insertBefore(img, topbar.firstChild);
+  }
+
+  try { if (window.KT_SOUND) setTimeout(function(){ KT_SOUND.welcome(); }, 400); } catch(e){}
+  toast('✅ مرحباً بك يا ' + (DRIVER.name || ''), 'success');
+
+  ktStartLateChecker();
+  ktLoadLeaderboard();
+  setInterval(ktLoadLeaderboard, 5 * 60 * 1000);
+
+  ktWaitFirebase(function(init){
+    init.db.collection('orders').limit(1).get()
+      .then(function(){ ktShowFbStatus('🔥 Firebase متصل', false); })
+      .catch(function(e){
+        if (e && e.code === 'permission-denied') ktShowFbStatus('⚠️ راجع Rules', true);
+        else ktShowFbStatus('⚠️ Firebase فشل', true);
+      });
+  });
+
+  ktInitListeners();
+  switchTab('orders');
+  setTimeout(refreshIcons, 300);
+  setTimeout(refreshIcons, 800);
+}
+
+function ktInitListeners(){
+  ktWaitFirebase(function(init){
+    try {
+      _unsubs.orders = KT_FB.listenOrders(function(orders){
+        FB_ORDERS = orders || [];
+        var available = FB_ORDERS.filter(function(o){
+          return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+        }).length;
+        if (_lastOrdersCount > 0 && available > _lastOrdersCount && DRIVER.online){
+          try { if (window.KT_SOUND) KT_SOUND.chime(); } catch(e){}
+          toast('🔔 طلب جديد في منطقتك!', 'success');
+        }
+        _lastOrdersCount = available;
+        updateOrdersBadge();
+        if (currentTab === 'orders') renderOrders();
+        else if (currentTab === 'current') renderCurrent();
+      });
+    } catch(e){ console.warn('orders:', e); }
+    try {
+      _unsubs.notifs = KT_FB.listenNotifications(function(notifs){ FB_NOTIFS = notifs || []; });
+    } catch(e){ console.warn('notifs:', e); }
+  });
+}
+
+function updateOrdersBadge(){
+  var available = FB_ORDERS.filter(function(o){
+    return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+  }).length;
+  var b = $('#ordersBadge');
+  if (b){ if (available > 0){ b.style.display='grid'; b.textContent = available; } else b.style.display='none'; }
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  $$('.k-bnav-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tab === tab); });
+  if (tab === 'orders') renderOrders();
+  else if (tab === 'current') renderCurrent();
+  else if (tab === 'leaderboard'){ renderLeaderboard(); ktLoadLeaderboard(); }
+  else if (tab === 'wallet') renderWallet();
+  else if (tab === 'profile') renderProfile();
+  refreshIcons();
+}
+
+/* ═══ Online / GPS ═══ */
+function ktToggleOnline(){
+  DRIVER.online = !DRIVER.online;
+  var btn = $('#statusBtn'), txt = $('#statusText');
+  if (DRIVER.online){
+    btn.classList.remove('offline'); btn.classList.add('online');
+    txt.textContent = 'متصل الآن';
+    try { if (window.KT_SOUND) KT_SOUND.chime(); } catch(e){}
+    toast('✅ أنت متصل', 'success');
+    ktStartGpsTracking(); ktRegisterDriver();
+  } else {
+    btn.classList.remove('online'); btn.classList.add('offline');
+    txt.textContent = 'غير متصل';
+    toast('⏸️ أنت غير متصل', 'error');
+    ktStopGpsTracking();
+  }
+}
+
+function ktRegisterDriver(){
+  if (!DRIVER.uid) return;
+  ktWaitFirebase(function(init){
+    init.db.collection('drivers').doc(DRIVER.uid).set({
+      id: DRIVER.uid, name: DRIVER.name, phone: DRIVER.phone, email: DRIVER.email,
+      online: DRIVER.online, lat: DRIVER.lat, lng: DRIVER.lng,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(function(e){ console.warn(e); });
+  });
+}
+
+function ktStartGpsTracking(){
+  if (!navigator.geolocation || DRIVER.watchId) return;
+  DRIVER.watchId = navigator.geolocation.watchPosition(
+    function(pos){
+      DRIVER.lat = pos.coords.latitude;
+      DRIVER.lng = pos.coords.longitude;
+      if (DRIVER.online && DRIVER.uid){
+        ktWaitFirebase(function(init){
+          init.db.collection('drivers').doc(DRIVER.uid).set({
+            lat: DRIVER.lat, lng: DRIVER.lng, online: true,
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true }).catch(function(){});
+        });
+      }
+    },
+    function(err){ console.warn('GPS:', err); },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+  );
+}
+
+function ktStopGpsTracking(){
+  if (DRIVER.watchId){ try { navigator.geolocation.clearWatch(DRIVER.watchId); } catch(e){} DRIVER.watchId = null; }
+  if (DRIVER.uid){
+    ktWaitFirebase(function(init){
+      init.db.collection('drivers').doc(DRIVER.uid).set({ online: false }, { merge: true }).catch(function(){});
+    });
+  }
+}
+
+function ktCalcDistance(lat1, lng1, lat2, lng2){
+  var R = 6371;
+  var dLat = (lat2-lat1)*Math.PI/180;
+  var dLng = (lng2-lng1)*Math.PI/180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ═══ Late ═══ */
+function ktGetOrderElapsedMinutes(order){
+  if (!order.acceptedAt) return 0;
+  return Math.floor((Date.now() - new Date(order.acceptedAt).getTime()) / 60000);
+}
+function ktGetOrderTimerBadge(order){
+  var mins = ktGetOrderElapsedMinutes(order);
+  var status = 'ok', text = '✅ ' + mins + ' د';
+  if (mins >= KT_LATE_MINUTES){ status = 'danger'; text = '⚠️ ' + mins + ' د (متأخر)'; }
+  else if (mins >= KT_LATE_MINUTES * 0.6){ status = 'warn'; text = '⏱️ ' + mins + ' د'; }
+  return '<span class="k-timer-badge ' + (status === 'ok' ? '' : status) + '">' + text + '</span>';
+}
+function ktCheckLateOrders(){
+  if (!DRIVER.currentOrderId) return;
+  var myOrder = FB_ORDERS.find(function(o){ return o._fbId === DRIVER.currentOrderId; });
+  if (!myOrder || myOrder.status === 'delivered' || myOrder.status === 'cancelled') return;
+  var mins = ktGetOrderElapsedMinutes(myOrder);
+  if (mins >= KT_LATE_MINUTES && !ktReportedLateOrders[myOrder._fbId]){
+    ktReportedLateOrders[myOrder._fbId] = true;
+    ktSendLateNotification(myOrder, mins);
+  }
+}
+function ktSendLateNotification(order, minutes){
+  try { if (window.KT_SOUND) KT_SOUND.alert(); } catch(e){}
+  ktWaitFirebase(function(init){
+    init.db.collection('notifications').add({
+      type: 'late_driver', driverId: DRIVER.uid, driverName: DRIVER.name,
+      driverPhone: DRIVER.phone, orderId: order.id, orderFbId: order._fbId,
+      minutesLate: minutes, customer: order.customer || {}, total: order.total || 0,
+      createdAt: new Date().toISOString(), read: false,
+      _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(){});
+  });
+}
+function ktStartLateChecker(){
+  if (ktLateCheckInterval) clearInterval(ktLateCheckInterval);
+  ktLateCheckInterval = setInterval(function(){
+    if (DRIVER.status === 'approved' && DRIVER.currentOrderId){
+      ktCheckLateOrders();
+      if (currentTab === 'current') renderCurrent();
+    }
+  }, 30000);
+}
+
+/* ═══ Radius ═══ */
+function ktGetRadiusOrders(){
+  var all = FB_ORDERS.filter(function(o){
+    return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+  });
+  if (!DRIVER.lat || !DRIVER.lng) return { inRadius: all, outRadius: [], hasLocation: false };
+  var inR = [], outR = [];
+  all.forEach(function(o){
+    var c = o.customer || {};
+    if (!c.lat || !c.lng){ outR.push(Object.assign({}, o, { _distance: null })); return; }
+    var d = ktCalcDistance(DRIVER.lat, DRIVER.lng, c.lat, c.lng);
+    if (d <= KT_DRIVER_RADIUS_KM) inR.push(Object.assign({}, o, { _distance: d }));
+    else outR.push(Object.assign({}, o, { _distance: d }));
+  });
+  inR.sort(function(a, b){ return a._distance - b._distance; });
+  outR.sort(function(a, b){ return a._distance - b._distance; });
+  return { inRadius: inR, outRadius: outR, hasLocation: true };
+}
+function ktSetRadius(km){
+  KT_DRIVER_RADIUS_KM = parseInt(km) || 15;
+  LS_set('driver_radius', KT_DRIVER_RADIUS_KM);
+  toast('🎯 النطاق: ' + KT_DRIVER_RADIUS_KM + ' كم', 'success');
+  renderOrders();
+}
+function ktRenderRadiusControl(){
+  return '<div class="k-radius-control">' +
+    '<div class="icon">🎯</div>' +
+    '<div class="label"><b>نطاق الطلبات</b><span>' + (DRIVER.lat ? 'GPS متاح' : 'شغّل GPS') + '</span></div>' +
+    '<select onchange="ktSetRadius(this.value)">' +
+    [5,10,15,20,30,50].map(function(km){
+      return '<option value="' + km + '"' + (km === KT_DRIVER_RADIUS_KM ? ' selected' : '') + '>' + km + ' كم</option>';
+    }).join('') +
+    '</select></div>';
+}
+
+/* ═══ Orders ═══ */
+function renderOrders(){
+  var radiusData = ktGetRadiusOrders();
+  var inR = radiusData.inRadius;
+  var outR = radiusData.outRadius;
+  var completed = FB_ORDERS.filter(function(o){ return o.driverId === DRIVER.uid && o.status === 'delivered'; });
+  var todayCompleted = completed.filter(function(o){
+    if (!o.deliveredAt) return false;
+    var d = new Date(o.deliveredAt); d.setHours(0,0,0,0);
+    return d.getTime() === new Date().setHours(0,0,0,0);
+  }).length;
+  var todayEarnings = todayCompleted * DRIVER.commissionPerOrder;
+  var progressToday = Math.min(100, Math.round((todayCompleted / 10) * 100));
+
+  var html = '';
+  html += '<div class="kt-anim-1"><div class="kt-group-head"><span class="ico" style="background:rgba(239,68,68,.15)"><i data-lucide="alert-circle" style="color:var(--danger)"></i></span><h3>يحتاج تفاعل</h3><span class="line"></span></div>';
+  html += '<div class="k-stats">';
+  html += '<div class="k-stat ' + (DRIVER.online ? 'green' : 'danger') + '" onclick="ktToggleOnline()"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="' + (DRIVER.online ? 'wifi' : 'wifi-off') + '"></i></div><div class="k-stat-label">حالة الاتصال</div><div class="k-stat-value">' + (DRIVER.online ? '🟢' : '🔴') + '</div></div>';
+  html += '<div class="k-stat gold" onclick="switchTab(\'orders\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="package"></i></div><div class="k-stat-label">طلبات متاحة</div><div class="k-stat-value">' + inR.length + '</div></div>';
+  html += '<div class="k-stat danger" onclick="switchTab(\'current\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="navigation"></i></div><div class="k-stat-label">مشوار حالي</div><div class="k-stat-value">' + (DRIVER.currentOrderId ? '1' : '0') + '</div></div>';
+  html += '</div></div>';
+
+  html += '<div class="kt-anim-2"><div class="kt-group-head"><span class="ico" style="background:rgba(34,197,94,.15)"><i data-lucide="activity" style="color:var(--fresh)"></i></span><h3>إنجازك</h3><span class="line"></span></div>';
+  html += '<div class="k-stats">';
+  html += '<div class="k-stat green" onclick="switchTab(\'wallet\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="check-circle-2"></i></div><div class="k-stat-label">اليوم</div><div class="k-stat-value">' + todayCompleted + '</div><div class="k-stat-progress"><div class="k-stat-progress-fill" style="width:' + progressToday + '%"></div></div><div class="k-stat-progress-label">' + progressToday + '% من هدف 10</div></div>';
+  html += '<div class="k-stat gold" onclick="switchTab(\'wallet\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="coins"></i></div><div class="k-stat-label">أرباح اليوم</div><div class="k-stat-value">' + todayEarnings + '</div></div>';
+  html += '<div class="k-stat purple" onclick="switchTab(\'leaderboard\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="star"></i></div><div class="k-stat-label">تقييمي</div><div class="k-stat-value">' + (DRIVER.rating || 5).toFixed(1) + '★</div></div>';
+  html += '</div></div>';
+
+  html += ktRenderRadiusControl();
+
+  if (!DRIVER.online){
+    html += '<div class="k-card kt-anim-3" style="text-align:center;background:linear-gradient(135deg,rgba(239,68,68,.08),transparent);border-color:rgba(239,68,68,.3)">';
+    html += '<div style="font-size:48px;margin-bottom:12px">⏸️</div>';
+    html += '<h3 style="font-size:17px;font-weight:800;margin-bottom:8px">أنت غير متصل</h3>';
+    html += '<p style="color:var(--ink-3);font-size:13.5px;margin-bottom:16px">اتصل لتستقبل الطلبات</p>';
+    html += '<button class="k-btn k-btn-success" onclick="ktToggleOnline()"><i data-lucide="wifi"></i> اتصل الآن</button>';
+    html += '</div>';
+  }
+
+  if (inR.length){
+    html += '<div class="k-card kt-anim-3">';
+    html += '<div class="k-card-head"><h3><i data-lucide="package"></i> طلبات في النطاق (' + inR.length + ')</h3></div>';
+    inR.forEach(function(o){
+      var dist = o._distance;
+      var isUrgent = (Date.now() - new Date(o.createdAt).getTime()) > 10 * 60 * 1000;
+      html += '<div class="k-order-card ' + (isUrgent ? 'urgent' : '') + '" onclick="openOrderModal(\'' + o._fbId + '\')">';
+      html += '<div class="k-order-head"><div class="k-order-id">#' + esc(o.id) + '</div><span class="k-order-badge new">جديد</span></div>';
+      html += '<div class="k-order-body">';
+      html += '<div class="k-order-row"><i data-lucide="user"></i> <b>' + esc((o.customer && o.customer.name) || 'عميل') + '</b></div>';
+      html += '<div class="k-order-row"><i data-lucide="map-pin"></i> ' + esc((o.customer && o.customer.gov) || '') + ' — ' + esc((o.customer && o.customer.city) || '') + '</div>';
+      html += '<div class="k-order-row"><i data-lucide="shopping-bag"></i> ' + ((o.items||[]).length) + ' منتج</div>';
+      html += '</div>';
+      html += '<div class="k-order-foot">';
+      html += '<div><div class="k-order-total">' + money(o.total) + '</div>';
+      html += '<div class="k-order-distance">' + (dist ? '🛣️ ' + dist.toFixed(1) + ' كم' : '📍 بدون موقع') + '</div></div>';
+      html += '<span class="k-btn k-btn-primary k-btn-sm">عرض <i data-lucide="arrow-left"></i></span>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="k-no-radius-orders kt-anim-3">';
+    html += '<div class="icon">🎯</div>';
+    html += '<h3>لا توجد طلبات في نطاق ' + KT_DRIVER_RADIUS_KM + ' كم</h3>';
+    html += '<p>' + (DRIVER.online ? 'جرّب توسّع النطاق أو استنى طلبات جديدة' : 'اتصل أولاً لاستقبال الطلبات') + '</p>';
+    if (!DRIVER.lat && DRIVER.online){
+      html += '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktStartGpsTracking();setTimeout(renderOrders,2000)"><i data-lucide="map-pin"></i> شغّل GPS</button>';
+    }
+    html += '</div>';
+  }
+
+  if (outR.length && radiusData.hasLocation){
+    html += '<div class="k-card kt-anim-4" style="border-color:rgba(255,184,0,.3);background:linear-gradient(135deg,rgba(255,184,0,.04),transparent)">';
+    html += '<div class="k-card-head"><h3 style="color:var(--gold)"><i data-lucide="map-pin-off"></i> خارج النطاق (' + outR.length + ')</h3></div>';
+    outR.slice(0, 5).forEach(function(o){
+      html += '<div class="k-order-card" style="opacity:.65" onclick="openOrderModal(\'' + o._fbId + '\')">';
+      html += '<div class="k-order-head"><div class="k-order-id">#' + esc(o.id) + '</div><span class="k-pill k-pill-gold">📍 بعيد</span></div>';
+      html += '<div class="k-order-body"><div class="k-order-row"><i data-lucide="user"></i> <b>' + esc((o.customer && o.customer.name) || 'عميل') + '</b></div>';
+      html += '<div class="k-order-row"><i data-lucide="map-pin"></i> ' + esc((o.customer && o.customer.city) || '') + '</div></div>';
+      html += '<div class="k-order-foot"><div><div class="k-order-total">' + money(o.total) + '</div>';
+      html += '<div class="k-order-distance">🛣️ ' + (o._distance ? o._distance.toFixed(1) + ' كم' : 'بدون موقع') + '</div></div></div></div>';
+    });
+    html += '</div>';
+  }
+
+  $('#content').innerHTML = html;
+  refreshIcons();
+}
+
+function openOrderModal(fbId){
+  var o = FB_ORDERS.find(function(x){ return x._fbId === fbId; });
+  if (!o){ toast('⚠️ الطلب غير موجود', 'error'); return; }
+  var c = o.customer || {};
+  var itemsHTML = (o.items || []).map(function(it){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:24px">' + (it.emoji || '🛒') + '</span>' +
+      '<div style="flex:1"><b style="font-size:14px">' + esc(it.nameAr) + '</b>' +
+      '<div style="font-size:12px;color:var(--ink-3)">' + it.qty + ' × ' + money(it.price) + '</div></div>' +
+      '<b style="color:var(--gold);font-size:14px">' + money(it.price * it.qty) + '</b></div>';
+  }).join('');
+  var addressLine = (c.gov || '') + ' — ' + (c.city || '') + ' — ' + (c.area || '') + ' — ' + (c.street || '');
+  if (c.building) addressLine += ' — مبنى ' + c.building;
+  var mapHTML = (c.lat && c.lng) ?
+    '<div class="k-map"><iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (c.lng-0.01) + ',' + (c.lat-0.01) + ',' + (c.lng+0.01) + ',' + (c.lat+0.01) + '&layer=mapnik&marker=' + c.lat + ',' + c.lng + '" loading="lazy"></iframe></div>' +
+    '<a href="https://www.google.com/maps/dir/?api=1&destination=' + c.lat + ',' + c.lng + '" target="_blank" class="k-btn k-btn-glass k-btn-block" style="margin-top:10px"><i data-lucide="navigation"></i> افتح في Google Maps</a>'
+    : '<div class="k-card" style="text-align:center;padding:16px"><p style="color:var(--ink-3);font-size:13.5px">📍 لا يوجد موقع محدد — اتصل بالعميل</p></div>';
+  var acceptBtn = '';
+  if (o.status === 'placed' && !o.driverId){
+    acceptBtn = '<button class="k-btn k-btn-success k-btn-block k-btn-lg" style="margin-top:16px" onclick="ktAcceptOrder(\'' + fbId + '\')"><i data-lucide="check-circle-2"></i> قبول الطلب</button>';
+  }
+
+  openModal(
+    '<div class="k-modal-head"><h3><i data-lucide="package"></i> ' + esc(o.id) + '</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-card" style="background:linear-gradient(135deg,rgba(59,130,246,.08),transparent);border-color:rgba(59,130,246,.3)">' +
+      '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">' +
+        '<div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;font-size:24px">👤</div>' +
+        '<div style="flex:1"><b style="font-size:16px">' + esc(c.name || 'عميل') + '</b><div style="font-size:13px;color:var(--ink-3);margin-top:2px">📞 ' + esc(c.phone || '—') + '</div></div>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+        '<a href="tel:' + esc(c.phone || '') + '" class="k-btn k-btn-primary k-btn-sm"><i data-lucide="phone"></i> اتصال</a>' +
+        '<button class="k-btn k-btn-gold k-btn-sm" onclick="ktOpenCustomerChat(\'' + fbId + '\')"><i data-lucide="message-square"></i> شات</button>' +
+        '<a href="https://wa.me/2' + String(c.phone || '').replace(/\D/g,'') + '" target="_blank" class="k-btn k-btn-success k-btn-sm"><i data-lucide="message-circle"></i> واتس</a>' +
+      '</div>' +
+    '</div>' +
+    '<h4 style="margin:20px 0 10px;font-size:15px;font-weight:800">📍 العنوان</h4>' +
+    '<p style="padding:14px;background:var(--bg-3);border-radius:12px;border:1px solid var(--line);font-size:13.5px;line-height:1.6">' + esc(addressLine) + '</p>' +
+    mapHTML +
+    '<h4 style="margin:20px 0 10px;font-size:15px;font-weight:800">🛍️ المنتجات (' + ((o.items||[]).length) + ')</h4>' + itemsHTML +
+    '<div style="display:flex;justify-content:space-between;padding:16px 0 0;margin-top:14px;border-top:2px solid var(--line-2);font-size:20px;font-weight:900"><span>الإجمالي</span><span style="color:var(--gold)">' + money(o.total) + '</span></div>' +
+    '<div style="background:rgba(255,184,0,.1);border:1px solid rgba(255,184,0,.3);border-radius:12px;padding:12px;margin-top:14px;text-align:center;font-size:13px;color:var(--gold);font-weight:700">💰 عمولتك: ' + DRIVER.commissionPerOrder + ' ج.م</div>' +
+    acceptBtn
+  );
+}
+
+function ktAcceptOrder(fbId){
+  var o = FB_ORDERS.find(function(x){ return x._fbId === fbId; });
+  if (!o) return;
+  if (o.driverId){ toast('⚠️ مقبول من مندوب آخر', 'error'); closeModal(); return; }
+  if (DRIVER.currentOrderId){ toast('⚠️ لديك طلب حالي', 'error'); return; }
+
+  ktWaitFirebase(function(init){
+    var orderRef = init.db.collection('orders').doc(fbId);
+    init.db.runTransaction(function(t){
+      return t.get(orderRef).then(function(doc){
+        if (!doc.exists) throw new Error('غير موجود');
+        var data = doc.data();
+        if (data.driverId) throw new Error('مقبول مسبقاً');
+        if (['placed','confirmed'].indexOf(data.status) === -1) throw new Error('غير متاح');
+        t.update(orderRef, {
+          driverId: DRIVER.uid,
+          driver: { name: DRIVER.name, phone: DRIVER.phone, lat: DRIVER.lat, lng: DRIVER.lng, profilePhoto: DRIVER.profilePhoto },
+          status: 'preparing',
+          acceptedAt: new Date().toISOString(),
+          statusHistory: firebase.firestore.FieldValue.arrayUnion({ status: 'preparing', at: new Date().toISOString() })
+        });
+      });
+    }).then(function(){
+      DRIVER.currentOrderId = fbId;
+      LS_set('driver_current', fbId);
+      try { if (window.KT_SOUND) KT_SOUND.success(); } catch(e){}
+      toast('✅ تم قبول الطلب', 'success');
+      closeModal();
+      switchTab('current');
+    }).catch(function(err){
+      toast('❌ ' + (err.message || 'فشل القبول'), 'error');
+      closeModal();
+    });
+  });
+}
+
+/* ═══ Current Order ═══ */
+function renderCurrent(){
+  var myOrder = null;
+  if (DRIVER.currentOrderId) myOrder = FB_ORDERS.find(function(o){ return o._fbId === DRIVER.currentOrderId; });
+  if (!myOrder){
+    var assigned = FB_ORDERS.filter(function(o){ return o.driverId === DRIVER.uid && o.status !== 'delivered' && o.status !== 'cancelled'; });
+    if (assigned.length){ myOrder = assigned[0]; DRIVER.currentOrderId = myOrder._fbId; }
+  }
+  if (!myOrder){
+    $('#content').innerHTML = '<div class="k-card kt-anim-1"><div class="k-empty"><i data-lucide="navigation"></i><h3>لا يوجد مشوار حالي</h3><p>اذهب لتبويب الطلبات واقبل طلب جديد</p><button class="k-btn k-btn-primary" style="margin-top:16px" onclick="switchTab(\'orders\')">عرض الطلبات</button></div></div>';
+    refreshIcons(); return;
+  }
+
+  var c = myOrder.customer || {};
+  var status = myOrder.status || 'preparing';
+  var steps = [
+    { id: 'preparing', label: 'استلام من المتجر' },
+    { id: 'out', label: 'في الطريق للعميل' },
+    { id: 'delivered', label: 'تم التسليم' }
+  ];
+  var idx = steps.findIndex(function(s){ return s.id === status; });
+  if (idx < 0) idx = 0;
+  var flowHTML = '<div class="k-flow">' + steps.map(function(s, i){
+    var cls = i < idx ? 'done' : i === idx ? 'current' : '';
+    return '<div class="k-flow-step ' + cls + '"><span class="num">' + (i < idx ? '✓' : (i+1)) + '</span>' + s.label + '</div>';
+  }).join('') + '</div>';
+  var nextBtn = '';
+  if (status === 'confirmed' || status === 'preparing') nextBtn = '<button class="k-btn k-btn-primary k-btn-block k-btn-lg" onclick="ktUpdateOrderStatus(\'out\')"><i data-lucide="navigation"></i> انطلقت للعميل</button>';
+  else if (status === 'out') nextBtn = '<button class="k-btn k-btn-success k-btn-block k-btn-lg" onclick="ktUpdateOrderStatus(\'delivered\')"><i data-lucide="check-circle-2"></i> تم التسليم ✓</button>';
+  else if (status === 'delivered') nextBtn = '<button class="k-btn k-btn-gold k-btn-block k-btn-lg" onclick="ktFinishOrder()"><i data-lucide="star"></i> إنهاء المشوار</button>';
+
+  var mapHTML = (c.lat && c.lng) ?
+    '<div class="k-map"><iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (c.lng-0.01) + ',' + (c.lat-0.01) + ',' + (c.lng+0.01) + ',' + (c.lat+0.01) + '&layer=mapnik&marker=' + c.lat + ',' + c.lng + '" loading="lazy"></iframe></div>' +
+    '<a href="https://www.google.com/maps/dir/?api=1&destination=' + c.lat + ',' + c.lng + '" target="_blank" class="k-btn k-btn-primary k-btn-block"><i data-lucide="navigation"></i> افتح الخريطة</a>' : '';
+  var elapsedMins = ktGetOrderElapsedMinutes(myOrder);
+  var isLate = elapsedMins >= KT_LATE_MINUTES && status !== 'delivered';
+
+  var html = '';
+  if (isLate){
+    html += '<div class="k-late-warning kt-anim-1"><div class="icon">🚨</div><div class="info"><b>الطلب متأخر!</b><span>عدّى ' + elapsedMins + ' دقيقة. أسرع!</span></div></div>';
+  }
+  html += '<div class="k-card kt-anim-1" style="border-color:rgba(59,130,246,.5);background:linear-gradient(135deg,rgba(59,130,246,.1),transparent)">';
+  html += '<div class="k-card-head"><h3><i data-lucide="navigation"></i> مشوار حالي</h3><div style="display:flex;gap:8px;align-items:center">' + ktGetOrderTimerBadge(myOrder) + '<span class="k-pill k-pill-blue">' + statusLabel(status) + '</span></div></div>';
+  html += flowHTML;
+  html += '</div>';
+
+  html += '<div class="k-card kt-anim-2">';
+  html += '<div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">';
+  html += '<div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;font-size:26px">👤</div>';
+  html += '<div style="flex:1"><b style="font-size:16px">' + esc(c.name || 'عميل') + '</b>';
+  html += '<div style="font-size:13px;color:var(--ink-3);margin-top:3px">📞 ' + esc(c.phone || '—') + '</div></div></div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">';
+  html += '<a href="tel:' + esc(c.phone || '') + '" class="k-btn k-btn-primary k-btn-sm"><i data-lucide="phone"></i> اتصال</a>';
+  html += '<button class="k-btn k-btn-gold k-btn-sm" onclick="ktOpenCustomerChat(\'' + myOrder._fbId + '\')"><i data-lucide="message-square"></i> شات</button>';
+  html += '<a href="https://wa.me/2' + String(c.phone || '').replace(/\D/g,'') + '" target="_blank" class="k-btn k-btn-success k-btn-sm"><i data-lucide="message-circle"></i> واتس</a>';
+  html += '</div>';
+  html += '<h4 style="margin:10px 0;font-size:14px;font-weight:800">📍 العنوان</h4>';
+  html += '<p style="padding:12px;background:var(--bg-3);border-radius:12px;border:1px solid var(--line);font-size:13px;line-height:1.6">' + esc((c.gov||'') + ' — ' + (c.city||'') + ' — ' + (c.area||'') + ' — ' + (c.street||'')) + '</p>';
+  html += mapHTML;
+  html += '</div>';
+
+  html += '<div class="k-card kt-anim-3">';
+  html += '<h4 style="margin-bottom:12px;font-size:15px;font-weight:800">🛍️ المنتجات (' + ((myOrder.items||[]).length) + ')</h4>';
+  html += (myOrder.items||[]).map(function(it){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:22px">' + (it.emoji || '🛒') + '</span>' +
+      '<div style="flex:1"><b style="font-size:13.5px">' + esc(it.nameAr) + '</b><div style="font-size:11.5px;color:var(--ink-3)">× ' + it.qty + '</div></div></div>';
+  }).join('');
+  html += '<div style="display:flex;justify-content:space-between;padding:14px 0 0;margin-top:10px;border-top:1px solid var(--line);font-size:18px;font-weight:900"><span>الإجمالي</span><span style="color:var(--gold)">' + money(myOrder.total) + '</span></div>';
+  html += '</div>';
+
+  html += '<div style="margin-top:14px" class="kt-anim-4">' + nextBtn + '</div>';
+
+  $('#content').innerHTML = html;
+  refreshIcons();
+}
+
+function statusLabel(s){
+  var map = { confirmed:'جاري الاستلام', preparing:'جاري الاستلام', out:'في الطريق', delivered:'تم التسليم' };
+  return map[s] || s;
+}
+
+function ktUpdateOrderStatus(newStatus){
+  if (!DRIVER.currentOrderId) return;
+  ktWaitFirebase(function(init){
+    var orderRef = init.db.collection('orders').doc(DRIVER.currentOrderId);
+    var updates = {
+      status: newStatus,
+      statusHistory: firebase.firestore.FieldValue.arrayUnion({ status: newStatus, at: new Date().toISOString() })
+    };
+    if (newStatus === 'out') updates.pickedAt = new Date().toISOString();
+    if (newStatus === 'delivered') updates.deliveredAt = new Date().toISOString();
+    orderRef.update(updates).then(function(){
+      if (newStatus === 'delivered'){
+        DRIVER.completedToday = (DRIVER.completedToday || 0) + 1;
+        DRIVER.earnings = (DRIVER.earnings || 0) + DRIVER.commissionPerOrder;
+        LS_set('driver_data', DRIVER);
+        init.db.collection('drivers').doc(DRIVER.uid).update({
+          completedToday: firebase.firestore.FieldValue.increment(1),
+          completedTotal: firebase.firestore.FieldValue.increment(1),
+          earnings: firebase.firestore.FieldValue.increment(DRIVER.commissionPerOrder),
+          monthlyOrders: firebase.firestore.FieldValue.increment(1)
+        }).catch(function(e){ console.warn('stats:', e); });
+        try { if (window.KT_SOUND) KT_SOUND.cash(); } catch(e){}
+        toast('🎉 تم التسليم! +' + DRIVER.commissionPerOrder + ' ج.م', 'success');
+      } else {
+        try { if (window.KT_SOUND) KT_SOUND.message(); } catch(e){}
+        toast('✅ تم التحديث', 'success');
+      }
+      renderCurrent();
+    }).catch(function(e){ toast('❌ ' + (e.message || 'فشل'), 'error'); });
+  });
+}
+
+function ktFinishOrder(){
+  DRIVER.currentOrderId = null;
+  LS_del('driver_current');
+  toast('✅ مشوار مكتمل', 'success');
+  switchTab('orders');
+}
+
+/* ═══ Wallet ═══ */
+function ktGetWeeklyStats(){
+  var days = [];
+  var today = new Date(); today.setHours(0,0,0,0);
+  for (var i = 6; i >= 0; i--){
+    var d = new Date(today); d.setDate(d.getDate() - i);
+    days.push({ date: d, shortLabel: ['ح','ن','ث','ر','خ','ج','س'][d.getDay()], orders: 0, earnings: 0, isToday: i === 0 });
+  }
+  FB_ORDERS.forEach(function(o){
+    if (o.driverId !== DRIVER.uid || o.status !== 'delivered' || !o.deliveredAt) return;
+    var delivered = new Date(o.deliveredAt); delivered.setHours(0,0,0,0);
+    var idx = days.findIndex(function(d){ return d.date.getTime() === delivered.getTime(); });
+    if (idx >= 0){ days[idx].orders++; days[idx].earnings += DRIVER.commissionPerOrder; }
+  });
+  var totalOrders = days.reduce(function(s, d){ return s + d.orders; }, 0);
+  var totalEarnings = days.reduce(function(s, d){ return s + d.earnings; }, 0);
+  var maxOrders = Math.max.apply(null, days.map(function(d){ return d.orders; })) || 1;
+  return { days: days, totalOrders: totalOrders, totalEarnings: totalEarnings, maxOrders: maxOrders };
+}
+
+function ktRenderWeeklyStats(){
+  var stats = ktGetWeeklyStats();
+  var html = '<div class="k-card kt-anim-2">';
+  html += '<div class="k-card-head"><h3><i data-lucide="bar-chart-3"></i> إحصائيات الأسبوع</h3></div>';
+  html += '<div class="k-week-chart">';
+  stats.days.forEach(function(d){
+    var heightPct = d.orders > 0 ? Math.max(15, (d.orders / stats.maxOrders) * 100) : 4;
+    html += '<div class="k-week-bar' + (d.isToday ? ' today' : '') + '">';
+    html += '<div class="count">' + d.orders + '</div>';
+    html += '<div class="bar' + (d.isToday ? ' today' : '') + '" style="height:' + heightPct + '%"></div>';
+    html += '<div class="day">' + d.shortLabel + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div class="k-week-summary">';
+  html += '<div class="item"><b>' + stats.totalOrders + '</b><span>طلب في الأسبوع</span></div>';
+  html += '<div class="item"><b>' + stats.totalEarnings + '</b><span>ج.م في الأسبوع</span></div>';
+  html += '</div></div>';
+  return html;
+}
+
+function renderWallet(){
+  var myOrders = FB_ORDERS.filter(function(o){ return o.driverId === DRIVER.uid && o.status === 'delivered'; });
+  var total = myOrders.length * DRIVER.commissionPerOrder;
+
+  var html = '';
+  html += '<div class="k-card kt-anim-1" style="text-align:center;background:linear-gradient(135deg,rgba(255,184,0,.12),rgba(255,107,53,.06));border-color:rgba(255,184,0,.4)">';
+  html += '<div style="font-size:64px;margin-bottom:12px">💰</div>';
+  html += '<div class="k-stat-label" style="position:static">إجمالي أرباحك</div>';
+  html += '<div style="font-size:42px;font-weight:900;color:var(--gold);margin:8px 0">' + total + ' ج.م</div>';
+  html += '<div style="color:var(--ink-3);font-size:13px">من ' + myOrders.length + ' طلب مكتمل</div>';
+  html += '</div>';
+
+  html += ktRenderWeeklyStats();
+
+  html += '<div class="k-stats kt-anim-3">';
+  html += '<div class="k-stat green"><div class="k-stat-icon"><i data-lucide="check-circle-2"></i></div><div class="k-stat-label">مكتملة</div><div class="k-stat-value">' + myOrders.length + '</div></div>';
+  html += '<div class="k-stat gold"><div class="k-stat-icon"><i data-lucide="coins"></i></div><div class="k-stat-label">عمولة الطلب</div><div class="k-stat-value">' + DRIVER.commissionPerOrder + '</div></div>';
+  html += '</div>';
+
+  html += '<div class="k-card kt-anim-4">';
+  html += '<div class="k-card-head"><h3><i data-lucide="list"></i> سجل المعاملات</h3></div>';
+  if (myOrders.length){
+    myOrders.slice(0, 20).forEach(function(o){
+      var date = o.deliveredAt ? new Date(o.deliveredAt).toLocaleDateString('ar-EG') : '—';
+      html += '<div class="k-tx"><div class="k-tx-ic">🛵</div><div class="k-tx-info"><b>طلب #' + esc(o.id) + '</b><span>📅 ' + date + '</span></div><div class="k-tx-amt">+' + DRIVER.commissionPerOrder + ' ج.م</div></div>';
+    });
+  } else {
+    html += '<div class="k-empty" style="padding:40px 20px"><i data-lucide="inbox"></i><h3>لا توجد معاملات</h3></div>';
+  }
+  html += '</div>';
+  $('#content').innerHTML = html;
+  refreshIcons();
+}
+
+/* ═══ Leaderboard ═══ */
+function ktLoadLeaderboard(){
+  ktWaitFirebase(function(init){
+    init.db.collection('drivers').where('status', '==', 'approved').get()
+      .then(function(snap){
+        var drivers = [];
+        snap.forEach(function(doc){
+          var d = doc.data();
+          drivers.push({
+            id: doc.id, name: d.name || 'مندوب',
+            profilePhoto: d.profilePhoto || null,
+            completedToday: d.completedToday || 0, earnings: d.earnings || 0,
+            rating: d.rating || 5.0, monthlyOrders: d.monthlyOrders || d.completedToday || 0
+          });
+        });
+        drivers.sort(function(a, b){
+          if (b.monthlyOrders !== a.monthlyOrders) return b.monthlyOrders - a.monthlyOrders;
+          return b.rating - a.rating;
+        });
+        ktLeaderboardCache = drivers;
+        if (currentTab === 'leaderboard') renderLeaderboard();
+      })
+      .catch(function(e){ console.warn('leaderboard:', e); });
+  });
+}
+
+function renderLeaderboard(){
+  var drivers = ktLeaderboardCache;
+  var html = '<div class="k-card kt-anim-1">';
+  html += '<div class="k-card-head"><h3><i data-lucide="trophy"></i> أفضل المناديب — الشهر ده</h3></div>';
+  if (!drivers.length){
+    html += '<div class="k-lb-empty">🏆 لا توجد بيانات بعد</div></div>';
+    $('#content').innerHTML = html; refreshIcons(); return;
+  }
+  function avatarHTML(d){
+    if (d.profilePhoto) return '<img src="' + d.profilePhoto + '" alt="' + esc(d.name) + '">';
+    return esc((d.name || 'م').charAt(0));
+  }
+  html += '<div class="k-lb-top3">';
+  if (drivers[1]){
+    html += '<div class="k-lb-podium second"><span class="k-lb-medal">🥈</span><div class="k-lb-avatar">' + avatarHTML(drivers[1]) + '</div><div class="k-lb-name">' + esc(drivers[1].name) + '</div><div class="k-lb-points">' + drivers[1].monthlyOrders + ' طلب</div></div>';
+  } else { html += '<div></div>'; }
+  html += '<div class="k-lb-podium first"><span class="k-lb-medal">👑</span><div class="k-lb-avatar">' + avatarHTML(drivers[0]) + '</div><div class="k-lb-name">' + esc(drivers[0].name) + '</div><div class="k-lb-points">' + drivers[0].monthlyOrders + ' طلب</div></div>';
+  if (drivers[2]){
+    html += '<div class="k-lb-podium third"><span class="k-lb-medal">🥉</span><div class="k-lb-avatar">' + avatarHTML(drivers[2]) + '</div><div class="k-lb-name">' + esc(drivers[2].name) + '</div><div class="k-lb-points">' + drivers[2].monthlyOrders + ' طلب</div></div>';
+  } else { html += '<div></div>'; }
+  html += '</div>';
+  if (drivers.length > 3){
+    html += '<div class="k-lb-list">';
+    drivers.slice(3, 15).forEach(function(d, i){
+      var rank = i + 4;
+      var isMe = d.id === DRIVER.uid;
+      html += '<div class="k-lb-row' + (isMe ? ' me' : '') + '"><div class="k-lb-rank">' + rank + '</div><div class="av-mini">' + avatarHTML(d) + '</div><div class="info"><b>' + esc(d.name) + (isMe ? ' (أنت)' : '') + '</b><span>⭐ ' + d.rating.toFixed(1) + ' · ' + d.earnings + ' ج.م</span></div><div class="pts">' + d.monthlyOrders + '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<div class="k-card kt-anim-2" style="border-color:rgba(255,184,0,.4);background:linear-gradient(135deg,rgba(255,184,0,.08),transparent)">';
+  html += '<div class="k-card-head"><h3><i data-lucide="gift" style="color:var(--gold)"></i> مسابقة الشهر</h3></div>';
+  html += '<div style="font-size:14px;line-height:2;color:var(--ink-2)">';
+  html += '<div>🥇 <b style="color:var(--gold)">المركز الأول:</b> بونص 500 ج.م</div>';
+  html += '<div>🥈 <b style="color:#d4d4d8">المركز التاني:</b> بونص 300 ج.م</div>';
+  html += '<div>🥉 <b style="color:#d97706">المركز التالت:</b> بونص 150 ج.م</div>';
+  html += '</div></div>';
+  $('#content').innerHTML = html;
+  refreshIcons();
+}
+
+/* ═══ Profile ═══ */
+function renderProfile(){
+  var vehicleLabels = { motorcycle:'🛵 موتوسيكل', car:'🚗 سيارة', bicycle:'🚲 دراجة', van:'🚐 فان' };
+  var soundEnabled = LS_get('sound_enabled', true);
+  var avatarHTML = DRIVER.profilePhoto
+    ? '<img src="' + DRIVER.profilePhoto + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+    : '<div style="font-size:48px">🛵</div>';
+
+  var html = '';
+  html += '<div class="k-card kt-anim-1" style="text-align:center">';
+  html += '<div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,var(--driver),var(--driver-2));display:grid;place-items:center;margin:0 auto 16px;overflow:hidden;border:3px solid var(--driver)">' + avatarHTML + '</div>';
+  html += '<h2 style="font-size:22px;font-weight:900;margin-bottom:6px">' + esc(DRIVER.name) + '</h2>';
+  html += '<p style="color:var(--ink-3);font-size:14px">📱 ' + esc(DRIVER.phone || '—') + '</p>';
+  if (DRIVER.email) html += '<p style="color:var(--ink-3);font-size:13.5px;margin-top:3px" dir="ltr">✉️ ' + esc(DRIVER.email) + '</p>';
+  html += '<div style="display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap">';
+  html += '<span class="k-pill k-pill-blue">🛵 مندوب</span>';
+  html += '<span class="k-pill k-pill-gold">⭐ ' + (DRIVER.rating || 5).toFixed(1) + '</span>';
+  html += '<span class="k-pill k-pill-fresh">✅ معتمد</span>';
+  html += '</div></div>';
+
+  html += '<div class="k-card kt-anim-2">';
+  html += '<div class="k-card-head"><h3><i data-lucide="info"></i> معلومات</h3></div>';
+  html += '<div style="background:var(--bg-3);border-radius:12px;padding:16px;font-size:14px;line-height:1.9">';
+  if (DRIVER.area) html += '<div>📍 المنطقة: <b style="color:var(--driver-2)">' + esc(DRIVER.area) + '</b></div>';
+  if (DRIVER.vehicle) html += '<div>🚗 المركبة: <b style="color:var(--driver-2)">' + (vehicleLabels[DRIVER.vehicle] || DRIVER.vehicle) + '</b></div>';
+  html += '<div>💰 عمولة الطلب: <b style="color:var(--gold)">' + DRIVER.commissionPerOrder + ' ج.م</b></div>';
+  html += '<div>📊 طلبات اليوم: <b style="color:var(--fresh)">' + (DRIVER.completedToday || 0) + '</b></div>';
+  html += '</div></div>';
+
+  html += '<div class="k-card kt-anim-3">';
+  html += '<div class="k-card-head"><h3><i data-lucide="volume-2" style="color:var(--brand)"></i> إعدادات الصوت</h3></div>';
+  html += '<div style="background:var(--bg-3);border-radius:12px;padding:16px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html += '<span style="font-weight:700;font-size:14px">🔊 الأصوات</span>';
+  html += '<button class="k-btn k-btn-sm ' + (soundEnabled ? 'k-btn-success' : 'k-btn-glass') + '" onclick="ktToggleSound()" id="soundToggleBtn">' + (soundEnabled ? '✅ مفعّل' : '❌ موقوف') + '</button>';
+  html += '</div>';
+  html += '<button class="k-btn k-btn-glass k-btn-block k-btn-sm" onclick="try{KT_SOUND.chime()}catch(e){}">🎵 تجربة صوت التنبيه</button>';
+  html += '</div></div>';
+
+  html += '<div class="k-card kt-anim-4">';
+  html += '<div class="k-card-head"><h3><i data-lucide="settings"></i> الإعدادات</h3></div>';
+  html += '<button class="k-btn k-btn-glass k-btn-block" style="margin-bottom:10px;justify-content:flex-start" onclick="toggleTheme()"><i data-lucide="sun-moon"></i> تبديل المظهر</button>';
+  html += '<button class="k-btn k-btn-glass k-btn-block" style="margin-bottom:10px;justify-content:flex-start" onclick="ktShowMyLocation()"><i data-lucide="map-pin"></i> موقعي الحالي</button>';
+  html += '<a href="index.html" class="k-btn k-btn-glass k-btn-block" style="margin-bottom:10px;justify-content:flex-start"><i data-lucide="home"></i> الموقع الرئيسي</a>';
+  html += '</div>';
+
+  html += '<div class="k-card kt-anim-5" style="border-color:rgba(239,68,68,.3)">';
+  html += '<div class="k-card-head"><h3 style="color:var(--danger)"><i data-lucide="alert-triangle"></i> منطقة الخطر</h3></div>';
+  html += '<button class="k-btn k-btn-danger k-btn-block" onclick="ktDriverLogout()"><i data-lucide="log-out"></i> تسجيل الخروج</button>';
+  html += '</div>';
+
+  $('#content').innerHTML = html;
+  refreshIcons();
+}
+
+function ktToggleSound(){
+  if (!window.KT_SOUND) return;
+  var enabled = !KT_SOUND.isEnabled();
+  if (enabled){ KT_SOUND.enable(); LS_set('sound_enabled', true); }
+  else { KT_SOUND.disable(); LS_set('sound_enabled', false); }
+  toast(enabled ? '🔊 الصوت مفعّل' : '🔇 الصوت موقوف', 'success');
+  renderProfile();
+}
+
+function ktShowMyLocation(){
+  if (DRIVER.lat && DRIVER.lng){
+    window.open('https://www.google.com/maps?q=' + DRIVER.lat + ',' + DRIVER.lng, '_blank');
+  } else {
+    toast('📍 جاري تحديد موقعك...');
+    if (navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(function(pos){
+        DRIVER.lat = pos.coords.latitude; DRIVER.lng = pos.coords.longitude;
+        window.open('https://www.google.com/maps?q=' + DRIVER.lat + ',' + DRIVER.lng, '_blank');
+      }, function(){ toast('❌ فشل', 'error'); });
+    }
+  }
+}
+
+function ktDriverLogout(){
+  if (!confirm('تسجيل الخروج؟')) return;
+  ktStopGpsTracking();
+  Object.keys(_unsubs).forEach(function(k){ try { _unsubs[k] && _unsubs[k](); } catch(e){} });
+  _unsubs = {};
+  if (_approvalListenerUnsub){ try { _approvalListenerUnsub(); } catch(e){} }
+  LS_del('driver_data');
+  LS_del('driver_current');
+  ktWaitFirebase(function(init){
+    init.auth.signOut().then(function(){ location.reload(); });
+  });
+}
+
+/* ═══ Chat ═══ */
+function ktOpenCustomerChat(orderFbId){
+  var o = FB_ORDERS.find(function(x){ return x._fbId === orderFbId || x.id === orderFbId; });
+  if (!o){ toast('⚠️ الطلب غير موجود', 'error'); return; }
+  ktChatOrderId = o._fbId;
+  _lastChatCount = 0;
+  var c = o.customer || {};
+  openModal(
+    '<div class="k-chat-modal">' +
+      '<div class="k-chat-head"><div class="av">👤</div><div class="info"><b>' + esc(c.name || 'العميل') + '</b><span>متصل الآن</span></div><button class="k-modal-close" onclick="ktCloseCustomerChat()"><i data-lucide="x"></i></button></div>' +
+      '<div class="k-chat-body" id="ktChatBody"><div class="k-chat-empty">💬 ابدأ المحادثة</div></div>' +
+      '<div class="k-chat-quick">' +
+        '<button onclick="ktQuickChat(\'أنا في الطريق إليك\')">أنا في الطريق</button>' +
+        '<button onclick="ktQuickChat(\'هوصل خلال 5 دقايق\')">5 دقايق</button>' +
+        '<button onclick="ktQuickChat(\'ممكن تبعتلي اللوكيشن\')">ابعت اللوكيشن</button>' +
+        '<button onclick="ktQuickChat(\'وصلت، أنا تحت البيت\')">وصلت</button>' +
+      '</div>' +
+      '<div class="k-chat-input-wrap"><input type="text" id="ktChatInput" placeholder="اكتب رسالتك..." onkeydown="if(event.key===\'Enter\')ktSendChatMessage()"><button onclick="ktSendChatMessage()"><svg data-lucide="send"></svg></button></div>' +
+    '</div>'
+  );
+  setTimeout(function(){
+    var modal = document.querySelector('#modalContent');
+    if (modal) modal.classList.add('k-chat-modal');
+    var inp = document.getElementById('ktChatInput');
+    if (inp) inp.focus();
+  }, 50);
+  ktListenToChat(o._fbId);
+}
+
+function ktCloseCustomerChat(){
+  if (ktChatUnsub){ try{ ktChatUnsub(); }catch(e){} ktChatUnsub = null; }
+  ktChatOrderId = null;
+  closeModal();
+}
+
+function ktListenToChat(orderFbId){
+  ktWaitFirebase(function(init){
+    if (ktChatUnsub){ try{ ktChatUnsub(); }catch(e){} }
+    try {
+      ktChatUnsub = init.db.collection('orders').doc(orderFbId).collection('chat').orderBy('createdAt', 'asc').limit(200)
+        .onSnapshot(function(snap){
+          var msgs = [];
+          snap.forEach(function(doc){ msgs.push(Object.assign({ _id: doc.id }, doc.data())); });
+          if (_lastChatCount > 0 && msgs.length > _lastChatCount){
+            var last = msgs[msgs.length - 1];
+            if (last && last.sender !== 'driver'){ try { KT_SOUND.message(); } catch(e){} }
+          }
+          _lastChatCount = msgs.length;
+          ktRenderChatMessages(msgs);
+        }, function(err){ console.warn('chat:', err); });
+    } catch(e){ console.warn(e); }
+  });
+}
+
+function ktRenderChatMessages(msgs){
+  var body = document.getElementById('ktChatBody');
+  if (!body) return;
+  if (!msgs.length){ body.innerHTML = '<div class="k-chat-empty">💬 ابدأ المحادثة</div>'; return; }
+  body.innerHTML = msgs.map(function(m){
+    var isMe = m.sender === 'driver';
+    var time = m.createdAt ? new Date(m.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '';
+    return '<div class="k-chat-msg ' + (isMe ? 'me' : 'them') + '">' + esc(m.text) + (time ? '<span class="time">' + time + '</span>' : '') + '</div>';
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+function ktSendChatMessage(){
+  var inp = document.getElementById('ktChatInput');
+  if (!inp) return;
+  var text = inp.value.trim();
+  if (!text) return;
+  if (!ktChatOrderId){ toast('⚠️ لم يتم تحديد الطلب', 'error'); return; }
+  inp.value = '';
+  ktWaitFirebase(function(init){
+    init.db.collection('orders').doc(ktChatOrderId).collection('chat')
+      .add({
+        sender: 'driver', senderId: DRIVER.uid, senderName: DRIVER.name,
+        text: text, createdAt: new Date().toISOString(),
+        _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp(), read: false
+      })
+      .catch(function(e){ toast('❌ فشل الإرسال', 'error'); });
+  });
+}
+
+function ktQuickChat(text){
+  var inp = document.getElementById('ktChatInput');
+  if (inp) inp.value = text;
+  ktSendChatMessage();
+}
+
+/* ═══ Lightbox ═══ */
+function ktOpenLightbox(src){
+  var lb = document.getElementById('ktLightbox');
+  var img = document.getElementById('ktLightboxImg');
+  if (!lb || !img) return;
+  img.src = src;
+  lb.style.display = 'flex';
+}
+function ktCloseLightbox(){
+  var lb = document.getElementById('ktLightbox');
+  if (lb) lb.style.display = 'none';
+}
+
+/* ═══ Modal / Theme ═══ */
+function openModal(html){ $('#modalContent').innerHTML = html; $('#modalBd').classList.add('open'); document.body.style.overflow = 'hidden'; refreshIcons(); }
+function closeModal(){ $('#modalBd').classList.remove('open'); document.body.style.overflow = ''; }
+
+var currentTheme = LS_get('theme', 'dark');
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  currentTheme = t; LS_set('theme', t);
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', t === 'dark' ? '#02060f' : '#f7f8fb');
+}
+function toggleTheme(){ applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); toast(currentTheme === 'dark' ? '🟠 داكن' : '⚪ فاتح', 'success'); }
+applyTheme(currentTheme);
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded', function(){
+  refreshIcons();
+  setTimeout(refreshIcons, 500);
+  setTimeout(refreshIcons, 1500);
+
+  if (window.KT_SOUND){
+    var soundEnabled = LS_get('sound_enabled', true);
+    var soundVolume = LS_get('sound_volume', 0.35);
+    if (!soundEnabled) KT_SOUND.disable();
+    KT_SOUND.setVolume(soundVolume);
+  }
+
+  ktWaitFirebase(function(init){
+    init.auth.onAuthStateChanged(function(user){
+      if (user){
+        DRIVER.uid = user.uid;
+        DRIVER.email = user.email || '';
+        DRIVER.name = user.displayName || '';
+        DRIVER.phone = user.phoneNumber || '';
+        init.db.collection('drivers').doc(user.uid).get().then(function(doc){
+          if (doc.exists){
+            DRIVER = Object.assign(DRIVER, doc.data(), { _fbId: doc.id });
+            LS_set('driver_data', DRIVER);
+            ktStartApprovalListener(init);
+            if (DRIVER.status === 'approved'){ ktShowApprovedOrDashboard(); }
+            else if (DRIVER.status === 'pending'){ ktShowPendingScreen(); }
+            else if (DRIVER.status === 'rejected'){ ktShowRejectedScreen(); }
+            else if (DRIVER.status === 'suspended'){ ktShowSuspendedScreen(); }
+            else { ktShowRegistration(); }
+          } else {
+            ktShowRegistration();
+          }
+        }).catch(function(e){
+          console.warn('auth listener doc:', e);
+          if (e && e.code === 'permission-denied'){
+            // مشكلة rules — نعرض له رسالة
+            toast('⚠️ خطأ في الصلاحيات', 'error');
+            ktShowRegistration();
+          } else {
+            ktShowRegistration();
+          }
+        });
+      } else {
+        // مفيش مستخدم مسجل — شاشة الدخول
+        ktHideAllScreens();
+        $('#loginScreen').style.display = 'grid';
+      }
+    });
+  });
+
+  // Enter key navigation
+  var loginPass = $('#loginPass'); if (loginPass) loginPass.addEventListener('keydown', function(e){ if (e.key === 'Enter') ktEmailLogin(); });
+  var loginEmail = $('#loginEmail'); if (loginEmail) loginEmail.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ var p = $('#loginPass'); if(p) p.focus(); } });
+  var signupEmail = $('#signupEmail'); if (signupEmail) signupEmail.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ var p = $('#signupPass'); if(p) p.focus(); } });
+  var signupPass2 = $('#signupPass2'); if (signupPass2) signupPass2.addEventListener('keydown', function(e){ if (e.key === 'Enter') ktStartRegistration(); });
+
+  // Escape key
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){ closeModal(); ktCloseLightbox(); }
+  });
+
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW:', e); });
+    });
+  }
+
+  console.log('%c🛵 Driver App v7.0 — Email Auth + Real-time Approval','background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
+});
+
+Object.assign(window, {
+  ktSwitchAuthMode, ktTogglePw, ktCheckPwStrength,
+  ktEmailLogin, ktStartRegistration, ktGoogleLogin, ktShowForgotPass,
+  ktCheckDriverStatus, ktShowApprovedOrDashboard, ktStartApprovalListener,
+  ktShowApprovedScreen, ktEnterDashboard,
+  ktShowRegistration, ktRenderRegStep, ktRegNext, ktRegPrev,
+  ktRegMapUseMyLocation, ktRegMapSearchAddress, ktRegUpdateCoords,
+  ktHandleProfilePhoto, ktHandleIdFront, ktHandleIdBack,
+  ktSubmitRegistration, ktShowPendingScreen, ktShowRejectedScreen, ktShowSuspendedScreen,
+  ktRefreshStatus, ktToggleOnline, ktAcceptOrder, ktUpdateOrderStatus, ktFinishOrder,
+  openOrderModal, switchTab, toggleTheme, ktShowMyLocation, ktDriverLogout,
+  closeModal, openModal, ktToggleSound, ktLoadLeaderboard, renderLeaderboard,
+  ktOpenCustomerChat, ktCloseCustomerChat, ktSendChatMessage, ktQuickChat,
+  ktSetRadius, ktGetRadiusOrders, ktCheckLateOrders, ktGetWeeklyStats, ktRenderWeeklyStats,
+  ktOpenLightbox, ktCloseLightbox
+});
+</script>
+</body>
+</html>

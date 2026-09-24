@@ -1,0 +1,13 @@
+# 1. سجل دخول بحساب Google بتاع Firebase
+firebase login
+
+# 2. اربط المشروع
+firebase use kanteen2026
+
+# 3. نصّب dependencies للـ functions
+cd functions
+npm install
+cd ..
+
+# 4. انشر Rules + Indexes + Functions
+firebase deploy --only firestore:rules,firestore:indexes,functions
