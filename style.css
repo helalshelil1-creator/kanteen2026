@@ -1516,3 +1516,74 @@ body.kt-checkout-page .btn-glass{
     height:26px !important;
   }
 }
+/* ═══════════════════════════════════════════════════════════
+   ⚡ PERFORMANCE OPTIMIZATION — تحسين السلاسة
+   ═══════════════════════════════════════════════════════════ */
+
+/* 1. قلل الـ blur في العناصر اللي مش مهمة */
+.k-header.scrolled{backdrop-filter:blur(20px) saturate(150%) !important;-webkit-backdrop-filter:blur(20px) saturate(150%) !important}
+.k-topbar{backdrop-filter:blur(20px) saturate(150%) !important;-webkit-backdrop-filter:blur(20px) saturate(150%) !important}
+.kt-chat-panel{backdrop-filter:blur(30px) saturate(150%) !important;-webkit-backdrop-filter:blur(30px) saturate(150%) !important}
+.k-modal{backdrop-filter:blur(30px) saturate(150%) !important;-webkit-backdrop-filter:blur(30px) saturate(150%) !important}
+.k-drawer{backdrop-filter:blur(30px) saturate(150%) !important;-webkit-backdrop-filter:blur(30px) saturate(150%) !important}
+
+/* 2. GPU acceleration للعناصر اللي بتتحرك */
+.k-prod,
+.k-cat,
+.k-stat,
+.k-hero-cta,
+.btn,
+.kt-service,
+.k-bnav,
+.kt-mega-menu-item{
+  transform:translateZ(0);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+
+/* 3. contenement — يعزل كل كارت لوحده */
+.k-prod,
+.k-cat{
+  contain:layout style paint;
+}
+
+/* 4. صور lazy loading افتراضية */
+img:not([loading]){
+  content-visibility:auto;
+}
+
+/* 5. على الموبايل — وقف الأنيميشن التقيل */
+@media(max-width:768px){
+  .k-hero::before{
+    animation:none !important;
+    opacity:.5 !important;
+  }
+  .k-word{
+    animation-duration:6s !important;
+  }
+  .k-logo-img{
+    animation:none !important;
+  }
+  .k-bg-video{
+    display:none !important;
+  }
+  /* خلفية ثابتة بدل الفيديو */
+  .k-bg-overlay{
+    background-image:radial-gradient(ellipse at top,rgba(255,107,53,.1),transparent 60%),
+                     radial-gradient(ellipse at bottom,rgba(59,130,246,.08),transparent 60%) !important;
+  }
+}
+
+/* 6. لو المستخدم عنده prefers-reduced-motion — وقف كل حاجة */
+@media(prefers-reduced-motion:reduce){
+  .k-bg-video{display:none !important}
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* 7. منع layout shift للكروت */
+.k-prod-media,
+.kt-service,
+.k-cat-ic{
+  aspect-ratio:1;
+  width:100%;
+}

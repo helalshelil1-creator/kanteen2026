@@ -103,7 +103,7 @@ h1,h2,h3,h4,p{margin:0}
 .k-shell{display:none;min-height:100vh;flex-direction:column}
 .k-shell.active{display:flex}
 
-.k-topbar{position:sticky;top:0;z-index:60;background:rgba(7,13,27,.82);backdrop-filter:blur(40px) saturate(180%);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:14px}
+.k-topbar{position:sticky;top:0;z-index:60;background:rgba(7,13,27,.82);backdrop-filter:blur(20px) saturate(150%);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:14px}
 [data-theme="light"] .k-topbar{background:rgba(255,255,255,.85)}
 .k-topbar-logo{height:44px;width:auto;flex:none}
 .k-topbar-title{flex:1;min-width:0}
@@ -155,7 +155,7 @@ h1,h2,h3,h4,p{margin:0}
 .k-btn-sm{padding:10px 16px;font-size:13px}
 .k-btn svg{width:18px;height:18px}
 
-.k-bnav{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(2,6,15,.94);backdrop-filter:blur(40px);border-top:1px solid var(--line);padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr);max-width:1100px;margin:0 auto}
+.k-bnav{position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(2,6,15,.94);backdrop-filter:blur(20px);border-top:1px solid var(--line);padding:10px 0 calc(10px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr);max-width:1100px;margin:0 auto}
 [data-theme="light"] .k-bnav{background:rgba(255,255,255,.95)}
 .k-bnav-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;color:var(--ink-3);font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;transition:all .2s}
 .k-bnav-btn svg{width:24px;height:24px;stroke-width:2;transition:all .25s}
@@ -165,7 +165,7 @@ h1,h2,h3,h4,p{margin:0}
 
 .k-modal-bd{position:fixed;inset:0;background:rgba(2,6,15,.92);backdrop-filter:blur(16px);z-index:999;display:none;align-items:flex-end;justify-content:center;padding:0}
 .k-modal-bd.open{display:flex}
-.k-modal{background:rgba(7,13,27,.95);backdrop-filter:blur(50px);border:1px solid var(--line-2);border-top-left-radius:28px;border-top-right-radius:28px;padding:24px;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;box-shadow:0 -20px 60px rgba(0,0,0,.7);animation:modalSlideUp .35s var(--ease-out)}
+.k-modal{background:rgba(7,13,27,.95);backdrop-filter:blur(30px);border:1px solid var(--line-2);border-top-left-radius:28px;border-top-right-radius:28px;padding:24px;width:100%;max-width:700px;max-height:88vh;overflow-y:auto;box-shadow:0 -20px 60px rgba(0,0,0,.7);animation:modalSlideUp .35s var(--ease-out)}
 [data-theme="light"] .k-modal{background:rgba(255,255,255,.98)}
 @keyframes modalSlideUp{from{transform:translateY(100%)}to{transform:none}}
 .k-modal::before{content:'';display:block;width:50px;height:5px;border-radius:999px;background:var(--line-2);margin:0 auto 20px}
@@ -247,9 +247,7 @@ h1,h2,h3,h4,p{margin:0}
   src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104303_0c6d60b2-9353-408e-9449-585108a22fb5.mp4"></video>
 <div class="k-bg-overlay"></div>
 
-<!-- ═══════════════════════════════════════════════
-     LOGIN / REGISTER SCREEN
-     ═══════════════════════════════════════════════ -->
+<!-- LOGIN / REGISTER SCREEN -->
 <div class="k-login-screen" id="loginScreen">
   <div class="k-login-card">
     <img src="logo.png" alt="كانتِين" class="k-login-logo" onerror="this.style.display='none'">
@@ -257,7 +255,6 @@ h1,h2,h3,h4,p{margin:0}
     <h1><span class="gold">متجرك</span> <span class="blue">في كانتِين</span></h1>
     <p id="loginSubtitle">سجّل دخولك لإدارة متجرك</p>
 
-    <!-- ═══ LOGIN FORM ═══ -->
     <div id="loginForm">
       <div class="k-login-field">
         <label>📱 رقم الهاتف</label>
@@ -275,7 +272,6 @@ h1,h2,h3,h4,p{margin:0}
       <div class="k-login-toggle">ليس لديك حساب؟ <a onclick="ktShowRegister()">سجّل متجرك الآن</a></div>
     </div>
 
-    <!-- ═══ REGISTER FORM ═══ -->
     <div id="registerForm" style="display:none">
       <div class="k-login-field">
         <label>🏪 اسم المتجر <span style="color:var(--danger)">*</span></label>
@@ -319,7 +315,6 @@ h1,h2,h3,h4,p{margin:0}
         <input type="text" id="regAddress" placeholder="المحافظة — المنطقة — الشارع" maxlength="120">
       </div>
 
-      <!-- 🗺️ Map Picker -->
       <div class="k-login-field">
         <label>🗺️ حدد موقع متجرك على الخريطة <span style="color:var(--danger)">*</span></label>
         <div style="font-size:12.5px;color:var(--ink-3);margin-bottom:6px">
@@ -349,9 +344,7 @@ h1,h2,h3,h4,p{margin:0}
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════
-     APP SHELL
-     ═══════════════════════════════════════════════ -->
+<!-- APP SHELL -->
 <div class="k-shell" id="appShell">
   <header class="k-topbar">
     <img src="logo.png" alt="كانتِين" class="k-topbar-logo" onerror="this.style.display='none'">
@@ -403,8 +396,7 @@ h1,h2,h3,h4,p{margin:0}
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   🏪 MERCHANT APP v3.0 — Spark Plan (No Cloud Functions)
-   + Map Picker + Admin Notifications + Bug Fixes
+   🏪 MERCHANT APP v3.1 — GPS Improvements + Performance
    ═══════════════════════════════════════════════════════════ */
 
 var $ = function(s){ return document.querySelector(s); };
@@ -439,14 +431,12 @@ function ktShowFbStatus(text, isError){
   setTimeout(function(){ el.classList.remove('show'); }, 3000);
 }
 
-/* ═══════════════════════════════════════════════
-   GLOBAL STATE
-   ═══════════════════════════════════════════════ */
 var MERCHANT = {
   id: null, fbId: null,
   name: '', owner: '', phone: '', whatsapp: '', email: '',
   type: 'grocery', address: '',
   lat: null, lng: null,
+  locationAddress: '',
   status: 'pending',
   products: [],
   createdAt: null,
@@ -460,9 +450,6 @@ var regMarker = null;
 var ktMerchantOrdersUnsub = null;
 var ktMerchantDocUnsub = null;
 
-/* ═══════════════════════════════════════════════
-   FIREBASE READY CHECK (مع Retry ذكي)
-   ═══════════════════════════════════════════════ */
 var _fbWaitRetries = 0;
 function ktWaitFirebase(callback){
   if (window.KT_FB && window.KT_FB.init){
@@ -482,9 +469,6 @@ function ktWaitFirebase(callback){
   }
 }
 
-/* ═══════════════════════════════════════════════
-   AUTH FLOW — Firebase Auth
-   ═══════════════════════════════════════════════ */
 function ktShowRegister(){
   $('#loginForm').style.display = 'none';
   $('#registerForm').style.display = 'block';
@@ -499,7 +483,6 @@ function ktBackToLogin(){
   refreshIcons();
 }
 
-/* ═══ LOGIN ═══ */
 function ktMerchantLogin(){
   var phoneInput = $('#inpPhone').value.trim().replace(/\s/g,'');
   var pass = $('#inpPass').value;
@@ -524,7 +507,6 @@ function ktMerchantLogin(){
   refreshIcons();
 
   ktWaitFirebase(function(init){
-    // ابحث عن التاجر بالرقم
     init.db.collection('merchants').where('phone', '==', phone).limit(1).get()
       .then(function(snap){
         if (snap.empty){
@@ -538,7 +520,6 @@ function ktMerchantLogin(){
         var doc = snap.docs[0];
         var data = doc.data();
 
-        // تحقق من كلمة المرور
         if (data.password && data.password !== pass){
           err.textContent = '❌ كلمة المرور غير صحيحة';
           err.style.display = 'block';
@@ -548,9 +529,7 @@ function ktMerchantLogin(){
           return;
         }
 
-        // محاولة تسجيل الدخول بـ Firebase Auth إذا فيه إيميل
         if (data.email && data.ownerUid){
-          // التاجر عنده حساب Firebase Auth — سجّل دخول
           init.auth.signInWithEmailAndPassword(data.email, pass)
             .then(function(user){
               MERCHANT = Object.assign({}, data, { fbId: doc.id, ownerUid: user.uid });
@@ -558,15 +537,13 @@ function ktMerchantLogin(){
               if (window.KT_SOUND) KT_SOUND.success();
               ktLoginSuccess();
             })
-            .catch(function(e){
-              // فشل Auth لكن البيانات صحيحة → ندخّله عادي
+            .catch(function(){
               MERCHANT = Object.assign({}, data, { fbId: doc.id });
               LS_set('merchant_data', MERCHANT);
               if (window.KT_SOUND) KT_SOUND.success();
               ktLoginSuccess();
             });
         } else {
-          // تاجر قديم بدون Firebase Auth — ندخّله مباشرة
           MERCHANT = Object.assign({}, data, { fbId: doc.id });
           LS_set('merchant_data', MERCHANT);
           if (window.KT_SOUND) KT_SOUND.success();
@@ -584,7 +561,6 @@ function ktMerchantLogin(){
   });
 }
 
-/* ═══ REGISTER ═══ */
 function ktMerchantRegister(){
   var name = $('#regName').value.trim();
   var owner = $('#regOwner').value.trim();
@@ -597,7 +573,6 @@ function ktMerchantRegister(){
   var err = $('#regErrBox');
   err.style.display = 'none';
 
-  // Validation
   if (!name || !owner || !phoneInput || !pass || !type || !address){
     err.textContent = '❌ املأ جميع الحقول المطلوبة (*)';
     err.style.display = 'block';
@@ -640,11 +615,12 @@ function ktMerchantRegister(){
         phone: phone,
         whatsapp: whatsapp,
         email: email,
-        password: pass, // ⚠️ للأمان الأفضل: ننقلها لاحقاً لـ Auth فقط
+        password: pass,
         type: type,
         address: address,
         lat: MERCHANT.lat,
         lng: MERCHANT.lng,
+        locationAddress: MERCHANT.locationAddress || '',
         status: 'pending',
         products: [],
         ownerUid: ownerUid || null,
@@ -654,7 +630,6 @@ function ktMerchantRegister(){
 
       init.db.collection('merchants').add(saveData)
         .then(function(ref){
-          // ✅ أضف إشعار للأدمن
           return init.db.collection('notifications').add({
             type: 'new_merchant',
             merchantId: ref.id,
@@ -692,7 +667,6 @@ function ktMerchantRegister(){
         });
     };
 
-    // لو فيه إيميل → أنشئ Firebase Auth account
     if (email){
       init.auth.createUserWithEmailAndPassword(email, pass)
         .then(function(cred){
@@ -700,24 +674,20 @@ function ktMerchantRegister(){
         })
         .then(function(user){ createMerchant(user.uid); })
         .catch(function(e){
-          // لو الإيميل مستخدم، نكمل بدون Auth جديد
           if (e.code === 'email-already-in-use'){
             init.auth.signInWithEmailAndPassword(email, pass)
               .then(function(cred){ createMerchant(cred.user.uid); })
               .catch(function(){ createMerchant(null); });
           } else {
-            // فشل إنشاء الحساب — نكمل بدون Auth
             createMerchant(null);
           }
         });
     } else {
-      // بدون إيميل — نكمل عادي (بدون Auth)
       createMerchant(null);
     }
   });
 }
 
-/* ═══ AFTER LOGIN ═══ */
 function ktLoginSuccess(){
   $('#loginScreen').style.display = 'none';
   $('#appShell').classList.add('active');
@@ -754,12 +724,8 @@ function ktLogout(){
   location.reload();
 }
 
-/* ═══════════════════════════════════════════════
-   LISTENERS
-   ═══════════════════════════════════════════════ */
 function ktInitListeners(){
   ktWaitFirebase(function(init){
-    // Listen to merchant doc (approval status, products)
     if (MERCHANT.fbId && !ktMerchantDocUnsub){
       ktMerchantDocUnsub = init.db.collection('merchants').doc(MERCHANT.fbId).onSnapshot(function(doc){
         if (!doc.exists) return;
@@ -775,7 +741,6 @@ function ktInitListeners(){
           MERCHANT.status === 'rejected' ? '❌ مرفوض' :
           '⏳ قيد المراجعة';
 
-        // صوت لو اتغيرت الحالة لمعتمد
         if (d.status === 'approved' && MERCHANT.status !== 'approved'){
           if (window.KT_SOUND) KT_SOUND.success();
           toast('🎉 تم اعتماد متجرك!', 'success');
@@ -786,7 +751,6 @@ function ktInitListeners(){
       });
     }
 
-    // Listen to orders for this merchant only
     if (!ktMerchantOrdersUnsub){
       ktMerchantOrdersUnsub = KT_FB.listenOrders(function(orders){
         FB_ORDERS = orders || [];
@@ -815,9 +779,6 @@ function updateOrdersBadge(n){
   });
 }
 
-/* ═══════════════════════════════════════════════
-   TABS
-   ═══════════════════════════════════════════════ */
 function switchTab(tab){
   currentTab = tab;
   $$('.k-bnav-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.tab === tab); });
@@ -829,9 +790,6 @@ function switchTab(tab){
   refreshIcons();
 }
 
-/* ═══════════════════════════════════════════════
-   DASHBOARD
-   ═══════════════════════════════════════════════ */
 function renderDashboard(){
   var products = MERCHANT.products || [];
   var newOrders = FB_ORDERS.filter(function(o){ return o.status === 'placed'; });
@@ -894,9 +852,6 @@ function renderDashboard(){
   refreshIcons();
 }
 
-/* ═══════════════════════════════════════════════
-   PRODUCTS
-   ═══════════════════════════════════════════════ */
 function renderProducts(){
   var products = MERCHANT.products || [];
   var canAdd = MERCHANT.status === 'approved';
@@ -1043,9 +998,6 @@ function ktSaveProducts(updatedProducts){
   });
 }
 
-/* ═══════════════════════════════════════════════
-   ORDERS
-   ═══════════════════════════════════════════════ */
 function statusLabels(s){
   var map = {
     placed: {label:'🆕 جديد', pill:'k-pill-gold'},
@@ -1141,9 +1093,6 @@ function updateOrderStatus(fbId, newStatus){
   });
 }
 
-/* ═══════════════════════════════════════════════
-   WALLET
-   ═══════════════════════════════════════════════ */
 function renderWallet(){
   var myOrders = FB_ORDERS.filter(function(o){ return o.status === 'delivered'; });
   var total = myOrders.reduce(function(s, o){ return s + (o.total || 0); }, 0);
@@ -1180,9 +1129,6 @@ function renderWallet(){
   refreshIcons();
 }
 
-/* ═══════════════════════════════════════════════
-   PROFILE
-   ═══════════════════════════════════════════════ */
 function renderProfile(){
   var typeLabels = {supermarket:'سوبر ماركت',grocery:'بقالة',pharmacy:'صيدلية',restaurant:'مطعم',bakery:'مخبز',butcher:'جزارة',vegetables:'خضار وفاكهة',other:'أخرى'};
   var mapHTML = (MERCHANT.lat && MERCHANT.lng)
@@ -1241,7 +1187,6 @@ function renderProfile(){
 
   $('#content').innerHTML = html;
 
-  // رسم الخريطة الصغيرة في profile
   if (MERCHANT.lat && MERCHANT.lng){
     setTimeout(function(){
       var el = document.getElementById('profileMap');
@@ -1264,9 +1209,9 @@ function ktToggleSound(){
   renderProfile();
 }
 
-/* ═══════════════════════════════════════════════
-   🗺️ MAP PICKER (Leaflet)
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   🗺️ MAP PICKER — محسّن للدقة
+   ═══════════════════════════════════════════════════════════ */
 function ktInitRegisterMap(){
   if (!window.L) return;
   if (regMap) return;
@@ -1274,7 +1219,6 @@ function ktInitRegisterMap(){
   var el = document.getElementById('regMap');
   if (!el) return;
 
-  // مركز افتراضي: القاهرة
   var defaultLat = MERCHANT.lat || 30.0444;
   var defaultLng = MERCHANT.lng || 31.2357;
   var defaultZoom = MERCHANT.lat ? 15 : 11;
@@ -1308,25 +1252,65 @@ function ktUpdateCoords(lat, lng){
   if (el) el.textContent = '📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
 }
 
+/* ✅ موقعي الحالي — محسّن للدقة (سريع ثم دقيق) */
 function ktMapUseMyLocation(){
   if (!navigator.geolocation){
     toast('❌ المتصفح لا يدعم GPS', 'error');
     return;
   }
   toast('📍 جاري تحديد موقعك...');
-  navigator.geolocation.getCurrentPosition(function(pos){
-    var lat = pos.coords.latitude, lng = pos.coords.longitude;
+
+  var onGotLocation = function(pos){
+    var lat = pos.coords.latitude;
+    var lng = pos.coords.longitude;
+    var accuracy = pos.coords.accuracy || 9999;
+
     if (regMap && regMarker){
-      regMap.setView([lat, lng], 16);
+      regMap.setView([lat, lng], 17);
       regMarker.setLatLng([lat, lng]);
       ktUpdateCoords(lat, lng);
-      toast('✅ تم تحديد موقعك', 'success');
     }
-  }, function(){
-    toast('❌ لم نتمكن من تحديد موقعك', 'error');
-  }, { enableHighAccuracy: true, timeout: 10000 });
+
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=ar', {
+      headers: { 'Accept': 'application/json' }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data && data.display_name){
+        MERCHANT.locationAddress = data.display_name;
+        var regAddr = document.getElementById('regAddress');
+        if (regAddr && !regAddr.value){
+          regAddr.value = data.display_name;
+        }
+      }
+      var accText = accuracy < 100 ? '🎯 دقة عالية' : accuracy < 1000 ? '⚡ دقة متوسطة' : '📡 دقة تقريبية';
+      toast('✅ تم تحديد موقعك (' + accText + ' ±' + Math.round(accuracy) + 'م)', 'success');
+    })
+    .catch(function(){
+      toast('✅ تم تحديد موقعك', 'success');
+    });
+  };
+
+  var tryAccurate = function(){
+    toast('🔍 جاري تحسين الدقة...');
+    navigator.geolocation.getCurrentPosition(
+      function(pos){ onGotLocation(pos); },
+      function(err){
+        console.warn('geo:', err);
+        toast('❌ لم نتمكن من تحديد موقعك — تأكد من إذن الموقع', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){ onGotLocation(pos); },
+    function(){ tryAccurate(); },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+  );
 }
 
+/* ✅ البحث من العنوان — محسّن */
 function ktMapSearchAddress(){
   var addr = $('#regAddress').value.trim();
   if (!addr){
@@ -1334,35 +1318,37 @@ function ktMapSearchAddress(){
     return;
   }
   toast('🔍 جاري البحث...');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1&accept-language=ar')
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1&accept-language=ar', {
+    headers: { 'Accept': 'application/json' }
+  })
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.length){
         var r = data[0];
         var lat = parseFloat(r.lat), lng = parseFloat(r.lon);
         if (regMap && regMarker){
-          regMap.setView([lat, lng], 15);
+          regMap.setView([lat, lng], 17);
           regMarker.setLatLng([lat, lng]);
           ktUpdateCoords(lat, lng);
-          toast('✅ تم تحديد الموقع', 'success');
+          MERCHANT.locationAddress = r.display_name || addr;
+          toast('✅ تم تحديد الموقع على الخريطة', 'success');
         }
       } else {
-        toast('❌ لم نجد هذا العنوان', 'error');
+        toast('❌ لم نجد هذا العنوان — جرّب كتابة أدق', 'error');
       }
     })
     .catch(function(){
-      toast('❌ فشل البحث', 'error');
+      toast('❌ فشل البحث — تحقق من الإنترنت', 'error');
     });
 }
 
-/* في profile: زر "تعديل الموقع" */
 function ktEditLocation(){
   openModal(
     '<div class="k-modal-head"><h3><i data-lucide="map-pin"></i> تعديل موقع المتجر</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
     '<div id="editMap" class="kt-map-picker" style="height:320px"></div>' +
     '<div class="kt-map-actions">' +
-      '<button type="button" class="primary" onclick="ktEditMapUseMyLoc()"><i data-lucide="map-pin" style="width:16px;height:16px"></svg> موقعي الحالي</button>' +
-      '<button type="button" onclick="ktEditMapSave()"><i data-lucide="save" style="width:16px;height:16px"></svg> حفظ</button>' +
+      '<button type="button" class="primary" onclick="ktEditMapUseMyLoc()"><i data-lucide="map-pin" style="width:16px;height:16px"></i> موقعي الحالي</button>' +
+      '<button type="button" onclick="ktEditMapSave()"><i data-lucide="save" style="width:16px;height:16px"></i> حفظ</button>' +
     '</div>' +
     '<div class="kt-map-coords" id="editMapCoords">📍 ' + (MERCHANT.lat || '—') + ', ' + (MERCHANT.lng || '—') + '</div>'
   );
@@ -1390,11 +1376,22 @@ function ktEditLocation(){
 
     window._editMapUseMyLoc = function(){
       if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(function(pos){
-        map.setView([pos.coords.latitude, pos.coords.longitude], 16);
-        marker.setLatLng([pos.coords.latitude, pos.coords.longitude]);
-        updateCoords(pos.coords.latitude, pos.coords.longitude);
-      });
+      var onLoc = function(pos){
+        var la = pos.coords.latitude, ln = pos.coords.longitude;
+        map.setView([la, ln], 17);
+        marker.setLatLng([la, ln]);
+        updateCoords(la, ln);
+        toast('✅ تم تحديد موقعك', 'success');
+      };
+      navigator.geolocation.getCurrentPosition(
+        onLoc,
+        function(){
+          navigator.geolocation.getCurrentPosition(onLoc, function(){
+            toast('❌ فشل تحديد الموقع', 'error');
+          }, { enableHighAccuracy: true, timeout: 12000 });
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
     };
   }, 300);
   refreshIcons();
@@ -1428,9 +1425,6 @@ function ktEditMapSave(){
   });
 }
 
-/* ═══════════════════════════════════════════════
-   THEME
-   ═══════════════════════════════════════════════ */
 var currentTheme = LS_get('theme', 'dark');
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme', t);
@@ -1443,9 +1437,6 @@ function toggleTheme(){
 }
 applyTheme(currentTheme);
 
-/* ═══════════════════════════════════════════════
-   MODAL
-   ═══════════════════════════════════════════════ */
 function openModal(html){
   $('#modalContent').innerHTML = html;
   $('#modalBd').classList.add('open');
@@ -1457,9 +1448,6 @@ function closeModal(){
   document.body.style.overflow = '';
 }
 
-/* ═══════════════════════════════════════════════
-   INIT
-   ═══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function(){
   refreshIcons();
 
@@ -1470,7 +1458,6 @@ document.addEventListener('DOMContentLoaded', function(){
     KT_SOUND.setVolume(soundVolume);
   }
 
-  // لو محفوظ تاجر قبل كده
   var saved = LS_get('merchant_data', null);
   if (saved && saved.fbId && saved.phone){
     MERCHANT = Object.assign(MERCHANT, saved);
@@ -1479,18 +1466,16 @@ document.addEventListener('DOMContentLoaded', function(){
     var inp = $('#inpPhone'); if (inp) inp.focus();
   }
 
-  // Enter shortcuts
   var ph = $('#inpPhone'); if (ph) ph.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ var p = $('#inpPass'); if(p) p.focus(); } });
   var pw = $('#inpPass'); if (pw) pw.addEventListener('keydown', function(e){ if (e.key === 'Enter') ktMerchantLogin(); });
 
-  // Service Worker
   if ('serviceWorker' in navigator){
     window.addEventListener('load', function(){
       navigator.serviceWorker.register('sw.js').catch(function(e){ console.warn('SW:', e); });
     });
   }
 
-  console.log('%c🏪 Merchant Panel v3.0 (Spark mode)', 'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
+  console.log('%c🏪 Merchant Panel v3.1 (GPS improved)', 'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
 });
 
 Object.assign(window, {
@@ -1498,7 +1483,8 @@ Object.assign(window, {
   ktLoginSuccess, ktLogout, switchTab, toggleTheme,
   openAddProduct, saveNewProduct, openEditProduct, saveEditProduct, deleteProduct,
   openOrderModal, updateOrderStatus, closeModal, openModal, ktToggleSound,
-  ktMapUseMyLocation, ktMapSearchAddress, ktEditLocation, ktEditMapUseMyLoc, ktEditMapSave
+  ktMapUseMyLocation, ktMapSearchAddress, ktEditLocation, ktEditMapUseMyLoc, ktEditMapSave,
+  ktInitRegisterMap, ktUpdateCoords
 });
 </script>
 </body>

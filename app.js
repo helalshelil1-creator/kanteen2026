@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   كانتِين | Kanteen — Main Application v3.0
+   كانتِين | Kanteen — Main Application v3.1
+   GPS improvements + Performance optimization
    ═══════════════════════════════════════════════════════════ */
 
 var $ = function(s, r){ r = r || document; return r.querySelector(s); };
@@ -187,7 +188,7 @@ var IMG = {
   mayo:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=600',
   oil:'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=600',
   oliveoil:'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=600',
- sugar:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=600',
+  sugar:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=600',
   salt:'https://images.pexels.com/photos/235901/pexels-photo-235901.jpeg?auto=compress&cs=tinysrgb&w=600',
   soup:'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&cs=tinysrgb&w=600',
   tuna:'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=600',
@@ -841,7 +842,7 @@ function applyLang(){
   document.documentElement.lang = KT_LANG;
   document.documentElement.dir = KT_LANG === 'ar' ? 'rtl' : 'ltr';
   var langBtn = document.getElementById('ktLangBtn');
-if (langBtn){ langBtn.innerHTML = 'EN'; }
+  if (langBtn){ langBtn.innerHTML = '<span id="ktLangLabel">EN</span>'; }
   var searchInput = document.getElementById('ktAddressInput');
   if (searchInput) searchInput.placeholder = t('loc_search_placeholder');
   var headerSearch = document.getElementById('k-search-input');
@@ -991,7 +992,7 @@ function ktUpdateZoneBadge(status, storeName, distance){
   var megaItem = document.getElementById('ktMegaZone');
   var megaStatus = document.getElementById('ktMegaStatus');
   var text = document.getElementById('ktZoneText');
-  
+
   if (megaItem){
     megaItem.className = 'kt-mega-menu-item zone ' + status;
   }
@@ -1251,13 +1252,38 @@ function ktShowNearbyStoresModal(lat, lng){
   );
   refreshIcons();
 }
+
+/* ✅ محسّن — GPS سريع + fallback لآخر موقع */
 function ktOpenNearbyStores(){
-  if (!navigator.geolocation){ ktToast(KT_LANG === 'en' ? '❌ Browser doesn\'t support GPS' : '❌ المتصفح لا يدعم GPS'); return; }
+  if (!navigator.geolocation){
+    ktToast(KT_LANG === 'en' ? '❌ Browser does not support GPS' : '❌ المتصفح لا يدعم GPS');
+    return;
+  }
   ktToast(KT_LANG === 'en' ? '📍 Detecting location...' : '📍 جاري تحديد موقعك...');
+
+  var ok = function(pos){
+    ktUserLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    ktShowNearbyStoresModal(pos.coords.latitude, pos.coords.longitude);
+  };
+  var err = function(){
+    var savedLat = LS.get('delivery_lat', null);
+    var savedLng = LS.get('delivery_lng', null);
+    if (savedLat && savedLng){
+      ktToast(KT_LANG === 'en' ? '📍 Using last known location' : '📍 بنستخدم آخر موقع محفوظ');
+      ktShowNearbyStoresModal(savedLat, savedLng);
+    } else {
+      ktToast(KT_LANG === 'en' ? '❌ Could not detect location' : '❌ لم نتمكن من تحديد موقعك');
+    }
+  };
+
   navigator.geolocation.getCurrentPosition(
-    function(pos){ ktShowNearbyStoresModal(pos.coords.latitude, pos.coords.longitude); },
-    function(){ ktToast(KT_LANG === 'en' ? '❌ Could not detect location' : '❌ لم نتمكن من تحديد موقعك'); },
-    { enableHighAccuracy: true, timeout: 10000 }
+    ok,
+    function(){
+      navigator.geolocation.getCurrentPosition(ok, err, {
+        enableHighAccuracy: true, timeout: 12000, maximumAge: 60000
+      });
+    },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
   );
 }
 function ktPickStore(storeId){
@@ -1292,12 +1318,20 @@ function ktUpdateLocStatus(status, text){
   el.className = 'kt-locbar-location ' + status;
   txt.textContent = text;
 }
+
+/* ✅ محسّن — GPS سريع ثم دقيق */
 function ktUseCurrentLocation(){
-  if(!navigator.geolocation){ ktUpdateLocStatus('err', t('general_gps_not_supported')); return; }
+  if (!navigator.geolocation){
+    ktUpdateLocStatus('err', t('general_gps_not_supported'));
+    return;
+  }
   ktUpdateLocStatus('loading', t('loc_detecting'));
-  navigator.geolocation.getCurrentPosition(function(pos){
+
+  var ok = function(pos){
     var lat = pos.coords.latitude, lng = pos.coords.longitude;
-    LS.set('delivery_lat', lat); LS.set('delivery_lng', lng);
+    LS.set('delivery_lat', lat);
+    LS.set('delivery_lng', lng);
+
     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=' + KT_LANG)
       .then(function(r){ return r.json(); })
       .then(function(data){
@@ -1305,10 +1339,20 @@ function ktUseCurrentLocation(){
         LS.set('delivery_address', addr);
         ktUpdateLocStatus('ok', String(addr).substring(0, 30));
         ktToast(KT_LANG === 'en' ? '✅ Location detected' : '✅ تم تحديد موقعك', 'success');
-        if(typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
+        if (typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
       })
       .catch(function(){ ktUpdateLocStatus('ok', lat.toFixed(3) + ', ' + lng.toFixed(3)); });
-  }, function(){ ktUpdateLocStatus('err', t('general_location_error')); }, { enableHighAccuracy: true, timeout: 10000 });
+  };
+
+  navigator.geolocation.getCurrentPosition(
+    ok,
+    function(){
+      navigator.geolocation.getCurrentPosition(ok, function(){
+        ktUpdateLocStatus('err', t('general_location_error'));
+      }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+    },
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+  );
 }
 function ktFocusAddressInput(){ var inp = document.getElementById('ktAddressInput'); if(inp) inp.focus(); }
 function ktSearchAddress(){
@@ -1446,7 +1490,6 @@ function categoryCard(c){
 function secHead(title, seeAllLink){
   return '<div class="k-sec-head"><h2 class="h2">' + title + '</h2>' + (seeAllLink ? '<a class="k-see-all" href="' + seeAllLink + '">' + t('sec_view_all') + '<svg data-lucide="arrow-left"></svg></a>' : '') + '</div>';
 }
-/* ═══ VIEWS ═══ */
 function viewHome(){
   var offers = PRODUCTS.filter(function(p){ return p.off >= 15; }).slice(0, 8);
   var best = PRODUCTS.filter(function(p){ return p.bestSeller; }).slice(0, 8);
@@ -1522,7 +1565,6 @@ function viewWishlist(){
   return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('acc_wishlist') + ' ♥</h1>' + (items.length ? '<div class="k-prods">' + items.map(productCard).join('') + '</div>' : '<div class="k-empty"><div class="k-empty-ic">❤️</div><h3>' + (KT_LANG === 'en' ? 'Wishlist is empty' : 'المفضلة فارغة') + '</h3><p>' + (KT_LANG === 'en' ? 'Add your favorite products' : 'أضف منتجاتك المفضلة') + '</p><a class="btn btn-primary" href="#/categories">' + t('cart_browse_products') + '</a></div>') + '</div></section>';
 }
 
-/* ═══ CHECKOUT ═══ */
 var checkoutStep = 1;
 var checkoutData = {name:'', phone:'', email:'', gov:'', city:'', area:'', street:'', building:'', floor:'', notes:'', time:'asap', payment:'cod'};
 function onGovChange(){
@@ -1565,7 +1607,7 @@ function viewCheckout(){
   } else if(checkoutStep === 5){
     var items5 = state.cart.map(function(i){ return {item:i, p:findBy(i.id)}; }).filter(function(x){ return x.p; });
     body = '<h3 class="h4" style="margin-bottom:18px">' + (KT_LANG === 'en' ? 'Items' : 'المنتجات') + ' (' + items5.length + ')</h3>' + items5.map(function(x){ var item = x.item, p = x.p; return '<div style="display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:30px">' + p.emoji + '</span><div style="flex:1"><div style="font-weight:700;font-size:14.5px">' + esc(productName(p)) + '</div><div class="muted tiny">' + item.qty + ' × ' + money(finalPrice(p)) + '</div></div><div style="font-weight:800;color:var(--gold);font-size:15px">' + money(finalPrice(p) * item.qty) + '</div></div>'; }).join('');
- } else {
+  } else {
     body = '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;margin-bottom:10px;line-height:1">✅</div><h2 style="font-size:18px;font-weight:800;margin-bottom:12px;font-family:\'Reem Kufi\',serif">' + t('co_ready') + '</h2><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:19px;font-weight:800;background:var(--glass);border:1px solid var(--line-2);border-radius:14px"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div></div>';
   }
   var stepsHTML = '<div style="display:flex;gap:0;margin-bottom:36px;overflow-x:auto;padding-bottom:10px">' + steps.map(function(s, i){ var n = i + 1, cls = n < checkoutStep ? 'done' : n === checkoutStep ? 'on' : ''; return '<div style="flex:1;min-width:110px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;margin-bottom:10px;font-weight:700;font-size:14px;background:' + (cls === 'done' ? 'var(--fresh)' : cls === 'on' ? 'var(--gold)' : 'var(--glass)') + ';color:' + (cls ? '#1a1206' : 'inherit') + '">' + (cls === 'done' ? '✓' : n) + '</div><div style="font-size:12.5px;color:' + (cls === 'on' ? 'var(--gold)' : cls === 'done' ? 'var(--fresh)' : 'var(--ink-3)') + ';font-weight:600">' + s + '</div></div>'; }).join('') + '</div>';
@@ -1636,8 +1678,12 @@ function ktFinalizePendingOrder(orderCode, total, methodLabel){
   var order = { id: orderCode, user: state.user ? state.user.id : 'guest', customer: Object.assign({}, checkoutData), items: items, subtotal: cartTotal(), delivery: deliveryFee(), discount: discountAmt(), total: total, coupon: state.coupon ? state.coupon.code : null, payment: checkoutData.payment, paymentStatus: 'pending', paymentMethod: methodLabel, status: 'pending_payment', createdAt: new Date().toISOString() };
   var all = LS.get('orders', []) || []; all.unshift(order); LS.set('orders', all);
   if (window.KT_FB){
-    KT_FB.saveOrder(order);
-    KT_FB.saveNotification({ type: 'payment_pending', orderId: orderCode, customer: order.customer, total: total, method: methodLabel, createdAt: order.createdAt, read: false });
+    try {
+      if (typeof KT_FB.saveOrder === 'function') KT_FB.saveOrder(order);
+      if (typeof KT_FB.saveNotification === 'function'){
+        KT_FB.saveNotification({ type: 'payment_pending', orderId: orderCode, customer: order.customer, total: total, method: methodLabel, createdAt: order.createdAt, read: false });
+      }
+    } catch(e){ console.warn('KT_FB call failed:', e); }
   }
   if (window.KT_SOUND) KT_SOUND.success();
   ktClearCartAfterOrder();
@@ -1655,9 +1701,9 @@ function statusInfo(st){ var map = {placed:{label:t('ord_status_placed'),pill:'p
 function viewTrack(oid){
   var o = state.orders.find(function(x){ return x.id === oid; });
   if(!o) return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><h3>' + t('order_not_found') + '</h3><a class="btn btn-primary" href="#/orders" style="margin-top:16px">' + t('ord_title') + '</a></div></div></section>';
-  
+
   setTimeout(function(){ ktListenToOrder(oid); }, 100);
-  
+
   var steps = [{id:'placed',label:t('ord_status_placed'),ic:'clipboard-check'},{id:'confirmed',label:t('ord_status_confirmed'),ic:'check-circle-2'},{id:'preparing',label:t('ord_status_preparing'),ic:'package'},{id:'out',label:t('ord_status_out'),ic:'truck'},{id:'delivered',label:t('ord_status_delivered'),ic:'home'}];
   var idx = steps.findIndex(function(s){ return s.id === o.status; });
   var payStatus = (o.paymentStatus === 'pending' ? '<div style="background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--gold);font-size:14px;font-weight:700">⏳ ' + t('ord_status_pending') + '</div>' : '') + (o.paymentStatus === 'confirmed' ? '<div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--fresh);font-size:14px;font-weight:700">✅ ' + (KT_LANG === 'en' ? 'Payment confirmed' : 'تم تأكيد الدفع') + '</div>' : '');
@@ -1667,9 +1713,6 @@ function viewTrack(oid){
   return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<div class="row-between" style="margin-bottom:28px"><h1 class="h1">' + t('ord_track') + '</h1><a class="btn btn-glass btn-sm" href="#/orders">' + t('ord_title') + '</a></div><div class="card" style="padding:28px;margin-bottom:28px"><div class="row-between" style="margin-bottom:20px"><div><div class="muted tiny">' + (KT_LANG === 'en' ? 'Order ID' : 'رقم الطلب') + '</div><div class="h3" style="color:var(--gold)">' + o.id + '</div></div><span class="pill ' + statusInfo(o.status).pill + '">' + statusInfo(o.status).label + '</span></div>' + payStatus + driverTrack + '<div class="row-between" style="font-size:14.5px;margin-top:18px"><span class="muted">' + t('cart_total') + '</span><span style="font-weight:800;color:var(--gold)">' + money(o.total) + '</span></div></div><div class="card" style="padding:28px">' + steps.map(function(s, i){ var done = i < idx, current = i === idx; return '<div style="display:grid;grid-template-columns:60px 1fr;gap:18px;position:relative;padding-bottom:' + (i === steps.length - 1 ? '0' : '32px') + '">' + (i < steps.length - 1 ? '<div style="position:absolute;top:60px;inset-inline-start:30px;width:2px;height:calc(100% - 60px);background:' + (done ? 'var(--fresh)' : 'var(--line)') + '"></div>' : '') + '<div style="width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--glass)') + ';border:2px solid ' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--line-2)') + ';color:' + (done || current ? '#1a1206' : 'var(--ink-3)') + '"><svg data-lucide="' + s.ic + '" style="width:26px;height:26px"></svg></div><div style="padding-top:12px"><b style="font-size:16px">' + s.label + '</b></div></div>'; }).join('') + '</div></div></section>';
 }
 
-/* ═══════════════════════════════════════════════════════════
-   📡 LIVE ORDER LISTENER
-   ═══════════════════════════════════════════════════════════ */
 var ktTrackUnsub = null;
 
 function ktStopOrderListener(){
@@ -1848,7 +1891,6 @@ function viewTrackLive(oid){
   '</div></section>';
 }
 
-/* ═══ OTP ═══ */
 var otpState = { method:'phone', phone:'', email:'', pendingName:'', sent:false, timer:null };
 
 function openOtpModal(){
@@ -2177,14 +2219,28 @@ function ktSendChat(){ var input = $('#kt-chat-input'); if(!input) return; var v
 function ktOpenChat(){ var panel = $('#kt-chat-panel'); if(panel) panel.classList.add('open'); CHAT.open = true; setTimeout(function(){ var input = $('#kt-chat-input'); if(input) input.focus(); }, 300); }
 function ktCloseChat(){ var panel = $('#kt-chat-panel'); if(panel) panel.classList.remove('open'); CHAT.open = false; }
 
+/* ✅ محسّن — يوقف الفيديو على الموبايل */
 function ktInitVideo(){
   var v = document.getElementById('k-bg-video'); if(!v) return;
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  function sync(){ if(reduce.matches){ v.pause(); } else { var p = v.play(); if(p && p.catch) p.catch(function(){}); } }
+  var isMobile = window.matchMedia('(max-width: 768px)').matches;
+  var isSlow = (navigator.connection && navigator.connection.effectiveType && navigator.connection.effectiveType.includes('2g'));
+
+  if (isMobile || isSlow || reduce.matches){
+    v.pause();
+    v.removeAttribute('src');
+    v.style.display = 'none';
+    return;
+  }
+
+  function sync(){
+    if (reduce.matches || document.hidden){ v.pause(); }
+    else { var p = v.play(); if(p && p.catch) p.catch(function(){}); }
+  }
   sync();
   if(reduce.addEventListener) reduce.addEventListener('change', sync);
   v.addEventListener('loadeddata', function(){ v.play().catch(function(){}); });
-  document.addEventListener('visibilitychange', function(){ if(document.hidden) v.pause(); else sync(); });
+  document.addEventListener('visibilitychange', sync);
 }
 
 var ktDeferredPrompt = null;
@@ -2235,18 +2291,36 @@ function ktDismissPwa(){ var b = document.getElementById('kPwaBanner'); if (b) b
 
 function ktInit(){
   var header = $('#k-header');
-  if(header){ var onScroll = function(){ header.classList.toggle('scrolled', window.scrollY > 20); }; onScroll(); window.addEventListener('scroll', onScroll, {passive: true}); }
+  if(header){
+    var _headerTicking = false;
+    var onScroll = function(){
+      if (_headerTicking) return;
+      _headerTicking = true;
+      requestAnimationFrame(function(){
+        header.classList.toggle('scrolled', window.scrollY > 20);
+        _headerTicking = false;
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, {passive: true});
+  }
   var locBar = $('#ktLocBar');
   if (locBar){
     var _lastScrollY = 0;
+    var _locTicking = false;
     window.addEventListener('scroll', function(){
-      if (state.route && state.route.view === 'home'){ locBar.classList.add('k-hidden'); return; }
-      if (locBar.classList.contains('k-hidden')) return;
-      var y = window.scrollY;
-      locBar.classList.toggle('scrolled', y > 100);
-      if (y > 200 && y > _lastScrollY + 5){ locBar.classList.add('k-hidden'); }
-      else if (y < _lastScrollY - 15 || y < 100){ locBar.classList.remove('k-hidden'); }
-      _lastScrollY = y;
+      if (_locTicking) return;
+      _locTicking = true;
+      requestAnimationFrame(function(){
+        if (state.route && state.route.view === 'home'){ locBar.classList.add('k-hidden'); _locTicking = false; return; }
+        if (locBar.classList.contains('k-hidden')){ _locTicking = false; return; }
+        var y = window.scrollY;
+        locBar.classList.toggle('scrolled', y > 100);
+        if (y > 200 && y > _lastScrollY + 5){ locBar.classList.add('k-hidden'); }
+        else if (y < _lastScrollY - 15 || y < 100){ locBar.classList.remove('k-hidden'); }
+        _lastScrollY = y;
+        _locTicking = false;
+      });
     }, {passive: true});
   }
 
@@ -2337,15 +2411,12 @@ window.openModal = function(html){
 };
 window.closeModal = function(){ var o = $('#k-overlay'); if(!o) return; o.classList.remove('open'); document.body.style.overflow = ''; };
 
-/* ═══════════════════════════════════════════════
-   ⭐ MEGA MENU — القائمة المنسدلة
-   ═══════════════════════════════════════════════ */
 function ktToggleMegaMenu(){
   var menu = document.getElementById('ktMegaMenu');
   var backdrop = document.getElementById('ktMegaBackdrop');
   var btn = document.querySelector('.kt-mega-btn');
   if (!menu) return;
-  
+
   var isOpen = menu.classList.contains('open');
   if (isOpen){
     ktCloseMegaMenu();
