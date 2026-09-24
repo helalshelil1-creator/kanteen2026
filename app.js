@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   كانتِين | Kanteen — Main Application v3.1
-   GPS improvements + Performance optimization
+   كانتِين | Kanteen — Main Application v3.2
+   + Global Products from Admin + Driver Live Tracking
    ═══════════════════════════════════════════════════════════ */
 
 var $ = function(s, r){ r = r || document; return r.querySelector(s); };
@@ -455,6 +455,8 @@ var PRODUCTS = [
   P(152,'dairy','Activia','أكتيفيا زبادي 4×','Activia 4pk','🥣',35,0,'4 pc',4.7,null,IMG.yogurt)
 ];
 
+
+/* ═══════ نهاية الجزء 1 — يبدأ الجزء 2 من هنا ═══════ */
 var SERVICE_CATEGORIES = [
   {id:'food', title:'اطلب الطعام', titleEn:'Order Food', desc:'توصيل مجاني وعروض حصرية وأكثر لدى شركائنا من المطاعم', descEn:'Free delivery and exclusive offers from our restaurant partners', img:IMG.food, btnText:'اطلب الآن', btnTextEn:'Order Now'},
   {id:'grocery', title:'اطلب البقالة', titleEn:'Order Groceries', desc:'لا تضيع وقتك في الانتظار. نوصل لك كل ما تحتاجه من أفضل متاجر البقالة', descEn:'Don\'t waste time waiting. We deliver everything you need from the best grocery stores', img:IMG.tomato, btnText:'اشترِ الآن', btnTextEn:'Buy Now'},
@@ -585,6 +587,43 @@ function ktSyncFromFirebase(){
     }
     if (typeof render === 'function') render();
   });
+
+  // ✅ تحميل منتجات الأدمن العامة
+  if (typeof KT_FB.listenGlobalProducts === 'function'){
+    KT_FB.listenGlobalProducts(function(globalProducts){
+      // شيل القديمة
+      for (var gi = PRODUCTS.length - 1; gi >= 0; gi--){
+        if (PRODUCTS[gi] && PRODUCTS[gi].isGlobalProduct) PRODUCTS.splice(gi, 1);
+      }
+      // ضيف الجديدة
+      (globalProducts || []).forEach(function(gp){
+        PRODUCTS.push({
+          id: 'gp_' + gp._fbId,
+          _fbId: gp._fbId,
+          isGlobalProduct: true,
+          cat: gp.cat || 'grocery',
+          brand: gp.brand || 'Kanteen',
+          nameAr: gp.nameAr || gp.name || '',
+          nameEn: gp.nameEn || gp.nameAr || '',
+          emoji: gp.emoji || '🛒',
+          price: parseFloat(gp.price) || 0,
+          discount: parseFloat(gp.discount) || 0,
+          off: parseFloat(gp.off) || 0,
+          weight: gp.weight || '',
+          rating: gp.rating || 4.5,
+          reviews: gp.reviews || 0,
+          stock: gp.stock !== undefined ? gp.stock : 100,
+          bestSeller: !!gp.bestSeller,
+          isNew: !!gp.isNew,
+          featured: !!gp.featured,
+          barcode: gp.barcode || null,
+          image: gp.image || null,
+          addedAt: gp.createdAt || new Date().toISOString()
+        });
+      });
+      if (typeof render === 'function') render();
+    });
+  }
 }
 
 var state = {
@@ -842,7 +881,7 @@ function applyLang(){
   document.documentElement.lang = KT_LANG;
   document.documentElement.dir = KT_LANG === 'ar' ? 'rtl' : 'ltr';
   var langBtn = document.getElementById('ktLangBtn');
-  if (langBtn){ langBtn.innerHTML = '<span id="ktLangLabel">EN</span>'; }
+  if (langBtn){ langBtn.innerHTML = 'EN'; }
   var searchInput = document.getElementById('ktAddressInput');
   if (searchInput) searchInput.placeholder = t('loc_search_placeholder');
   var headerSearch = document.getElementById('k-search-input');
@@ -859,12 +898,6 @@ function applyLang(){
   if (nearbyBtn) nearbyBtn.textContent = t('loc_nearby_stores');
   var submitBtn = document.querySelectorAll('.kt-locbar-submit')[0];
   if (submitBtn) submitBtn.textContent = t('loc_enter_address');
-  var zoneText = document.getElementById('ktZoneText');
-  if (zoneText && ktZoneStatus === 'checking') zoneText.textContent = KT_LANG === 'en' ? 'Checking...' : 'جاري التحقق...';
-  var nearbyPill = document.querySelector('.kt-fab-pill.nearby .txt');
-  if (nearbyPill) nearbyPill.textContent = KT_LANG === 'en' ? 'Nearby Stores' : 'متاجر قريبة';
-  var chatPill = document.querySelector('.kt-fab-pill.chat .txt');
-  if (chatPill) chatPill.textContent = KT_LANG === 'en' ? 'Kanteen Assistant' : 'مساعد كانتِين';
   var menuLinks = document.querySelectorAll('.k-menu a');
   if (menuLinks.length === 4){
     menuLinks[0].textContent = KT_LANG === 'en' ? 'Categories' : 'الأقسام';
@@ -944,8 +977,7 @@ function ktRenderPriceComparison(product){
   var name = product.nameEn || product.nameAr;
   var brand = product.brand || '';
   var q = encodeURIComponent(name + ' ' + brand);
-  var cfPrice = product.lowestOnlinePrice || null;
-  return '<div class="kt-price-box"><div class="kt-price-head"><span class="icon">💰</span><div><b>' + (KT_LANG === 'en' ? 'Online Price Comparison' : 'مقارنة الأسعار أونلاين') + '</b><span>' + (KT_LANG === 'en' ? 'Click any store' : 'اضغط على أي متجر') + '</span></div></div>' + (cfPrice ? '<div class="kt-price-low"><span class="fresh-c bold">✓ ' + (KT_LANG === 'en' ? 'Lowest price' : 'أقل سعر') + '</span><b class="fresh-c" style="font-size:20px">' + money(cfPrice) + '</b></div>' : '') + '<div class="kt-price-grid"><a href="https://www.carrefouregypt.com/mafegy/en/v4/search?keyword=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🛒</span><span>' + (KT_LANG === 'en' ? 'Carrefour' : 'كارفور') + '</span></a><a href="https://www.spinneys-egypt.com/search?q=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🥬</span><span>' + (KT_LANG === 'en' ? 'Spinneys' : 'سبينس') + '</span></a><a href="https://www.talabat.com/egypt/grocery/search?q=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🛵</span><span>' + (KT_LANG === 'en' ? 'Talabat' : 'طلبات') + '</span></a><a href="https://www.instashop.com.eg/en-eg/search?q=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">📱</span><span>InstaShop</span></a></div><a href="https://www.google.com/search?q=' + q + '+سعر+مصر&tbm=shop" target="_blank" rel="noopener" class="kt-price-search">' + (KT_LANG === 'en' ? '🔍 Search on Google Shopping' : '🔍 ابحث على Google Shopping') + '</a></div>';
+  return '<div class="kt-price-box"><div class="kt-price-head"><span class="icon">💰</span><div><b>' + (KT_LANG === 'en' ? 'Online Price Comparison' : 'مقارنة الأسعار أونلاين') + '</b><span>' + (KT_LANG === 'en' ? 'Click any store' : 'اضغط على أي متجر') + '</span></div></div><div class="kt-price-grid"><a href="https://www.carrefouregypt.com/mafegy/en/v4/search?keyword=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🛒</span><span>' + (KT_LANG === 'en' ? 'Carrefour' : 'كارفور') + '</span></a><a href="https://www.spinneys-egypt.com/search?q=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🥬</span><span>' + (KT_LANG === 'en' ? 'Spinneys' : 'سبينس') + '</span></a><a href="https://www.talabat.com/egypt/grocery/search?q=' + q + '" target="_blank" rel="noopener" class="kt-price-store"><span class="em">🛵</span><span>' + (KT_LANG === 'en' ? 'Talabat' : 'طلبات') + '</span></a></div></div>';
 }
 
 function ktSendOrderToWhatsApp(order){
@@ -958,27 +990,15 @@ function ktSendOrderToWhatsApp(order){
   lines.push(KT_LANG === 'en' ? '👤 *Customer:*' : '👤 *بيانات العميل:*');
   lines.push((KT_LANG === 'en' ? '• Name: ' : '• الاسم: ') + (order.customer.name || '—'));
   lines.push((KT_LANG === 'en' ? '• Phone: ' : '• الهاتف: ') + (order.customer.phone || '—'));
-  if (order.customer.email) lines.push((KT_LANG === 'en' ? '• Email: ' : '• الإيميل: ') + order.customer.email);
   lines.push('');
   lines.push(KT_LANG === 'en' ? '📍 *Address:*' : '📍 *العنوان:*');
   lines.push('• ' + (order.customer.gov || '') + ' - ' + (order.customer.city || ''));
-  if (order.customer.area) lines.push((KT_LANG === 'en' ? '• Area: ' : '• المنطقة: ') + order.customer.area);
   lines.push((KT_LANG === 'en' ? '• Street: ' : '• الشارع: ') + (order.customer.street || '—'));
-  if (order.customer.building) lines.push((KT_LANG === 'en' ? '• Building: ' : '• المبنى: ') + order.customer.building);
-  if (order.customer.floor) lines.push((KT_LANG === 'en' ? '• Floor: ' : '• الدور: ') + order.customer.floor);
-  if (order.customer.notes) lines.push((KT_LANG === 'en' ? '• Notes: ' : '• ملاحظات: ') + order.customer.notes);
   lines.push('');
   lines.push(KT_LANG === 'en' ? '🛍️ *Items:*' : '🛍️ *المنتجات:*');
   order.items.forEach(function(it){ lines.push('• ' + it.nameAr + ' × ' + it.qty + ' = ' + it.price * it.qty + (KT_LANG === 'en' ? ' EGP' : ' ج.م')); });
   lines.push('');
-  lines.push(KT_LANG === 'en' ? '💰 *Summary:*' : '💰 *الملخص:*');
-  lines.push((KT_LANG === 'en' ? '• Subtotal: ' : '• المجموع: ') + order.subtotal + (KT_LANG === 'en' ? ' EGP' : ' ج.م'));
-  lines.push((KT_LANG === 'en' ? '• Delivery: ' : '• التوصيل: ') + (order.delivery === 0 ? (KT_LANG === 'en' ? 'Free' : 'مجاني') : order.delivery + (KT_LANG === 'en' ? ' EGP' : ' ج.م')));
-  if (order.discount > 0) lines.push((KT_LANG === 'en' ? '• Discount: -' : '• الخصم: -') + order.discount + (KT_LANG === 'en' ? ' EGP' : ' ج.م'));
   lines.push('• *' + (KT_LANG === 'en' ? 'Total: ' : 'الإجمالي: ') + order.total + (KT_LANG === 'en' ? ' EGP*' : ' ج.م*'));
-  lines.push('');
-  lines.push((KT_LANG === 'en' ? '💳 *Payment:* ' : '💳 *طريقة الدفع:* ') + (order.payment === 'cod' ? (KT_LANG === 'en' ? 'Cash on Delivery' : 'الدفع عند الاستلام') : order.payment));
-  if (order.coupon) lines.push((KT_LANG === 'en' ? '🎁 Coupon: ' : '🎁 الكوبون: ') + order.coupon);
   var msg = encodeURIComponent(lines.join('\n'));
   return 'https://wa.me/' + WA_NUMBER + '?text=' + msg;
 }
@@ -988,17 +1008,12 @@ var ktUserLocation = null, ktNearestStore = null, ktZoneStatus = 'checking';
 function ktCalcDistance(lat1, lng1, lat2, lng2){ var R = 6371; var dLat = (lat2-lat1)*Math.PI/180; var dLng = (lng2-lng1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
 function ktGetMerchantStores(){ return ktMerchantsCache.filter(function(m){ return m.status === 'approved' || !m.status; }); }
 
-function ktUpdateZoneBadge(status, storeName, distance){
+function ktUpdateZoneBadge(status){
   var megaItem = document.getElementById('ktMegaZone');
   var megaStatus = document.getElementById('ktMegaStatus');
   var text = document.getElementById('ktZoneText');
-
-  if (megaItem){
-    megaItem.className = 'kt-mega-menu-item zone ' + status;
-  }
-  if (megaStatus){
-    megaStatus.className = 'kt-mega-status ' + status;
-  }
+  if (megaItem) megaItem.className = 'kt-mega-menu-item zone ' + status;
+  if (megaStatus) megaStatus.className = 'kt-mega-status ' + status;
   if (text){
     if (status === 'checking') text.textContent = 'جاري التحقق...';
     else if (status === 'inside') text.textContent = 'متاح التوصيل ✓';
@@ -1017,39 +1032,28 @@ function ktCheckDeliveryZone(){
     stores.forEach(function(store){ if(!store.lat || !store.lng) return; var d = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, store.lat, store.lng); if(d < minDist){ minDist = d; nearest = store; } });
     if(!nearest){ ktUpdateZoneBadge('nostores'); return; }
     ktNearestStore = nearest;
-    if(minDist <= KT_DELIVERY_RADIUS_KM){ ktZoneStatus = 'inside'; ktUpdateZoneBadge('inside', nearest.name, minDist); }
-    else { ktZoneStatus = 'outside'; ktUpdateZoneBadge('outside', nearest.name, minDist); }
+    if(minDist <= KT_DELIVERY_RADIUS_KM){ ktZoneStatus = 'inside'; ktUpdateZoneBadge('inside'); }
+    else { ktZoneStatus = 'outside'; ktUpdateZoneBadge('outside'); }
   }, function(){ ktUpdateZoneBadge('nostores'); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
 }
 
 function ktCheckZoneDetails(){
   if(ktZoneStatus === 'checking'){ ktToast('⏳'); return; }
   if(ktZoneStatus === 'nostores'){
-    window.openModal('<div style="text-align:center;padding:20px 0"><div style="font-size:64px;margin-bottom:16px">⚠️</div><h2 class="h2" style="margin-bottom:12px">' + (KT_LANG === 'en' ? 'No stores registered' : 'لا توجد متاجر مسجلة') + '</h2><p class="muted" style="margin-bottom:20px">' + (KT_LANG === 'en' ? 'No merchant has registered yet' : 'لم يتم تسجيل أي تاجر بعد') + '</p><a href="merchant.html" class="btn btn-primary">🏪 ' + (KT_LANG === 'en' ? 'Register your store' : 'سجّل متجرك الآن') + '</a></div>');
+    window.openModal('<div style="text-align:center;padding:20px 0"><div style="font-size:64px;margin-bottom:16px">⚠️</div><h2 class="h2">لا توجد متاجر مسجلة</h2><p class="muted">لم يتم تسجيل أي تاجر بعد</p><a href="merchant.html" class="btn btn-primary">🏪 سجّل متجرك</a></div>');
     return;
   }
   if(ktZoneStatus === 'inside'){
     var store = ktNearestStore;
     var dist = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, store.lat, store.lng);
-    var storeProducts = (store.products || []);
-    var productsHTML = storeProducts.length
-      ? '<div class="kt-store-products">' + storeProducts.map(function(p){
-          var media = p.image ? '<img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="emoji" style="display:none">' + (p.emoji || '🛒') + '</span>' : '<span class="emoji">' + (p.emoji || '🛒') + '</span>';
-          return '<div class="kt-store-product" onclick="navigate(\'/p/merchant_' + (store._fbId || store.id) + '_' + p.id + '\')"><div class="kt-store-product-img">' + media + '</div><div class="kt-store-product-name">' + esc(p.name) + '</div><div class="kt-store-product-price">' + p.price + ' ' + (KT_LANG === 'en' ? 'EGP' : 'ج.م') + '</div><button class="kt-store-product-btn" onclick="event.stopPropagation();ktAddStoreProductToCart(\'' + (store._fbId || store.id) + '\',\'' + p.id + '\')"><svg data-lucide="plus"></svg> ' + (KT_LANG === 'en' ? 'Add' : 'أضف') + '</button></div>';
-        }).join('') + '</div>'
-      : '<div style="text-align:center;padding:30px;color:var(--ink-3)">' + (KT_LANG === 'en' ? 'No products available' : 'لا توجد منتجات معروضة حالياً') + '</div>';
     window.openModal(
-      '<div style="text-align:center;padding:12px 0"><div style="font-size:56px;margin-bottom:12px">✅</div><h2 class="h2" style="margin-bottom:6px;color:#22c55e">' + (KT_LANG === 'en' ? 'You are within delivery zone!' : 'أنت داخل نطاق التوصيل!') + '</h2><p class="muted" style="font-size:13.5px">' + esc(store.name) + ' • ' + dist.toFixed(2) + ' ' + (KT_LANG === 'en' ? 'km' : 'كم') + '</p></div>' +
-      '<div class="card" style="padding:16px;margin-bottom:16px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:24px">🏪</div><div style="flex:1"><b style="font-size:15px;display:block">' + esc(store.name) + '</b><span style="font-size:12px;color:var(--ink-3)">' + esc(store.address || '') + '</span></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a href="tel:' + esc(store.phone) + '" class="btn btn-gold btn-sm" style="flex:1">📞 ' + esc(store.phone) + '</a>' + (store.whatsapp ? '<a href="https://wa.me/2' + String(store.whatsapp).replace(/\D/g,'') + '" target="_blank" class="btn btn-glass btn-sm">💬 ' + (KT_LANG === 'en' ? 'WhatsApp' : 'واتساب') + '</a>' : '') + '</div></div>' +
-      '<h3 style="font-size:15px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:8px"><svg data-lucide="package" style="width:18px;height:18px;color:var(--brand)"></svg>' + (KT_LANG === 'en' ? 'Store Products' : 'منتجات المتجر') + ' (' + storeProducts.length + ')</h3>' + productsHTML +
-      '<div style="display:flex;gap:10px;margin-top:18px"><button class="btn btn-primary" style="flex:1" onclick="closeModal();ktOpenNearbyStores()">🏪 ' + (KT_LANG === 'en' ? 'All Stores' : 'كل المتاجر') + '</button><button class="btn btn-glass" onclick="closeModal()">' + (KT_LANG === 'en' ? 'Close' : 'إغلاق') + '</button></div>'
+      '<div style="text-align:center;padding:12px 0"><div style="font-size:56px">✅</div><h2 class="h2" style="color:#22c55e">أنت داخل نطاق التوصيل!</h2><p class="muted">' + esc(store.name) + ' • ' + dist.toFixed(2) + ' كم</p></div>' +
+      '<button class="btn btn-primary btn-block" style="margin-top:16px" onclick="closeModal();ktOpenNearbyStores()">🏪 كل المتاجر</button>'
     );
-    refreshIcons();
     return;
   }
   if(ktZoneStatus === 'outside'){
-    var dist2 = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, ktNearestStore.lat, ktNearestStore.lng);
-    window.openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:64px;margin-bottom:12px">❌</div><h2 class="h2" style="margin-bottom:8px;color:#f87171">' + (KT_LANG === 'en' ? 'Out of delivery zone' : 'خارج نطاق التوصيل') + '</h2><p class="muted">' + (KT_LANG === 'en' ? 'Nearest store: ' : 'أقرب متجر على بعد ') + dist2.toFixed(2) + ' ' + (KT_LANG === 'en' ? 'km' : 'كم') + '</p></div><a href="merchant.html" class="btn btn-primary btn-block">🏪 ' + (KT_LANG === 'en' ? 'Register your store' : 'سجّل متجرك') + '</a>');
+    window.openModal('<div style="text-align:center;padding:16px 0"><div style="font-size:64px">❌</div><h2 class="h2" style="color:#f87171">خارج نطاق التوصيل</h2></div><a href="merchant.html" class="btn btn-primary btn-block">🏪 سجّل متجرك</a>');
   }
 }
 
@@ -1064,7 +1068,7 @@ function ktAddStoreProductToCart(storeId, productId){
   else { state.cart.push({ id: cartId, qty: 1, _storeProduct: { name: product.name, price: parseFloat(product.price), image: product.image, storeName: store.name, storeId: storeId, emoji: product.emoji || '🛒' } }); }
   persist('cart'); ktUpdateBadges();
   if (window.KT_SOUND) KT_SOUND.message();
-  ktToast((KT_LANG === 'en' ? '✅ Added: ' : '✅ تمت الإضافة: ') + product.name, 'success');
+  ktToast('✅ تمت الإضافة: ' + product.name, 'success');
   ktRenderDrawer();
 }
 
@@ -1088,8 +1092,8 @@ function renderServiceCategories(){
     '</div></div></section>';
 }
 function ktOpenService(id){
-  if (id === 'grocery' || id === 'mart'){ navigate('/categories'); ktToast(KT_LANG === 'en' ? '🛒 Browse products' : '🛒 تصفح منتجاتنا الآن', 'success'); }
-  else if (id === 'food'){ navigate('/search?cat=snacks'); ktToast(KT_LANG === 'en' ? '🍔 Food ready' : '🍔 الطعام جاهز', 'success'); }
+  if (id === 'grocery' || id === 'mart'){ navigate('/categories'); ktToast('🛒 تصفح منتجاتنا الآن', 'success'); }
+  else if (id === 'food'){ navigate('/search?cat=snacks'); ktToast('🍔 الطعام جاهز', 'success'); }
   else if (id === 'flowers'){ ktShowFlowersComingSoon(); }
   else if (id === 'medicine'){ ktOpenPharmacy(); }
 }
@@ -1103,7 +1107,6 @@ function renderQuickServices(){
 function ktOpenPharmacy(){
   var meds = PRODUCTS.filter(function(p){ return p.isMedicine; });
   if (!meds.length){
-    ktToast(KT_LANG === 'en' ? '⏳ Loading...' : '⏳ جاري تحميل أدوية الصيدلية...');
     ktBuildMedicineProducts().forEach(function(p){ PRODUCTS.push(p); });
     meds = PRODUCTS.filter(function(p){ return p.isMedicine; });
   }
@@ -1115,25 +1118,15 @@ function ktOpenPharmacy(){
       '<div class="kt-store-product-img"><img src="' + esc(p.image) + '" alt="' + esc(p.nameAr) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="emoji" style="display:none">' + p.emoji + '</span></div>' +
       '<div class="kt-store-product-name">' + esc(p.nameAr) + '</div>' +
       '<div class="kt-store-product-price">' + money(p.price) + '</div>' +
-      '<button class="kt-store-product-btn" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)"><svg data-lucide="plus"></svg> ' + (KT_LANG === 'en' ? 'Add' : 'أضف') + '</button>' +
+      '<button class="kt-store-product-btn" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)"><svg data-lucide="plus"></svg> أضف</button>' +
     '</div>';
   }).join('');
   window.openModal(
-    '<div class="k-pharmacy-banner">' +
-      '<div class="k-pharmacy-banner-icon">⚕️</div>' +
-      '<div class="k-pharmacy-banner-info">' +
-        '<h3>' + KT_PHARMACY.name + '</h3>' +
-        '<p>' + KT_PHARMACY.address + ' — ' + KT_PHARMACY.delivery + '</p>' +
-        '<span class="hours">🕒 ' + KT_PHARMACY.hours + '</span>' +
-      '</div>' +
-    '</div>' +
-    '<div class="k-pharmacy-badge"><svg data-lucide="check-circle-2"></svg> ' + meds.length + ' ' + (KT_LANG === 'en' ? 'Medicines available' : 'دواء متوفر') + '</div>' +
+    '<div class="k-pharmacy-banner"><div class="k-pharmacy-banner-icon">⚕️</div><div class="k-pharmacy-banner-info"><h3>' + KT_PHARMACY.name + '</h3><p>' + KT_PHARMACY.address + ' — ' + KT_PHARMACY.delivery + '</p></div></div>' +
+    '<div class="k-pharmacy-badge">✅ ' + meds.length + ' دواء متوفر</div>' +
     '<div class="kt-quick-services" style="margin-top:10px">' + catButtons + '</div>' +
     '<div class="kt-store-products" id="ktPharmGrid">' + medsHTML + '</div>' +
-    '<div style="display:flex;gap:10px;margin-top:18px">' +
-      '<a href="tel:' + KT_PHARMACY.phone + '" class="btn btn-primary" style="flex:1">📞 ' + (KT_LANG === 'en' ? 'Call Pharmacy' : 'اتصل بالصيدلية') + '</a>' +
-      '<button class="btn btn-glass" onclick="closeModal()">' + (KT_LANG === 'en' ? 'Close' : 'إغلاق') + '</button>' +
-    '</div>'
+    '<div style="display:flex;gap:10px;margin-top:18px"><a href="tel:' + KT_PHARMACY.phone + '" class="btn btn-primary" style="flex:1">📞 اتصل بالصيدلية</a><button class="btn btn-glass" onclick="closeModal()">إغلاق</button></div>'
   );
   refreshIcons();
 }
@@ -1144,10 +1137,10 @@ function ktFilterPharmacy(catId, btn){
   if (!grid) return;
   grid.innerHTML = meds.map(function(p){
     return '<div class="kt-store-product" onclick="navigate(\'/p/' + p.id + '\')">' +
-      '<div class="kt-store-product-img"><img src="' + esc(p.image) + '" alt="' + esc(p.nameAr) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="emoji" style="display:none">' + p.emoji + '</span></div>' +
+      '<div class="kt-store-product-img"><img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="emoji" style="display:none">' + p.emoji + '</span></div>' +
       '<div class="kt-store-product-name">' + esc(p.nameAr) + '</div>' +
       '<div class="kt-store-product-price">' + money(p.price) + '</div>' +
-      '<button class="kt-store-product-btn" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)"><svg data-lucide="plus"></svg> ' + (KT_LANG === 'en' ? 'Add' : 'أضف') + '</button>' +
+      '<button class="kt-store-product-btn" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)"><svg data-lucide="plus"></svg> أضف</button>' +
     '</div>';
   }).join('');
   if (btn){ document.querySelectorAll('.kt-quick-services .kt-quick-service').forEach(function(b){ b.classList.remove('on'); }); btn.classList.add('on'); }
@@ -1158,14 +1151,11 @@ function ktShowFlowersComingSoon(){
   window.openModal(
     '<div class="kt-coming-soon">' +
       '<span class="kt-coming-soon-icon">💐</span>' +
-      '<span class="flower-badge"><svg data-lucide="clock"></svg> ' + (KT_LANG === 'en' ? 'Coming soon' : 'قريباً جداً') + '</span>' +
-      '<h2>' + (KT_LANG === 'en' ? 'Flowers & Bouquets' : 'قسم الورود والبوكيهات') + '</h2>' +
-      '<p>' + (KT_LANG === 'en' ? 'Flower shop is coming soon — we\'ll deliver the best flowers to your loved ones 🌹' : 'يتم إضافة متجر الورود قريباً — هنوصّلك أحلى الورد لأغلى الناس 🌹') + '</p>' +
-      '<a href="https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent('💐 عايز أطلب ورد من كانتين') + '" target="_blank" rel="noopener" class="kt-wa-send-btn">' +
-        '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' +
-        (KT_LANG === 'en' ? 'Ask about flowers 💐' : 'اسأل عن الورد 💐') +
-      '</a>' +
-      '<div style="margin-top:16px"><button class="btn btn-glass" onclick="closeModal()">' + (KT_LANG === 'en' ? 'OK' : 'حسناً، في انتظاركم') + '</button></div>' +
+      '<span class="flower-badge"><svg data-lucide="clock"></svg> قريباً جداً</span>' +
+      '<h2>قسم الورود والبوكيهات</h2>' +
+      '<p>يتم إضافة متجر الورود قريباً — هنوصّلك أحلى الورد لأغلى الناس 🌹</p>' +
+      '<a href="https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent('💐 عايز أطلب ورد من كانتين') + '" target="_blank" class="kt-wa-send-btn">اسأل عن الورد 💐</a>' +
+      '<div style="margin-top:16px"><button class="btn btn-glass" onclick="closeModal()">حسناً، في انتظاركم</button></div>' +
     '</div>'
   );
   refreshIcons();
@@ -1176,10 +1166,10 @@ function ktShowSearchSuggestions(query){
   if (!suggest) return;
   query = (query || '').trim().toLowerCase();
   if (!query){
-    suggest.innerHTML = '<div class="kt-loc-suggest-item" onclick="ktPickSearchSuggestion(\'عروض\')"><svg data-lucide="flame"></svg><div class="kt-loc-suggest-info"><div class="kt-loc-suggest-title">🔥 ' + (KT_LANG === 'en' ? 'Today\'s Deals' : 'عروض اليوم') + '</div><div class="kt-loc-suggest-sub">' + (KT_LANG === 'en' ? 'Up to 25% off' : 'خصومات حتى 25%') + '</div></div></div>' +
+    suggest.innerHTML = '<div class="kt-loc-suggest-item" onclick="ktPickSearchSuggestion(\'عروض\')"><svg data-lucide="flame"></svg><div class="kt-loc-suggest-info"><div class="kt-loc-suggest-title">🔥 عروض اليوم</div><div class="kt-loc-suggest-sub">خصومات حتى 25%</div></div></div>' +
       SEARCH_SUGGESTIONS.slice(0, 6).map(function(s){
         var q = KT_LANG === 'en' ? s.qEn : s.q;
-        return '<div class="kt-loc-suggest-item" onclick="ktPickSearchSuggestion(\'' + q + '\')"><svg data-lucide="search"></svg><div class="kt-loc-suggest-info"><div class="kt-loc-suggest-title">' + q + '</div><div class="kt-loc-suggest-sub">' + (KT_LANG === 'en' ? 'in ' : 'في ') + (catById(s.cat) ? catName(catById(s.cat)) : s.cat) + '</div></div></div>';
+        return '<div class="kt-loc-suggest-item" onclick="ktPickSearchSuggestion(\'' + q + '\')"><svg data-lucide="search"></svg><div class="kt-loc-suggest-info"><div class="kt-loc-suggest-title">' + q + '</div><div class="kt-loc-suggest-sub">' + (catById(s.cat) ? catName(catById(s.cat)) : s.cat) + '</div></div></div>';
       }).join('');
     suggest.classList.add('open');
     refreshIcons();
@@ -1188,7 +1178,7 @@ function ktShowSearchSuggestions(query){
   var matches = PRODUCTS.filter(function(p){
     return productName(p).toLowerCase().indexOf(query) !== -1 || (p.nameAr || '').toLowerCase().indexOf(query) !== -1 || (p.nameEn || '').toLowerCase().indexOf(query) !== -1 || (p.brand || '').toLowerCase().indexOf(query) !== -1;
   }).slice(0, 8);
-  if (!matches.length){ suggest.innerHTML = '<div class="kt-loc-suggest-loading">' + (KT_LANG === 'en' ? 'No results found' : 'لا توجد نتائج مطابقة') + '</div>'; suggest.classList.add('open'); return; }
+  if (!matches.length){ suggest.innerHTML = '<div class="kt-loc-suggest-loading">لا توجد نتائج مطابقة</div>'; suggest.classList.add('open'); return; }
   suggest.innerHTML = matches.map(function(p){
     return '<div class="kt-loc-suggest-item" onclick="ktPickSearchProduct(\'' + p.id + '\')"><span style="font-size:22px;width:24px;text-align:center">' + (p.emoji || '🛒') + '</span><div class="kt-loc-suggest-info"><div class="kt-loc-suggest-title">' + esc(productName(p)) + '</div><div class="kt-loc-suggest-sub">' + esc(p.brand) + ' · ' + money(finalPrice(p)) + '</div></div></div>';
   }).join('');
@@ -1210,21 +1200,15 @@ function ktHideSearchSuggestions(){
   var s = document.getElementById('ktSearchSuggest');
   if (s) setTimeout(function(){ s.classList.remove('open'); }, 200);
 }
-
 function ktToggleSearchBar(){
   var locBar = document.getElementById('ktLocBar');
   if (!locBar) return;
   var isHidden = locBar.classList.contains('k-hidden');
   if (isHidden){
     locBar.classList.remove('k-hidden');
-    setTimeout(function(){
-      var inp = document.getElementById('ktAddressInput');
-      if (inp) inp.focus();
-    }, 350);
+    setTimeout(function(){ var inp = document.getElementById('ktAddressInput'); if (inp) inp.focus(); }, 350);
   } else {
     locBar.classList.add('k-hidden');
-    var inp = document.getElementById('ktAddressInput');
-    if (inp) inp.blur();
   }
 }
 function ktCloseSearchBar(){
@@ -1241,25 +1225,25 @@ function ktShowNearbyStoresModal(lat, lng){
         var inside = s._distance <= KT_DELIVERY_RADIUS_KM;
         var productCount = (s.products || []).length;
         var sid = s._fbId || s.id;
-        return '<div class="kt-nearby-store" onclick="ktPickStore(\'' + sid + '\')"><div class="kt-nearby-store-ic">🏪</div><div class="kt-nearby-store-info"><div class="kt-nearby-store-name">' + esc(s.name) + ' <span class="pill ' + (inside ? 'pill-fresh' : 'pill-danger') + '">' + (inside ? (KT_LANG === 'en' ? '✅ Can deliver' : '✅ يوصّل لك') : (KT_LANG === 'en' ? '❌ Out of range' : '❌ خارج النطاق')) + ' • ' + s._distance.toFixed(1) + ' ' + (KT_LANG === 'en' ? 'km' : 'كم') + '</span></div><div class="kt-nearby-store-meta">📍 ' + esc(s.address || (KT_LANG === 'en' ? 'No address' : 'بدون عنوان')) + '</div><div class="kt-nearby-store-meta">📞 ' + esc(s.phone) + ' · 📦 ' + productCount + ' ' + (KT_LANG === 'en' ? 'products' : 'منتج') + '</div></div><div class="kt-nearby-store-actions"><a href="tel:' + esc(s.phone) + '" class="btn btn-gold btn-sm" onclick="event.stopPropagation()">📞</a>' + (s.whatsapp ? '<a href="https://wa.me/2' + String(s.whatsapp).replace(/\D/g,'') + '" target="_blank" class="btn btn-glass btn-sm" onclick="event.stopPropagation()">💬</a>' : '') + '</div></div>';
+        return '<div class="kt-nearby-store" onclick="ktPickStore(\'' + sid + '\')"><div class="kt-nearby-store-ic">🏪</div><div class="kt-nearby-store-info"><div class="kt-nearby-store-name">' + esc(s.name) + ' <span class="pill ' + (inside ? 'pill-fresh' : 'pill-danger') + '">' + (inside ? '✅ يوصّل لك' : '❌ خارج النطاق') + ' • ' + s._distance.toFixed(1) + ' كم</span></div><div class="kt-nearby-store-meta">📍 ' + esc(s.address || '') + '</div><div class="kt-nearby-store-meta">📞 ' + esc(s.phone) + ' · 📦 ' + productCount + ' منتج</div></div><div class="kt-nearby-store-actions"><a href="tel:' + esc(s.phone) + '" class="btn btn-gold btn-sm" onclick="event.stopPropagation()">📞</a></div></div>';
       }).join('')
-    : '<div class="k-empty" style="padding:40px;text-align:center"><div style="font-size:64px;margin-bottom:12px">🏪</div><h3 style="margin-bottom:8px">' + (KT_LANG === 'en' ? 'No stores registered' : 'لا توجد متاجر مسجلة') + '</h3><p class="muted">' + (KT_LANG === 'en' ? 'Stores will be added soon' : 'سيتم إضافة المتاجر قريباً') + '</p><a href="merchant.html" class="btn btn-primary" style="margin-top:16px">' + (KT_LANG === 'en' ? 'Register' : 'سجّل متجرك') + '</a></div>';
+    : '<div class="k-empty" style="padding:40px;text-align:center"><div style="font-size:64px">🏪</div><h3>لا توجد متاجر مسجلة</h3><p class="muted">سيتم إضافة المتاجر قريباً</p></div>';
   window.openModal(
-    '<div class="k-modal-head"><h3><svg data-lucide="map-pin"></svg> ' + (KT_LANG === 'en' ? 'Nearby Stores' : 'المتاجر القريبة') + ' (' + withDistance.length + ')</h3><button class="k-modal-close" onclick="closeModal()"><svg data-lucide="x"></svg></button></div>' +
-    '<div style="background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(255,184,0,.06));border:1px solid rgba(255,107,53,.3);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center"><div style="font-size:13px;color:var(--ink-3);margin-bottom:6px">' + t('near_your_loc') + '</div><div style="font-size:13px;font-family:monospace;color:var(--gold)">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div><div style="font-size:12.5px;color:var(--fresh);margin-top:8px;font-weight:700">✅ ' + insideCount + ' ' + t('near_can_deliver') + '</div></div>' +
+    '<div class="k-modal-head"><h3><svg data-lucide="map-pin"></svg> المتاجر القريبة (' + withDistance.length + ')</h3><button class="k-modal-close" onclick="closeModal()"><svg data-lucide="x"></svg></button></div>' +
+    '<div style="background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(255,184,0,.06));border:1px solid rgba(255,107,53,.3);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center"><div style="font-size:13px;color:var(--ink-3)">📍 موقعك الحالي</div><div style="font-size:13px;font-family:monospace;color:var(--gold)">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div><div style="font-size:12.5px;color:var(--fresh);margin-top:8px;font-weight:700">✅ ' + insideCount + ' متجر يوصّل لك في نطاق 10 كم</div></div>' +
     '<div class="kt-nearby-stores">' + storesHTML + '</div>' +
-    '<button class="btn btn-glass btn-block" style="margin-top:16px" onclick="closeModal()">' + (KT_LANG === 'en' ? 'Close' : 'إغلاق') + '</button>'
+    '<button class="btn btn-glass btn-block" style="margin-top:16px" onclick="closeModal()">إغلاق</button>'
   );
   refreshIcons();
 }
 
-/* ✅ محسّن — GPS سريع + fallback لآخر موقع */
+/* ✅ محسّن — GPS سريع ثم دقيق مع fallback */
 function ktOpenNearbyStores(){
   if (!navigator.geolocation){
-    ktToast(KT_LANG === 'en' ? '❌ Browser does not support GPS' : '❌ المتصفح لا يدعم GPS');
+    ktToast('❌ المتصفح لا يدعم GPS');
     return;
   }
-  ktToast(KT_LANG === 'en' ? '📍 Detecting location...' : '📍 جاري تحديد موقعك...');
+  ktToast('📍 جاري تحديد موقعك...');
 
   var ok = function(pos){
     ktUserLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -1269,10 +1253,10 @@ function ktOpenNearbyStores(){
     var savedLat = LS.get('delivery_lat', null);
     var savedLng = LS.get('delivery_lng', null);
     if (savedLat && savedLng){
-      ktToast(KT_LANG === 'en' ? '📍 Using last known location' : '📍 بنستخدم آخر موقع محفوظ');
+      ktToast('📍 بنستخدم آخر موقع محفوظ');
       ktShowNearbyStoresModal(savedLat, savedLng);
     } else {
-      ktToast(KT_LANG === 'en' ? '❌ Could not detect location' : '❌ لم نتمكن من تحديد موقعك');
+      ktToast('❌ لم نتمكن من تحديد موقعك');
     }
   };
 
@@ -1293,21 +1277,17 @@ function ktPickStore(storeId){
   var productsHTML = products.length
     ? '<div class="kt-store-products">' + products.map(function(p){
         var media = p.image ? '<img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span class="emoji" style="display:none">' + (p.emoji || '🛒') + '</span>' : '<span class="emoji">' + (p.emoji || '🛒') + '</span>';
-        return '<div class="kt-store-product" onclick="navigate(\'/p/merchant_' + storeId + '_' + p.id + '\')"><div class="kt-store-product-img">' + media + '</div><div class="kt-store-product-name">' + esc(p.name) + '</div><div class="kt-store-product-price">' + p.price + ' ' + (KT_LANG === 'en' ? 'EGP' : 'ج.م') + '</div><button class="kt-store-product-btn" onclick="event.stopPropagation();ktAddStoreProductToCart(\'' + storeId + '\',\'' + p.id + '\')"><svg data-lucide="plus"></svg> ' + (KT_LANG === 'en' ? 'Add' : 'أضف') + '</button></div>';
+        return '<div class="kt-store-product" onclick="navigate(\'/p/merchant_' + storeId + '_' + p.id + '\')"><div class="kt-store-product-img">' + media + '</div><div class="kt-store-product-name">' + esc(p.name) + '</div><div class="kt-store-product-price">' + p.price + ' ج.م</div><button class="kt-store-product-btn" onclick="event.stopPropagation();ktAddStoreProductToCart(\'' + storeId + '\',\'' + p.id + '\')"><svg data-lucide="plus"></svg> أضف</button></div>';
       }).join('') + '</div>'
-    : '<p class="muted" style="padding:20px;text-align:center">' + (KT_LANG === 'en' ? 'No products available' : 'لا توجد منتجات معروضة') + '</p>';
+    : '<p class="muted" style="padding:20px;text-align:center">لا توجد منتجات معروضة</p>';
   window.openModal(
     '<div class="k-modal-head"><h3><svg data-lucide="store"></svg> ' + esc(store.name) + '</h3><button class="k-modal-close" onclick="closeModal()"><svg data-lucide="x"></svg></button></div>' +
     '<div style="background:var(--bg-3);border-radius:16px;padding:20px;margin-bottom:16px">' +
-      '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)"><span style="color:var(--ink-3)">' + (KT_LANG === 'en' ? 'Owner:' : 'المالك:') + '</span><b>' + esc(store.owner || '-') + '</b></div>' +
-      '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)"><span style="color:var(--ink-3)">' + (KT_LANG === 'en' ? 'Phone:' : 'الهاتف:') + '</span><a href="tel:' + esc(store.phone) + '" style="color:var(--gold)">' + esc(store.phone) + '</a></div>' +
-      '<div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:var(--ink-3)">' + (KT_LANG === 'en' ? 'Address:' : 'العنوان:') + '</span><b style="text-align:end;font-size:13px">' + esc(store.address || '-') + '</b></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)"><span style="color:var(--ink-3)">المالك:</span><b>' + esc(store.owner || '-') + '</b></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:var(--ink-3)">الهاتف:</span><a href="tel:' + esc(store.phone) + '" style="color:var(--gold)">' + esc(store.phone) + '</a></div>' +
     '</div>' +
-    '<h4 style="margin-bottom:8px">📦 ' + (KT_LANG === 'en' ? 'Products' : 'المنتجات') + ' (' + products.length + ')</h4>' + productsHTML +
-    '<div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">' +
-      (store.whatsapp ? '<a href="https://wa.me/2' + String(store.whatsapp).replace(/\D/g,'') + '" target="_blank" class="btn btn-primary" style="flex:1">💬 ' + (KT_LANG === 'en' ? 'WhatsApp' : 'تواصل واتساب') + '</a>' : '<a href="tel:' + esc(store.phone) + '" class="btn btn-primary" style="flex:1">📞 ' + (KT_LANG === 'en' ? 'Call' : 'اتصل') + '</a>') +
-      '<button class="btn btn-glass" onclick="closeModal()">' + (KT_LANG === 'en' ? 'Close' : 'إغلاق') + '</button>' +
-    '</div>'
+    '<h4 style="margin-bottom:8px">📦 المنتجات (' + products.length + ')</h4>' + productsHTML +
+    '<div style="display:flex;gap:10px;margin-top:20px"><button class="btn btn-glass" onclick="closeModal()" style="flex:1">إغلاق</button></div>'
   );
   refreshIcons();
 }
@@ -1338,7 +1318,7 @@ function ktUseCurrentLocation(){
         var addr = (data.address && (data.address.suburb || data.address.neighbourhood || data.address.city || data.address.town)) || data.display_name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
         LS.set('delivery_address', addr);
         ktUpdateLocStatus('ok', String(addr).substring(0, 30));
-        ktToast(KT_LANG === 'en' ? '✅ Location detected' : '✅ تم تحديد موقعك', 'success');
+        ktToast('✅ تم تحديد موقعك', 'success');
         if (typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
       })
       .catch(function(){ ktUpdateLocStatus('ok', lat.toFixed(3) + ', ' + lng.toFixed(3)); });
@@ -1358,7 +1338,7 @@ function ktFocusAddressInput(){ var inp = document.getElementById('ktAddressInpu
 function ktSearchAddress(){
   var q = document.getElementById('ktAddressInput').value.trim();
   if(!q){ ktFocusAddressInput(); return; }
-  ktUpdateLocStatus('loading', KT_LANG === 'en' ? 'Searching...' : 'جاري البحث...');
+  ktUpdateLocStatus('loading', 'جاري البحث...');
   fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q) + '&limit=1&accept-language=' + KT_LANG)
     .then(function(r){ return r.json(); })
     .then(function(data){
@@ -1367,11 +1347,11 @@ function ktSearchAddress(){
         LS.set('delivery_lat', parseFloat(r.lat)); LS.set('delivery_lng', parseFloat(r.lon));
         LS.set('delivery_address', r.display_name);
         ktUpdateLocStatus('ok', String(r.display_name || '').substring(0, 30));
-        ktToast(KT_LANG === 'en' ? '✅ Address found' : '✅ تم العثور على العنوان', 'success');
+        ktToast('✅ تم العثور على العنوان', 'success');
         if(typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
-      } else { ktUpdateLocStatus('err', KT_LANG === 'en' ? 'Address not found' : 'لم نجد هذا العنوان'); }
+      } else { ktUpdateLocStatus('err', 'لم نجد هذا العنوان'); }
     })
-    .catch(function(){ ktUpdateLocStatus('err', KT_LANG === 'en' ? 'Search error' : 'خطأ في البحث'); });
+    .catch(function(){ ktUpdateLocStatus('err', 'خطأ في البحث'); });
 }
 function ktSubmitAddress(){ var q = document.getElementById('ktAddressInput').value.trim(); if(q) ktSearchAddress(); else ktUseCurrentLocation(); }
 
@@ -1382,15 +1362,15 @@ function ktAddToCart(pid, qty){
   if(existing) existing.qty = Math.min(existing.qty + qty, p.stock);
   else state.cart.push({id: pid, qty: qty});
   persist('cart'); ktUpdateBadges();
-  ktToast(KT_LANG === 'en' ? 'Added to cart ✓' : 'تمت الإضافة إلى السلة ✓', 'success');
+  ktToast('تمت الإضافة إلى السلة ✓', 'success');
   ktRenderDrawer();
 }
-function ktRemoveFromCart(pid){ state.cart = state.cart.filter(function(i){ return String(i.id) !== String(pid); }); persist('cart'); ktUpdateBadges(); ktToast(KT_LANG === 'en' ? 'Removed' : 'تم الحذف'); ktRenderDrawer(); if(state.route && state.route.view === 'cart') render(); }
+function ktRemoveFromCart(pid){ state.cart = state.cart.filter(function(i){ return String(i.id) !== String(pid); }); persist('cart'); ktUpdateBadges(); ktToast('تم الحذف'); ktRenderDrawer(); if(state.route && state.route.view === 'cart') render(); }
 function ktUpdateQty(pid, qty){ var item = state.cart.find(function(i){ return String(i.id) === String(pid); }); var p = findBy(pid); if(!item || !p) return; item.qty = Math.max(1, Math.min(qty, p.stock)); persist('cart'); ktUpdateBadges(); ktRenderDrawer(); if(state.route && state.route.view === 'cart') render(); }
 function ktToggleFav(pid){
   var idx = state.wishlist.findIndex(function(id){ return String(id) === String(pid); });
-  if(idx >= 0){ state.wishlist.splice(idx, 1); ktToast(KT_LANG === 'en' ? 'Removed' : 'تمت الإزالة'); }
-  else { state.wishlist.push(pid); ktToast(KT_LANG === 'en' ? 'Added to wishlist ♥' : 'تمت الإضافة للمفضلة ♥', 'success'); }
+  if(idx >= 0){ state.wishlist.splice(idx, 1); ktToast('تمت الإزالة'); }
+  else { state.wishlist.push(pid); ktToast('تمت الإضافة للمفضلة ♥', 'success'); }
   persist('wishlist'); ktUpdateBadges();
   $$('[data-fav="' + pid + '"]').forEach(function(el){ el.classList.toggle('on'); });
   if(state.route && state.route.view === 'wishlist') render();
@@ -1405,9 +1385,6 @@ function ktQuickAdd(pid, btn){
   if (badge){
     badge.textContent = qty;
     badge.classList.toggle('zero', qty === 0);
-    badge.style.animation = 'none';
-    void badge.offsetWidth;
-    badge.style.animation = '';
   }
 }
 function ktUpdateBadges(){
@@ -1420,17 +1397,17 @@ function ktCloseDrawer(){ var d = $('#k-drawer'); if(d) d.classList.remove('open
 function ktRenderDrawer(){
   var body = $('#drawer-body'), foot = $('#drawer-foot'); if(!body || !foot) return;
   if(!state.cart.length){
-    body.innerHTML = '<div class="k-empty" style="padding:40px 20px;border:none;background:none"><div class="k-empty-ic">🛒</div><h3>' + t('cart_empty') + '</h3><p>' + t('cart_start_shopping') + '</p><button class="btn btn-primary" onclick="ktCloseDrawer();navigate(\'/categories\')">' + t('cart_browse_products') + '</button></div>';
+    body.innerHTML = '<div class="k-empty" style="padding:40px 20px;border:none;background:none"><div class="k-empty-ic">🛒</div><h3>' + t('cart_empty') + '</h3><button class="btn btn-primary" onclick="ktCloseDrawer();navigate(\'/categories\')">' + t('cart_browse_products') + '</button></div>';
     foot.innerHTML = ''; refreshIcons(); return;
   }
   var items = state.cart.map(function(i){ return {item: i, p: findBy(i.id)}; }).filter(function(x){ return x.p; });
   body.innerHTML = items.map(function(x){
     var item = x.item, p = x.p;
-    var img = p.image ? '<img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span style="display:none;font-size:32px;place-items:center;width:100%;height:100%">' + p.emoji + '</span>' : '<span style="font-size:32px">' + p.emoji + '</span>';
-    return '<div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);align-items:center"><div style="width:70px;height:70px;border-radius:16px;background:#fff;display:grid;place-items:center;overflow:hidden">' + img + '</div><div style="min-width:0"><div style="font-weight:700;font-size:14.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(productName(p)) + '</div><div class="muted tiny">' + esc(p.brand || '') + ' · ' + esc(p.weight || '') + '</div><div style="display:inline-flex;align-items:center;background:var(--glass);border:1px solid var(--line-2);border-radius:999px;padding:3px;margin-top:8px"><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty - 1) + ')" style="width:32px;height:32px;border-radius:50%;font-weight:700">−</button><span style="width:40px;text-align:center;font-weight:700;font-size:14px">' + item.qty + '</span><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty + 1) + ')" style="width:32px;height:32px;border-radius:50%;font-weight:700">+</button></div></div><div style="text-align:end"><div style="font-weight:800;color:var(--gold);font-size:16px">' + money(finalPrice(p) * item.qty) + '</div><button onclick="ktRemoveFromCart(\'' + p.id + '\')" style="color:var(--ink-4);font-size:12px;margin-top:8px">' + t('action_delete') + '</button></div></div>';
+    var img = p.image ? '<img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span style="display:none;font-size:32px">' + p.emoji + '</span>' : '<span style="font-size:32px">' + p.emoji + '</span>';
+    return '<div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);align-items:center"><div style="width:70px;height:70px;border-radius:16px;background:#fff;display:grid;place-items:center;overflow:hidden">' + img + '</div><div style="min-width:0"><div style="font-weight:700;font-size:14.5px;margin-bottom:4px">' + esc(productName(p)) + '</div><div class="muted tiny">' + esc(p.brand || '') + '</div><div style="display:inline-flex;align-items:center;background:var(--glass);border:1px solid var(--line-2);border-radius:999px;padding:3px;margin-top:8px"><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty - 1) + ')" style="width:32px;height:32px;border-radius:50%;font-weight:700">−</button><span style="width:40px;text-align:center;font-weight:700">' + item.qty + '</span><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty + 1) + ')" style="width:32px;height:32px;border-radius:50%;font-weight:700">+</button></div></div><div style="text-align:end"><div style="font-weight:800;color:var(--gold);font-size:16px">' + money(finalPrice(p) * item.qty) + '</div><button onclick="ktRemoveFromCart(\'' + p.id + '\')" style="color:var(--ink-4);font-size:12px;margin-top:8px">حذف</button></div></div>';
   }).join('');
   var sub = cartTotal(), fee = deliveryFee(), disc = discountAmt(), total = grandTotal();
-  foot.innerHTML = '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="muted">' + t('cart_subtotal') + '</span><span>' + money(sub) + '</span></div><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="muted">' + t('cart_delivery') + '</span><span>' + (fee === 0 ? '<span class="fresh-c">' + t('cart_free') + '</span>' : money(fee)) + '</span></div>' + (disc > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="fresh-c">' + t('cart_discount') + '</span><span class="fresh-c">-' + money(disc) + '</span></div>' : '') + '<div style="display:flex;justify-content:space-between;padding:16px 0;border-top:1px solid var(--line);margin-top:10px;font-size:19px;font-weight:800"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div><button class="btn btn-primary btn-block btn-lg" style="margin-top:14px" onclick="ktCloseDrawer();navigate(\'/checkout\')">' + t('action_checkout') + '</button><button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="ktCloseDrawer();navigate(\'/cart\')">' + t('action_view_cart') + '</button>';
+  foot.innerHTML = '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="muted">المجموع</span><span>' + money(sub) + '</span></div><div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="muted">التوصيل</span><span>' + (fee === 0 ? '<span class="fresh-c">مجاناً</span>' : money(fee)) + '</span></div>' + (disc > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14.5px"><span class="fresh-c">الخصم</span><span class="fresh-c">-' + money(disc) + '</span></div>' : '') + '<div style="display:flex;justify-content:space-between;padding:16px 0;border-top:1px solid var(--line);margin-top:10px;font-size:19px;font-weight:800"><span>الإجمالي</span><span style="color:var(--gold)">' + money(total) + '</span></div><button class="btn btn-primary btn-block btn-lg" style="margin-top:14px" onclick="ktCloseDrawer();navigate(\'/checkout\')">إتمام الطلب</button>';
   refreshIcons();
 }
 
@@ -1457,10 +1434,7 @@ function route(){
 
   state.route = {view: view, arg: arg, params: params};
   var locBar = document.getElementById('ktLocBar');
-  if (locBar){
-    if (view === 'home') locBar.classList.add('k-hidden');
-    else locBar.classList.add('k-hidden');
-  }
+  if (locBar) locBar.classList.add('k-hidden');
   if (view === 'home'){ document.body.classList.add('kt-home-page'); }
   else { document.body.classList.remove('kt-home-page'); }
   document.body.classList.toggle('kt-checkout-page', view === 'checkout');
@@ -1479,17 +1453,18 @@ function productCard(p){
   var cat = catById(p.cat);
   var cartItem = state.cart.find(function(i){ return String(i.id) === String(p.id); });
   var qty = cartItem ? cartItem.qty : 0;
-  var tag = p.off >= 20 ? '<span class="k-prod-tag">-' + p.off + '%</span>' : p.bestSeller ? '<span class="k-prod-tag gold">' + (KT_LANG === 'en' ? 'Best Seller' : 'الأكثر مبيعاً') + '</span>' : p.isNew ? '<span class="k-prod-tag fresh">' + (KT_LANG === 'en' ? 'New' : 'جديد') + '</span>' : '';
-  return '<article class="k-prod" data-pid="' + p.id + '"><div class="k-prod-media">' + tag + '<button class="k-prod-fav ' + (wish ? 'on' : '') + '" data-fav="' + p.id + '" onclick="event.stopPropagation();ktToggleFav(\'' + p.id + '\')" aria-label="Wishlist"><svg data-lucide="heart"></svg></button>' + productImageHTML(p) + '</div><div class="k-prod-body"><div class="k-prod-brand">' + esc(catName(cat)) + ' · ' + esc(p.brand || '') + '</div><h3 class="k-prod-name">' + esc(productName(p)) + '</h3><div class="k-prod-rate"><svg data-lucide="star"></svg><span>' + p.rating + ' (' + (p.reviews || 0) + ')</span></div><div class="k-prod-foot"><div class="k-prod-price"><span class="cur">' + money(fp) + '</span>' + (p.discount > 0 ? '<span class="old">' + money(p.price) + '</span>' : '') + '</div><div class="k-prod-actions"><span class="k-prod-qty' + (qty === 0 ? ' zero' : '') + '" data-qty-for="' + p.id + '">' + (qty > 0 ? qty : '') + '</span><button class="k-prod-add" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)" aria-label="Add"><svg data-lucide="plus"></svg></button></div></div></div></article>';
+  var tag = p.off >= 20 ? '<span class="k-prod-tag">-' + p.off + '%</span>' : p.bestSeller ? '<span class="k-prod-tag gold">الأكثر مبيعاً</span>' : p.isNew ? '<span class="k-prod-tag fresh">جديد</span>' : '';
+  return '<article class="k-prod" data-pid="' + p.id + '"><div class="k-prod-media">' + tag + '<button class="k-prod-fav ' + (wish ? 'on' : '') + '" data-fav="' + p.id + '" onclick="event.stopPropagation();ktToggleFav(\'' + p.id + '\')"><svg data-lucide="heart"></svg></button>' + productImageHTML(p) + '</div><div class="k-prod-body"><div class="k-prod-brand">' + esc(catName(cat)) + ' · ' + esc(p.brand || '') + '</div><h3 class="k-prod-name">' + esc(productName(p)) + '</h3><div class="k-prod-rate"><svg data-lucide="star"></svg><span>' + p.rating + ' (' + (p.reviews || 0) + ')</span></div><div class="k-prod-foot"><div class="k-prod-price"><span class="cur">' + money(fp) + '</span>' + (p.discount > 0 ? '<span class="old">' + money(p.price) + '</span>' : '') + '</div><div class="k-prod-actions"><span class="k-prod-qty' + (qty === 0 ? ' zero' : '') + '" data-qty-for="' + p.id + '">' + (qty > 0 ? qty : '') + '</span><button class="k-prod-add" onclick="event.stopPropagation();ktQuickAdd(\'' + p.id + '\',this)"><svg data-lucide="plus"></svg></button></div></div></div></article>';
 }
 function categoryCard(c){
   var count = PRODUCTS.filter(function(p){ return p.cat === c.id; }).length;
   var img = c.img ? '<img src="' + c.img + '" alt="' + esc(catName(c)) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span style="display:none;font-size:28px">' + c.ic + '</span>' : '<span>' + c.ic + '</span>';
-  return '<a class="k-cat" href="#/c/' + c.id + '"><span class="k-cat-ic">' + img + '</span><span class="k-cat-name">' + esc(catName(c)) + '</span><span class="k-cat-count">' + count + ' ' + (KT_LANG === 'en' ? 'products' : 'منتج') + '</span></a>';
+  return '<a class="k-cat" href="#/c/' + c.id + '"><span class="k-cat-ic">' + img + '</span><span class="k-cat-name">' + esc(catName(c)) + '</span><span class="k-cat-count">' + count + ' منتج</span></a>';
 }
 function secHead(title, seeAllLink){
   return '<div class="k-sec-head"><h2 class="h2">' + title + '</h2>' + (seeAllLink ? '<a class="k-see-all" href="' + seeAllLink + '">' + t('sec_view_all') + '<svg data-lucide="arrow-left"></svg></a>' : '') + '</div>';
 }
+
 function viewHome(){
   var offers = PRODUCTS.filter(function(p){ return p.off >= 15; }).slice(0, 8);
   var best = PRODUCTS.filter(function(p){ return p.bestSeller; }).slice(0, 8);
@@ -1502,7 +1477,7 @@ function viewHome(){
   }).sort(function(a, b){ return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime(); }).slice(0, 8);
 
   return '<section class="k-hero"><div class="k-hero-inner">' +
-    '<img src="welcome.png" alt="كانتِين - Kanteen" class="k-hero-main-img" loading="eager" onerror="this.style.display=\'none\'">' +
+    '<img src="welcome.png" alt="كانتِين" class="k-hero-main-img" loading="eager" onerror="this.style.display=\'none\'">' +
     '<span class="k-hero-tag"><span class="dot"></span>' + t('hero_tag') + '</span>' +
     '<h1><span class="line"><span class="k-word blue">' + t('hero_word_1') + '</span><span class="k-word gold">' + t('hero_word_2') + '</span></span><span class="line"><span class="k-word gold">' + t('hero_word_3') + '</span><span class="k-word blue">' + t('hero_word_4') + '</span></span></h1>' +
     '<p class="lead">' + t('hero_lead') + '</p>' +
@@ -1518,27 +1493,25 @@ function viewHome(){
   + (newArr.length ? '<section class="k-sec"><div class="wrap">' + secHead(t('sec_new_arrivals'), '#/search?sort=new') + '<div class="k-prods">' + newArr.map(productCard).join('') + '</div></div></section>' : '');
 }
 function viewCategories(){
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn(KT_LANG === 'en' ? 'Home' : 'الرئيسية') + '<h1 class="h1" style="margin-bottom:28px">' + (KT_LANG === 'en' ? 'Browse Categories' : 'تصفح الأقسام') + '</h1><div class="k-cats">' + CATEGORIES.map(categoryCard).join('') + '</div></div></section><section class="k-sec" style="padding-top:0"><div class="wrap"><h2 class="h2" style="margin-bottom:24px">' + t('sec_brands') + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">' + BRANDS.map(function(b){ return '<a href="#/search?brand=' + encodeURIComponent(b) + '" class="card" style="padding:20px;text-align:center;font-weight:700;color:var(--ink)">' + esc(b) + '</a>'; }).join('') + '</div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:28px">تصفح الأقسام</h1><div class="k-cats">' + CATEGORIES.map(categoryCard).join('') + '</div></div></section><section class="k-sec" style="padding-top:0"><div class="wrap"><h2 class="h2" style="margin-bottom:24px">' + t('sec_brands') + '</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">' + BRANDS.map(function(b){ return '<a href="#/search?brand=' + encodeURIComponent(b) + '" class="card" style="padding:20px;text-align:center;font-weight:700;color:var(--ink)">' + esc(b) + '</a>'; }).join('') + '</div></div></section>';
 }
 function viewCategory(catId){
   var c = catById(catId);
-  if(!c) return '<div class="wrap k-sec" style="padding-top:200px"><div class="k-empty"><h3>' + (KT_LANG === 'en' ? 'Category not found' : 'القسم غير موجود') + '</h3><a href="#/categories" class="btn btn-primary" style="margin-top:16px">' + (KT_LANG === 'en' ? 'Categories' : 'الأقسام') + '</a></div></div>';
+  if(!c) return '<div class="wrap k-sec" style="padding-top:200px"><div class="k-empty"><h3>القسم غير موجود</h3></div></div>';
   var prods = PRODUCTS.filter(function(p){ return p.cat === catId; });
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn(KT_LANG === 'en' ? 'Categories' : 'الأقسام') + '<div style="text-align:center;margin-bottom:40px"><div style="width:130px;height:130px;border-radius:26px;overflow:hidden;background:#fff;margin:0 auto 18px;display:grid;place-items:center"><img src="' + c.img + '" alt="' + esc(catName(c)) + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'"></div><h1 class="h1">' + esc(catName(c)) + '</h1><p class="muted" style="margin-top:10px">' + prods.length + ' ' + (KT_LANG === 'en' ? 'products' : 'منتج') + '</p></div>' + (prods.length ? '<div class="k-prods">' + prods.map(productCard).join('') + '</div>' : '<div class="k-empty"><div class="k-empty-ic">📦</div><h3>' + (KT_LANG === 'en' ? 'No products' : 'لا منتجات') + '</h3></div>') + '</div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div style="text-align:center;margin-bottom:40px"><div style="width:130px;height:130px;border-radius:26px;overflow:hidden;background:#fff;margin:0 auto 18px"><img src="' + c.img + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'"></div><h1 class="h1">' + esc(catName(c)) + '</h1><p class="muted">' + prods.length + ' منتج</p></div>' + (prods.length ? '<div class="k-prods">' + prods.map(productCard).join('') + '</div>' : '<div class="k-empty"><h3>لا منتجات</h3></div>') + '</div></section>';
 }
 function viewProduct(pid){
   var p = findBy(pid);
-  if(!p) return '<div class="wrap k-sec" style="padding-top:200px"><div class="k-empty"><h3>' + (KT_LANG === 'en' ? 'Product not found' : 'المنتج غير موجود') + '</h3><a href="#/categories" class="btn btn-primary" style="margin-top:16px">' + t('cart_browse_products') + '</a></div></div>';
-  state.recent = [p.id].concat(state.recent.filter(function(id){ return String(id) !== String(p.id); })).slice(0, 20);
-  persist('recent');
+  if(!p) return '<div class="wrap k-sec" style="padding-top:200px"><div class="k-empty"><h3>المنتج غير موجود</h3><a href="#/categories" class="btn btn-primary">تصفح المنتجات</a></div></div>';
   var cat = catById(p.cat);
   var wish = state.wishlist.findIndex(function(id){ return String(id) === String(p.id); }) >= 0;
   var fp = finalPrice(p);
   var savings = p.price - fp;
   var related = PRODUCTS.filter(function(x){ return x.cat === p.cat && String(x.id) !== String(p.id); }).slice(0, 4);
-  var imgBig = p.image ? '<img src="' + esc(p.image) + '" alt="' + esc(productName(p)) + '" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-xl)" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span style="display:none;font-size:min(28vw,200px);place-items:center;width:100%;height:100%">' + p.emoji + '</span>' : '<span>' + p.emoji + '</span>';
+  var imgBig = p.image ? '<img src="' + esc(p.image) + '" style="width:100%;height:100%;object-fit:cover;border-radius:var(--r-xl)" onerror="this.style.display=\'none\'">' : '<span style="font-size:200px">' + p.emoji + '</span>';
   var name = productName(p);
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="row" style="margin-bottom:24px;font-size:14px;color:var(--ink-3);gap:10px"><a href="#/">' + (KT_LANG === 'en' ? 'Home' : 'الرئيسية') + '</a><span>/</span><a href="#/c/' + p.cat + '">' + esc(catName(cat)) + '</a><span>/</span><span style="color:var(--ink)">' + esc(name) + '</span></div><style>@media(min-width:900px){[data-pdp]{grid-template-columns:1fr 1fr !important;gap:52px !important}}</style><div data-pdp style="display:grid;gap:32px"><div class="card" style="padding:0;border-radius:var(--r-xl);aspect-ratio:1;position:relative;overflow:hidden;background:#fff">' + imgBig + (p.off >= 15 ? '<span class="pill pill-gold" style="position:absolute;top:22px;inset-inline-start:22px;padding:10px 16px;font-size:14px;z-index:5">-' + p.off + '%</span>' : '') + '</div><div><div class="row" style="margin-bottom:16px;gap:10px;flex-wrap:wrap"><span class="pill pill-gold">' + esc(p.brand) + '</span>' + (p.bestSeller ? '<span class="pill pill-gold">' + (KT_LANG === 'en' ? 'Best Seller' : 'الأكثر مبيعاً') + '</span>' : '') + (p.isNew ? '<span class="pill pill-fresh">' + (KT_LANG === 'en' ? 'New' : 'جديد') + '</span>' : '') + '</div><h1 class="h1" style="margin-bottom:16px">' + esc(name) + '</h1>' + (p.merchantName ? '<p class="muted small" style="margin-bottom:16px">🏪 ' + (KT_LANG === 'en' ? 'From store: ' : 'من متجر: ') + '<b style="color:var(--gold)">' + esc(p.merchantName) + '</b></p>' : '') + '<div class="row" style="margin-bottom:24px;color:var(--ink-3);font-size:15px;gap:20px;flex-wrap:wrap"><span><span style="color:var(--gold)">★</span> ' + p.rating + ' (' + (p.reviews || 0) + ')</span><span style="color:var(--fresh)">✓ ' + t('prod_available') + ' ' + (p.stock || 100) + '</span></div><div style="display:flex;align-items:baseline;gap:14px;margin-bottom:28px;flex-wrap:wrap"><span style="font-size:42px;font-weight:800;color:var(--gold);letter-spacing:-.02em">' + money(fp) + '</span>' + (p.discount > 0 ? '<span style="font-size:22px;color:var(--ink-4);text-decoration:line-through">' + money(p.price) + '</span><span class="pill pill-fresh">' + (KT_LANG === 'en' ? 'Save ' : 'وفّر ') + money(savings) + '</span>' : '') + '</div><p style="color:var(--ink-2);line-height:1.75;margin-bottom:28px;font-size:15.5px">' + t('prod_desc_prefix') + ' ' + esc(name) + ' ' + t('prod_desc_suffix') + ' ' + esc(p.brand || '') + '.</p><div class="row" style="margin-bottom:24px;gap:14px"><span class="bold small">' + t('cart_qty') + ':</span><div style="display:inline-flex;align-items:center;background:var(--glass);border:1px solid var(--line-2);border-radius:999px;padding:4px"><button onclick="var i=document.getElementById(\'pdp-qty\');i.value=Math.max(1,+i.value-1)" style="width:40px;height:40px;border-radius:50%;font-size:20px;font-weight:700">−</button><input id="pdp-qty" type="number" value="1" min="1" max="' + (p.stock || 100) + '" style="width:50px;text-align:center;background:none;border:none;font-weight:800;font-size:18px"><button onclick="var i=document.getElementById(\'pdp-qty\');i.value=Math.min(' + (p.stock || 100) + ',+i.value+1)" style="width:40px;height:40px;border-radius:50%;font-size:20px;font-weight:700">+</button></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px"><button class="btn btn-primary btn-lg" style="flex:1;min-width:200px" onclick="ktAddToCart(\'' + p.id + '\',+document.getElementById(\'pdp-qty\').value)"><svg data-lucide="shopping-bag" style="width:20px;height:20px"></svg>' + t('action_add_to_cart') + '</button><button class="btn btn-gold btn-lg" style="flex:1;min-width:200px" onclick="ktAddToCart(\'' + p.id + '\',+document.getElementById(\'pdp-qty\').value);navigate(\'/checkout\')">' + t('action_buy_now') + '</button><button class="btn btn-glass btn-icon" onclick="ktToggleFav(\'' + p.id + '\')" style="width:58px;height:58px;color:' + (wish ? 'var(--danger)' : '') + '"><svg data-lucide="heart" style="width:24px;height:24px;' + (wish ? 'fill:currentColor;' : '') + '"></svg></button></div><dl style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px;background:var(--glass);border-radius:var(--r-lg);border:1px solid var(--line)"><div><dt class="tiny muted">' + t('prod_brand') + '</dt><dd style="font-weight:700;font-size:15px">' + esc(p.brand || '-') + '</dd></div><div><dt class="tiny muted">' + t('prod_size') + '</dt><dd style="font-weight:700;font-size:15px">' + esc(p.weight || '-') + '</dd></div><div><dt class="tiny muted">SKU</dt><dd style="font-weight:700;font-size:15px">KTN-' + String(p.id).slice(-6) + '</dd></div><div><dt class="tiny muted">' + t('prod_rating') + '</dt><dd style="font-weight:700;font-size:15px">' + p.rating + ' / 5</dd></div></dl>' + ktRenderPriceComparison(p) + '</div></div>' + (related.length ? '<div style="margin-top:70px">' + secHead(t('sec_similar')) + '<div class="k-prods">' + related.map(productCard).join('') + '</div></div>' : '') + '</div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<style>@media(min-width:900px){[data-pdp]{grid-template-columns:1fr 1fr !important;gap:52px !important}}</style><div data-pdp style="display:grid;gap:32px"><div class="card" style="padding:0;border-radius:var(--r-xl);aspect-ratio:1;position:relative;overflow:hidden;background:#fff;display:grid;place-items:center">' + imgBig + '</div><div><div class="row" style="margin-bottom:16px;gap:10px"><span class="pill pill-gold">' + esc(p.brand) + '</span></div><h1 class="h1" style="margin-bottom:16px">' + esc(name) + '</h1><div class="row" style="margin-bottom:24px;color:var(--ink-3)"><span>★ ' + p.rating + ' (' + (p.reviews || 0) + ')</span><span style="color:var(--fresh)">✓ متوفر ' + (p.stock || 100) + '</span></div><div style="display:flex;align-items:baseline;gap:14px;margin-bottom:28px"><span style="font-size:42px;font-weight:800;color:var(--gold)">' + money(fp) + '</span>' + (p.discount > 0 ? '<span style="font-size:22px;color:var(--ink-4);text-decoration:line-through">' + money(p.price) + '</span>' : '') + '</div><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px"><button class="btn btn-primary btn-lg" style="flex:1" onclick="ktAddToCart(\'' + p.id + '\',1)">أضف للسلة</button><button class="btn btn-gold btn-lg" style="flex:1" onclick="ktAddToCart(\'' + p.id + '\',1);navigate(\'/checkout\')">اشترِ الآن</button></div></div></div>' + (related.length ? '<div style="margin-top:70px">' + secHead(t('sec_similar')) + '<div class="k-prods">' + related.map(productCard).join('') + '</div></div>' : '') + '</div></section>';
 }
 function viewSearch(){
   var params = state.route.params || {};
@@ -1551,18 +1524,17 @@ function viewSearch(){
   if(sort === 'price_desc') list.sort(function(a, b){ return finalPrice(b) - finalPrice(a); });
   if(sort === 'popular') list.sort(function(a, b){ return (b.reviews || 0) - (a.reviews || 0); });
   if(sort === 'rating') list.sort(function(a, b){ return b.rating - a.rating; });
-  if(sort === 'new') list = list.filter(function(p){ return p.isNew; }).concat(list.filter(function(p){ return !p.isNew; }));
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:24px">' + (deals === '1' ? t('search_deals') : q ? t('search_results') + ': "' + esc(q) + '"' : t('search_all')) + '</h1><style>@media(min-width:1000px){[data-sg]{grid-template-columns:280px 1fr !important;gap:36px !important}}</style><div data-sg style="display:grid;gap:28px"><aside class="card" style="padding:24px;position:sticky;top:200px;align-self:start;max-height:calc(100vh - 220px);overflow-y:auto"><div style="margin-bottom:20px"><div class="tiny muted bold" style="margin-bottom:12px">' + t('search_sort') + '</div><select onchange="filterBy(\'sort\',this.value)" style="width:100%;padding:12px;border-radius:12px;background:var(--glass);border:1px solid var(--line-2);font-size:14px"><option value="">' + t('search_sort_default') + '</option><option value="price_asc" ' + (sort === 'price_asc' ? 'selected' : '') + '>' + t('search_sort_price_asc') + '</option><option value="price_desc" ' + (sort === 'price_desc' ? 'selected' : '') + '>' + t('search_sort_price_desc') + '</option><option value="popular" ' + (sort === 'popular' ? 'selected' : '') + '>' + t('search_sort_popular') + '</option><option value="rating" ' + (sort === 'rating' ? 'selected' : '') + '>' + t('search_sort_rating') + '</option></select></div><div style="padding:20px 0;border-top:1px solid var(--line)"><div class="tiny muted bold" style="margin-bottom:12px">' + t('search_filter_cat') + '</div><label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;font-size:14px"><input type="radio" name="cat" ' + (!cat ? 'checked' : '') + ' onchange="filterBy(\'cat\',\'\')"><span>' + t('search_filter_all') + '</span></label>' + CATEGORIES.map(function(c){ return '<label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;font-size:14px"><input type="radio" name="cat" ' + (cat === c.id ? 'checked' : '') + ' onchange="filterBy(\'cat\',\'' + c.id + '\')"><span>' + c.ic + ' ' + esc(catName(c)) + '</span></label>'; }).join('') + '</div><div style="padding-top:20px;border-top:1px solid var(--line)"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" ' + (deals === '1' ? 'checked' : '') + ' onchange="filterBy(\'deals\',this.checked?\'1\':\'\')"><span>' + t('search_filter_deals') + '</span></label></div></aside><div><div class="row-between" style="margin-bottom:24px;font-size:14.5px"><span class="muted"><b class="gold-c">' + list.length + '</b> ' + t('search_products') + '</span>' + ((cat || brand || deals || q) ? '<button class="btn btn-ghost btn-sm" onclick="navigate(\'/search\')">' + t('search_clear') + '</button>' : '') + '</div>' + (list.length ? '<div class="k-prods">' + list.map(productCard).join('') + '</div>' : '<div class="k-empty"><div class="k-empty-ic">🔍</div><h3>' + t('search_no_results') + '</h3><p>' + t('search_try_other') + '</p></div>') + '</div></div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:24px">' + (deals === '1' ? 'عروض اليوم' : q ? 'نتائج: "' + esc(q) + '"' : 'كل المنتجات') + '</h1><div class="row-between" style="margin-bottom:24px"><span class="muted"><b class="gold-c">' + list.length + '</b> منتج</span></div>' + (list.length ? '<div class="k-prods">' + list.map(productCard).join('') + '</div>' : '<div class="k-empty"><h3>لا نتائج</h3></div>') + '</div></section>';
 }
 function viewCart(){
-  if(!state.cart.length){ return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">🛒</div><h3>' + t('cart_empty') + '</h3><p>' + t('cart_start_shopping') + '</p><a class="btn btn-primary" href="#/categories">' + t('cart_browse_products') + '</a></div></div></section>'; }
+  if(!state.cart.length){ return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">🛒</div><h3>سلتك فارغة</h3><a class="btn btn-primary" href="#/categories">تصفح المنتجات</a></div></div></section>'; }
   var items = state.cart.map(function(i){ return {item: i, p: findBy(i.id)}; }).filter(function(x){ return x.p; });
   var sub = cartTotal(), fee = deliveryFee(), disc = discountAmt(), total = grandTotal();
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('cart_title') + '</h1><style>@media(min-width:900px){[data-cg]{grid-template-columns:1.6fr 1fr !important;gap:36px !important}}</style><div data-cg style="display:grid;gap:28px;align-items:start"><div class="col">' + items.map(function(x){ var item = x.item, p = x.p; var img = p.image ? '<img src="' + esc(p.image) + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'"><span style="display:none;font-size:40px;place-items:center;width:100%;height:100%">' + p.emoji + '</span>' : '<span style="font-size:40px">' + p.emoji + '</span>'; return '<div class="card" style="padding:20px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center"><a href="#/p/' + p.id + '" style="width:90px;height:90px;border-radius:18px;background:#fff;display:grid;place-items:center;overflow:hidden">' + img + '</a><div style="min-width:0"><a href="#/p/' + p.id + '"><div style="font-weight:700;font-size:16px;margin-bottom:6px">' + esc(productName(p)) + '</div></a><div class="muted tiny">' + esc(p.brand || '') + ' · ' + esc(p.weight || '') + '</div><div style="display:inline-flex;align-items:center;background:var(--glass);border:1px solid var(--line-2);border-radius:999px;padding:3px;margin-top:12px"><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty - 1) + ')" style="width:36px;height:36px;border-radius:50%;font-weight:700">−</button><span style="width:44px;text-align:center;font-weight:800;font-size:15px">' + item.qty + '</span><button onclick="ktUpdateQty(\'' + p.id + '\',' + (item.qty + 1) + ')" style="width:36px;height:36px;border-radius:50%;font-weight:700">+</button></div></div><div style="text-align:end"><div style="font-weight:800;color:var(--gold);font-size:19px">' + money(finalPrice(p) * item.qty) + '</div><button onclick="ktRemoveFromCart(\'' + p.id + '\')" style="color:var(--ink-4);font-size:13px;margin-top:10px">' + t('action_delete') + '</button></div></div>'; }).join('') + '</div><aside class="card" style="padding:28px;position:sticky;top:200px"><h3 class="h4" style="margin-bottom:20px">' + t('cart_summary') + '</h3><div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px"><span class="muted">' + t('cart_subtotal') + '</span><span>' + money(sub) + '</span></div><div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px"><span class="muted">' + t('cart_delivery') + '</span><span>' + (fee === 0 ? '<span class="fresh-c">' + t('cart_free') + '</span>' : money(fee)) + '</span></div>' + (disc > 0 ? '<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:15px"><span class="fresh-c">' + t('cart_discount') + '</span><span class="fresh-c">-' + money(disc) + '</span></div>' : '') + '<div style="display:flex;justify-content:space-between;padding:18px 0 0;margin-top:14px;border-top:1px solid var(--line);font-size:22px;font-weight:800"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div><div style="display:flex;gap:10px;margin:20px 0"><input type="text" id="coupon-input" value="' + (state.coupon ? state.coupon.code : '') + '" placeholder="' + t('cart_coupon') + '" style="flex:1;padding:13px 16px;border-radius:14px;border:1px solid var(--line-2);background:var(--glass);font-size:14px;text-transform:uppercase"><button class="btn btn-glass" onclick="applyCoupon()" style="padding:13px 20px">' + t('action_apply') + '</button></div><button class="btn btn-primary btn-block btn-lg" onclick="navigate(\'/checkout\')">' + t('action_checkout') + '</button></aside></div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">سلة التسوق</h1><div style="display:grid;gap:28px"><div class="col">' + items.map(function(x){ var item = x.item, p = x.p; return '<div class="card" style="padding:20px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center"><div style="width:90px;height:90px;border-radius:18px;background:#fff;display:grid;place-items:center;overflow:hidden">' + (p.image ? '<img src="' + esc(p.image) + '" style="width:100%;height:100%;object-fit:cover">' : '<span style="font-size:40px">' + p.emoji + '</span>') + '</div><div><div style="font-weight:700;font-size:16px">' + esc(productName(p)) + '</div><div class="muted tiny">' + item.qty + ' × ' + money(finalPrice(p)) + '</div></div><div style="text-align:end"><div style="font-weight:800;color:var(--gold);font-size:19px">' + money(finalPrice(p) * item.qty) + '</div></div></div>'; }).join('') + '</div><aside class="card" style="padding:28px"><h3 style="margin-bottom:20px">ملخص الطلب</h3><div style="display:flex;justify-content:space-between;padding:10px 0"><span>المجموع</span><span>' + money(sub) + '</span></div><div style="display:flex;justify-content:space-between;padding:10px 0"><span>التوصيل</span><span>' + money(fee) + '</span></div><div style="display:flex;justify-content:space-between;padding:18px 0 0;margin-top:14px;border-top:1px solid var(--line);font-size:22px;font-weight:800"><span>الإجمالي</span><span style="color:var(--gold)">' + money(total) + '</span></div><button class="btn btn-primary btn-block btn-lg" style="margin-top:20px" onclick="navigate(\'/checkout\')">إتمام الطلب</button></aside></div></div></section>';
 }
 function viewWishlist(){
   var items = state.wishlist.map(findBy).filter(Boolean);
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('acc_wishlist') + ' ♥</h1>' + (items.length ? '<div class="k-prods">' + items.map(productCard).join('') + '</div>' : '<div class="k-empty"><div class="k-empty-ic">❤️</div><h3>' + (KT_LANG === 'en' ? 'Wishlist is empty' : 'المفضلة فارغة') + '</h3><p>' + (KT_LANG === 'en' ? 'Add your favorite products' : 'أضف منتجاتك المفضلة') + '</p><a class="btn btn-primary" href="#/categories">' + t('cart_browse_products') + '</a></div>') + '</div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">المفضلة ♥</h1>' + (items.length ? '<div class="k-prods">' + items.map(productCard).join('') + '</div>' : '<div class="k-empty"><h3>المفضلة فارغة</h3></div>') + '</div></section>';
 }
 
 var checkoutStep = 1;
@@ -1571,7 +1543,7 @@ function onGovChange(){
   var gov = $('#co-gov').value;
   var citySelect = $('#co-city');
   if (!citySelect) return;
-  citySelect.innerHTML = '<option value="">' + t('co_select_city') + '</option>';
+  citySelect.innerHTML = '<option value="">— اختر المركز —</option>';
   if (EGYPT_GOVS[gov]){ EGYPT_GOVS[gov].forEach(function(center){ citySelect.innerHTML += '<option value="' + center + '">' + center + '</option>'; }); }
 }
 function ktAutoFillCheckout(){
@@ -1584,67 +1556,68 @@ function viewCheckout(){
   if(!state.cart.length) return viewCart();
   ktAutoFillCheckout();
   var total = grandTotal();
-  var steps = [t('co_step_1'), t('co_step_2'), t('co_step_3'), t('co_step_4'), t('co_step_5'), t('co_step_6')];
+  var steps = ['بياناتك', 'العنوان', 'الوقت', 'الدفع', 'الملخص', 'تأكيد'];
   var body = '';
-  var autofillBadge = state.user ? '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:var(--fresh);font-size:10.5px;font-weight:800;margin-inline-start:8px">' + t('co_autofill') + '</span>' : '';
-  if(checkoutStep === 1){ body = '<div class="k-form-row"><div class="k-field"><label>' + t('co_name') + ' <span class="req">*</span>' + autofillBadge + '</label><input id="co-name" value="' + esc(checkoutData.name) + '"></div><div class="k-field"><label>' + t('co_phone') + ' <span class="req">*</span></label><input id="co-phone" type="tel" value="' + esc(checkoutData.phone) + '"></div></div><div class="k-field"><label>' + t('co_email') + '</label><input id="co-email" type="email" value="' + esc(checkoutData.email) + '"></div>'; }
+  if(checkoutStep === 1){ body = '<div class="k-form-row"><div class="k-field"><label>الاسم *</label><input id="co-name" value="' + esc(checkoutData.name) + '"></div><div class="k-field"><label>الهاتف *</label><input id="co-phone" type="tel" value="' + esc(checkoutData.phone) + '"></div></div><div class="k-field"><label>الإيميل</label><input id="co-email" type="email" value="' + esc(checkoutData.email) + '"></div>'; }
   else if(checkoutStep === 2){
     var govOptions = Object.keys(EGYPT_GOVS).map(function(g){ return '<option value="' + g + '"' + (checkoutData.gov === g ? ' selected' : '') + '>' + g + '</option>'; }).join('');
-    var cityOptions = '<option value="">' + t('co_select_city') + '</option>';
+    var cityOptions = '<option value="">— اختر المركز —</option>';
     if (checkoutData.gov && EGYPT_GOVS[checkoutData.gov]){ cityOptions += EGYPT_GOVS[checkoutData.gov].map(function(c){ return '<option value="' + c + '"' + (checkoutData.city === c ? ' selected' : '') + '>' + c + '</option>'; }).join(''); }
-    body = '<div class="k-form-row"><div class="k-field"><label>' + t('co_gov') + ' <span class="req">*</span></label><select id="co-gov" onchange="onGovChange()" style="padding:14px 16px;border-radius:14px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;width:100%"><option value="">' + t('co_select_gov') + '</option>' + govOptions + '</select></div><div class="k-field"><label>' + t('co_city') + ' <span class="req">*</span></label><select id="co-city" style="padding:14px 16px;border-radius:14px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;width:100%">' + cityOptions + '</select></div></div><div class="k-form-row"><div class="k-field"><label>' + t('co_area') + '</label><input id="co-area" value="' + esc(checkoutData.area) + '"></div><div class="k-field"><label>' + t('co_street') + ' <span class="req">*</span></label><input id="co-street" value="' + esc(checkoutData.street) + '"></div></div><div class="k-form-row"><div class="k-field"><label>' + t('co_building') + '</label><input id="co-building" value="' + esc(checkoutData.building) + '"></div><div class="k-field"><label>' + t('co_floor') + '</label><input id="co-floor" value="' + esc(checkoutData.floor) + '"></div></div><div class="k-field"><label>' + t('co_notes') + '</label><textarea id="co-notes">' + esc(checkoutData.notes) + '</textarea></div>';
+    body = '<div class="k-form-row"><div class="k-field"><label>المحافظة *</label><select id="co-gov" onchange="onGovChange()"><option value="">— اختر —</option>' + govOptions + '</select></div><div class="k-field"><label>المركز *</label><select id="co-city">' + cityOptions + '</select></div></div><div class="k-form-row"><div class="k-field"><label>المنطقة</label><input id="co-area" value="' + esc(checkoutData.area) + '"></div><div class="k-field"><label>الشارع *</label><input id="co-street" value="' + esc(checkoutData.street) + '"></div></div><div class="k-field"><label>ملاحظات</label><textarea id="co-notes">' + esc(checkoutData.notes) + '</textarea></div>';
   } else if(checkoutStep === 3){
-    body = '<label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.time === 'asap' ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer;margin-bottom:14px" onclick="checkoutData.time=\'asap\';render()"><span style="font-size:36px">⚡</span><div style="flex:1"><b style="display:block;margin-bottom:6px;font-size:16px">' + t('co_asap') + '</b><span class="muted tiny">' + t('co_asap_desc') + '</span></div></label><label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.time === 'later' ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer" onclick="checkoutData.time=\'later\';render()"><span style="font-size:36px">📅</span><div style="flex:1"><b style="display:block;margin-bottom:6px;font-size:16px">' + t('co_later') + '</b><span class="muted tiny">' + t('co_later_desc') + '</span></div></label>';
+    body = '<label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.time === 'asap' ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer;margin-bottom:14px" onclick="checkoutData.time=\'asap\';render()"><span style="font-size:36px">⚡</span><div><b>في أقرب وقت</b><br><span class="muted tiny">خلال 10-20 دقيقة</span></div></label><label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.time === 'later' ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer" onclick="checkoutData.time=\'later\';render()"><span style="font-size:36px">📅</span><div><b>جدولة الطلب</b><br><span class="muted tiny">اختر وقت مناسب</span></div></label>';
   } else if(checkoutStep === 4){
     var payMethods = [
-      {id:'cod', ic:'💵', t:t('co_pay_cod'), s:t('co_pay_cod_desc')},
-      {id:'instapay', ic:'🏦', t:t('co_pay_insta'), s:t('co_pay_insta_desc') + ' · ' + INSTAPAY_NUMBER},
-      {id:'vodafone', ic:'📱', t:t('co_pay_voda'), s:t('co_pay_voda_desc') + ' · ' + VODAFONE_NUMBER},
-      {id:'paypal', ic:'💳', t:t('co_pay_paypal'), s:t('co_pay_paypal_desc')},
-      {id:'fawry', ic:'🏪', t:t('co_pay_fawry'), s:t('co_pay_fawry_desc')}
+      {id:'cod', ic:'💵', t:'الدفع عند الاستلام', s:'ادفع للمندوب عند التسليم'},
+      {id:'instapay', ic:'🏦', t:'InstaPay', s:INSTAPAY_NUMBER},
+      {id:'vodafone', ic:'📱', t:'فودافون كاش', s:VODAFONE_NUMBER}
     ];
-    body = payMethods.map(function(o){ return '<label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.payment === o.id ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer;margin-bottom:14px;background:' + (checkoutData.payment === o.id ? 'rgba(255,184,0,.08)' : 'transparent') + ';transition:all .2s" onclick="checkoutData.payment=\'' + o.id + '\';render()"><span style="font-size:36px">' + o.ic + '</span><div style="flex:1"><b style="display:block;margin-bottom:6px;font-size:15.5px">' + o.t + '</b><span class="muted tiny">' + o.s + '</span></div><div style="width:24px;height:24px;border-radius:50%;border:2px solid ' + (checkoutData.payment === o.id ? 'var(--gold)' : 'var(--line-2)') + ';background:' + (checkoutData.payment === o.id ? 'var(--gold)' : 'transparent') + '"></div></label>'; }).join('');
+    body = payMethods.map(function(o){ return '<label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.payment === o.id ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer;margin-bottom:14px" onclick="checkoutData.payment=\'' + o.id + '\';render()"><span style="font-size:36px">' + o.ic + '</span><div><b>' + o.t + '</b><br><span class="muted tiny">' + o.s + '</span></div></label>'; }).join('');
   } else if(checkoutStep === 5){
     var items5 = state.cart.map(function(i){ return {item:i, p:findBy(i.id)}; }).filter(function(x){ return x.p; });
-    body = '<h3 class="h4" style="margin-bottom:18px">' + (KT_LANG === 'en' ? 'Items' : 'المنتجات') + ' (' + items5.length + ')</h3>' + items5.map(function(x){ var item = x.item, p = x.p; return '<div style="display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:30px">' + p.emoji + '</span><div style="flex:1"><div style="font-weight:700;font-size:14.5px">' + esc(productName(p)) + '</div><div class="muted tiny">' + item.qty + ' × ' + money(finalPrice(p)) + '</div></div><div style="font-weight:800;color:var(--gold);font-size:15px">' + money(finalPrice(p) * item.qty) + '</div></div>'; }).join('');
+    body = '<h3 style="margin-bottom:18px">المنتجات (' + items5.length + ')</h3>' + items5.map(function(x){ var item = x.item, p = x.p; return '<div style="display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)"><span style="font-size:30px">' + p.emoji + '</span><div style="flex:1"><div style="font-weight:700">' + esc(productName(p)) + '</div><div class="muted tiny">' + item.qty + ' × ' + money(finalPrice(p)) + '</div></div><div style="font-weight:800;color:var(--gold)">' + money(finalPrice(p) * item.qty) + '</div></div>'; }).join('');
   } else {
-    body = '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;margin-bottom:10px;line-height:1">✅</div><h2 style="font-size:18px;font-weight:800;margin-bottom:12px;font-family:\'Reem Kufi\',serif">' + t('co_ready') + '</h2><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:19px;font-weight:800;background:var(--glass);border:1px solid var(--line-2);border-radius:14px"><span>' + t('cart_total') + '</span><span style="color:var(--gold)">' + money(total) + '</span></div></div>';
+    body = '<div style="text-align:center;padding:12px 0"><div style="font-size:52px;margin-bottom:10px">✅</div><h2 style="font-size:18px;font-weight:800;margin-bottom:12px;font-family:\'Reem Kufi\',serif">جاهز للتأكيد</h2><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;font-size:19px;font-weight:800;background:var(--glass);border:1px solid var(--line-2);border-radius:14px"><span>الإجمالي</span><span style="color:var(--gold)">' + money(total) + '</span></div></div>';
   }
-  var stepsHTML = '<div style="display:flex;gap:0;margin-bottom:36px;overflow-x:auto;padding-bottom:10px">' + steps.map(function(s, i){ var n = i + 1, cls = n < checkoutStep ? 'done' : n === checkoutStep ? 'on' : ''; return '<div style="flex:1;min-width:110px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;margin-bottom:10px;font-weight:700;font-size:14px;background:' + (cls === 'done' ? 'var(--fresh)' : cls === 'on' ? 'var(--gold)' : 'var(--glass)') + ';color:' + (cls ? '#1a1206' : 'inherit') + '">' + (cls === 'done' ? '✓' : n) + '</div><div style="font-size:12.5px;color:' + (cls === 'on' ? 'var(--gold)' : cls === 'done' ? 'var(--fresh)' : 'var(--ink-3)') + ';font-weight:600">' + s + '</div></div>'; }).join('') + '</div>';
-  var navBtns = checkoutStep > 1 ? '<button class="btn btn-glass" onclick="checkoutStep--;render()">← ' + t('action_back') + '</button>' : '';
+  var stepsHTML = '<div style="display:flex;gap:0;margin-bottom:36px;overflow-x:auto;padding-bottom:10px">' + steps.map(function(s, i){ var n = i + 1, cls = n < checkoutStep ? 'done' : n === checkoutStep ? 'on' : ''; return '<div style="flex:1;min-width:110px;text-align:center"><div style="width:36px;height:36px;border-radius:50%;display:inline-grid;place-items:center;margin-bottom:10px;font-weight:700;background:' + (cls === 'done' ? 'var(--fresh)' : cls === 'on' ? 'var(--gold)' : 'var(--glass)') + ';color:' + (cls ? '#1a1206' : 'inherit') + '">' + (cls === 'done' ? '✓' : n) + '</div><div style="font-size:12.5px;color:' + (cls === 'on' ? 'var(--gold)' : cls === 'done' ? 'var(--fresh)' : 'var(--ink-3)') + ';font-weight:600">' + s + '</div></div>'; }).join('') + '</div>';
+  var navBtns = checkoutStep > 1 ? '<button class="btn btn-glass" onclick="checkoutStep--;render()">← رجوع</button>' : '';
   var nextBtn = checkoutStep < 6
-    ? '<button class="btn btn-primary" onclick="checkoutNext()">' + t('action_continue') + '</button>'
-    : '<button class="btn btn-gold" style="flex:1;padding:15px 24px;font-size:15px" onclick="placeOrder()">' + t('co_confirm_order') + '</button>';
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('co_title') + '</h1>' + stepsHTML + '<div class="card" style="padding:22px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
+    ? '<button class="btn btn-primary" onclick="checkoutNext()">التالي</button>'
+    : '<button class="btn btn-gold" style="flex:1;padding:15px 24px;font-size:15px" onclick="placeOrder()">✓ تأكيد الطلب</button>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">إتمام الطلب</h1>' + stepsHTML + '<div class="card" style="padding:22px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
 }
 function checkoutNext(){
-  if(checkoutStep === 1){ var n = $('#co-name').value.trim(), p = $('#co-phone').value.trim(); if(!n || !p){ ktToast(t('co_fill_data'), 'error'); return; } checkoutData.name = n; checkoutData.phone = p; checkoutData.email = $('#co-email').value.trim(); }
-  else if(checkoutStep === 2){ var g = $('#co-gov').value, c = $('#co-city').value, s = $('#co-street').value.trim(); if(!g || !c || !s){ ktToast(t('co_fill_data'), 'error'); return; } checkoutData.gov = g; checkoutData.city = c; checkoutData.area = $('#co-area').value.trim(); checkoutData.street = s; checkoutData.building = $('#co-building').value.trim(); checkoutData.floor = $('#co-floor').value.trim(); checkoutData.notes = $('#co-notes').value.trim(); }
+  if(checkoutStep === 1){ var n = $('#co-name').value.trim(), p = $('#co-phone').value.trim(); if(!n || !p){ ktToast('املأ البيانات', 'error'); return; } checkoutData.name = n; checkoutData.phone = p; checkoutData.email = $('#co-email').value.trim(); }
+  else if(checkoutStep === 2){ var g = $('#co-gov').value, c = $('#co-city').value, s = $('#co-street').value.trim(); if(!g || !c || !s){ ktToast('املأ البيانات', 'error'); return; } checkoutData.gov = g; checkoutData.city = c; checkoutData.area = $('#co-area').value.trim(); checkoutData.street = s; checkoutData.notes = $('#co-notes').value.trim(); }
   checkoutStep++; render();
 }
+
+/* ═══════ نهاية الجزء 2 — يبدأ الجزء 3 من هنا ═══════ */
 function ktClearCartAfterOrder(){ state.cart = []; state.coupon = null; persist('cart'); persist('coupon'); ktUpdateBadges(); }
+
 function placeOrder(){
+  // دفع إلكتروني → نافذة إيصال
   if (checkoutData.payment !== 'cod'){
     var total = grandTotal();
     var year = new Date().getFullYear();
     var seq = LS.get('orderSeq', 0) + 1;
     var orderCode = 'KTN-' + year + '-' + String(seq).padStart(6, '0');
-    var methodNames = { instapay:t('payment_instapay'), vodafone:t('payment_vodafone'), paypal:t('payment_paypal'), fawry:t('payment_fawry') };
+    var methodNames = { instapay:'InstaPay', vodafone:'فودافون كاش' };
     var payNumbers = { instapay: INSTAPAY_NUMBER, vodafone: VODAFONE_NUMBER };
     var currentNumber = payNumbers[checkoutData.payment];
-    var waMsg = (KT_LANG === 'en' ? '🧾 *Payment Confirmation — Kanteen*\n\n📦 Order: ' : '🧾 *تأكيد دفع — كانتِين*\n\n📦 رقم الطلب: ') + orderCode + (KT_LANG === 'en' ? '\n💰 Amount: ' : '\n💰 المبلغ: ') + total + ' ' + t('general_egp') + (KT_LANG === 'en' ? '\n💳 Payment Method: ' : '\n💳 طريقة الدفع: ') + methodNames[checkoutData.payment] + (KT_LANG === 'en' ? '\n👤 Customer: ' : '\n👤 العميل: ') + (checkoutData.name || (KT_LANG === 'en' ? 'Guest' : 'زائر')) + (KT_LANG === 'en' ? '\n📞 Phone: ' : '\n📞 الهاتف: ') + (checkoutData.phone || '') + (KT_LANG === 'en' ? '\n\n📸 *Receipt attached* 👇\nPlease confirm order receipt.' : '\n\n📸 *مرفق صورة الإيصال* 👇\nمن فضلكم أكدوا استلام الطلب.');
+    var waMsg = '🧾 *تأكيد دفع — كانتِين*\n\n📦 رقم الطلب: ' + orderCode + '\n💰 المبلغ: ' + total + ' ج.م\n💳 طريقة الدفع: ' + methodNames[checkoutData.payment] + '\n👤 العميل: ' + (checkoutData.name || 'زائر') + '\n📞 الهاتف: ' + (checkoutData.phone || '');
     var waLink = 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(waMsg);
     window.openModal(
-      '<div style="text-align:center;padding:16px 0"><div style="font-size:64px;margin-bottom:12px">💳</div><h2 class="h2" style="margin-bottom:8px">' + t('payment_electronic') + '</h2><p class="muted" style="margin-bottom:16px">' + t('payment_follow_steps') + '</p></div>' +
-      '<div class="kt-payment-info-box"><div class="muted tiny" style="margin-bottom:6px">' + t('payment_amount') + '</div><span class="amount">' + money(total) + '</span><span class="order-code">' + t('payment_order_code') + ': ' + orderCode + '</span></div>' +
-      '<div class="kt-payment-flow"><div class="kt-payment-step"><div class="kt-payment-step-num">1</div><div class="kt-payment-step-info"><b>' + t('payment_step_1') + '</b><p>' + t('payment_step_1_desc') + '</p></div></div><div class="kt-payment-step"><div class="kt-payment-step-num">2</div><div class="kt-payment-step-info"><b>' + t('payment_step_2') + '</b><p>' + t('payment_step_2_desc') + '</p></div></div><div class="kt-payment-step"><div class="kt-payment-step-num">3</div><div class="kt-payment-step-info"><b>' + t('payment_step_3') + '</b><p>' + t('payment_step_3_desc') + '</p></div></div></div>' +
-      (currentNumber ? '<div class="kt-payment-number"><span class="label">' + t('payment_number') + '</span><span class="number">' + currentNumber + '</span><button class="copy-btn" onclick="navigator.clipboard.writeText(\'' + currentNumber + '\');ktToast(\'' + (KT_LANG === 'en' ? '✅ Copied' : '✅ تم النسخ') + '\',\'success\')"><svg data-lucide="copy"></svg></button></div>' : '') +
-      '<div class="kt-receipt-upload"><span class="icon">📸</span><h4>' + t('payment_send_receipt') + '</h4><p>' + t('payment_receipt_desc') + '</p><a href="' + waLink + '" target="_blank" rel="noopener" class="kt-wa-send-btn" onclick="ktFinalizePendingOrder(\'' + orderCode + '\',' + total + ',\'' + methodNames[checkoutData.payment] + '\')"><svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' + t('payment_send_wa') + '</a></div>' +
-      '<button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeModal()">' + t('action_close') + '</button>'
+      '<div style="text-align:center;padding:16px 0"><div style="font-size:64px">💳</div><h2 class="h2">الدفع الإلكتروني</h2><p class="muted">اتبع 3 خطوات لتأكيد طلبك</p></div>' +
+      '<div class="kt-payment-info-box"><div class="muted tiny">المبلغ المطلوب</div><span class="amount">' + money(total) + '</span><span class="order-code">رقم الطلب: ' + orderCode + '</span></div>' +
+      (currentNumber ? '<div class="kt-payment-number"><span class="label">📱 رقم التحويل</span><span class="number">' + currentNumber + '</span><button class="copy-btn" onclick="navigator.clipboard.writeText(\'' + currentNumber + '\');ktToast(\'✅ تم النسخ\',\'success\')"><svg data-lucide="copy"></svg></button></div>' : '') +
+      '<div class="kt-receipt-upload"><span class="icon">📸</span><h4>أرسل صورة الإيصال</h4><p>اضغط الزر لفتح واتساب مباشرة</p><a href="' + waLink + '" target="_blank" class="kt-wa-send-btn" onclick="ktFinalizePendingOrder(\'' + orderCode + '\',' + total + ',\'' + methodNames[checkoutData.payment] + '\')">📸 أرسل الإيصال</a></div>' +
+      '<button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="closeModal()">إغلاق</button>'
     );
     refreshIcons();
     return;
   }
+  // دفع كاش → نحفظ الطلب فوراً
   var seqOrder = LS.get('orderSeq', 0) + 1;
   LS.set('orderSeq', seqOrder);
   var orderCode2 = 'KTN-' + new Date().getFullYear() + '-' + String(seqOrder).padStart(6, '0');
@@ -1655,66 +1628,67 @@ function placeOrder(){
     try {
       if (typeof KT_FB.saveOrder === 'function'){
         KT_FB.saveOrder(order).then(function(id){
-          if (id) ktShowFbStatus(KT_LANG === 'en' ? '✅ Order saved' : '✅ تم حفظ الطلب', false);
-          else ktShowFbStatus(KT_LANG === 'en' ? '⚠️ Save failed' : '⚠️ فشل الحفظ', true);
+          if (id) ktShowFbStatus('✅ تم حفظ الطلب', false);
+          else ktShowFbStatus('⚠️ فشل الحفظ', true);
         }).catch(function(e){ console.warn('saveOrder:', e); });
       }
       if (typeof KT_FB.saveNotification === 'function'){
         KT_FB.saveNotification({ type: 'new_order', orderId: orderCode2, customer: order.customer, total: order.total, method: 'cash', createdAt: order.createdAt, read: false });
       }
-    } catch(e){ console.warn('KT_FB call failed:', e); }
+    } catch(e){ console.warn('KT_FB:', e); }
   }
   if (window.KT_SOUND) KT_SOUND.success();
   try { window.open(ktSendOrderToWhatsApp(order), '_blank'); } catch(e){}
   ktClearCartAfterOrder();
-  ktToast(KT_LANG === 'en' ? '✅ Order received — awaiting confirmation' : '✅ تم استلام الطلب — في انتظار التأكيد', 'success');
+  ktToast('✅ تم استلام الطلب — في انتظار التأكيد', 'success');
   checkoutStep = 1;
   navigate('/track/' + orderCode2);
 }
+
 function ktFinalizePendingOrder(orderCode, total, methodLabel){
-  var seqOrder = LS.get('orderSeq', 0) + 1;
-  LS.set('orderSeq', seqOrder);
   var items = state.cart.map(function(i){ var p = findBy(i.id); return {id: p.id, nameAr: p.nameAr, nameEn: p.nameEn || p.nameAr, emoji: p.emoji, price: finalPrice(p), qty: i.qty}; });
   var order = { id: orderCode, user: state.user ? state.user.id : 'guest', customer: Object.assign({}, checkoutData), items: items, subtotal: cartTotal(), delivery: deliveryFee(), discount: discountAmt(), total: total, coupon: state.coupon ? state.coupon.code : null, payment: checkoutData.payment, paymentStatus: 'pending', paymentMethod: methodLabel, status: 'pending_payment', createdAt: new Date().toISOString() };
-  var all = LS.get('orders', []) || []; all.unshift(order); LS.set('orders', all);
+  state.orders.unshift(order); persist('orders');
   if (window.KT_FB){
     try {
       if (typeof KT_FB.saveOrder === 'function') KT_FB.saveOrder(order);
       if (typeof KT_FB.saveNotification === 'function'){
         KT_FB.saveNotification({ type: 'payment_pending', orderId: orderCode, customer: order.customer, total: total, method: methodLabel, createdAt: order.createdAt, read: false });
       }
-    } catch(e){ console.warn('KT_FB call failed:', e); }
+    } catch(e){}
   }
   if (window.KT_SOUND) KT_SOUND.success();
   ktClearCartAfterOrder();
-  ktToast(KT_LANG === 'en' ? '✅ Order sent — awaiting receipt confirmation' : '✅ تم إرسال طلبك — في انتظار تأكيد الإيصال', 'success');
+  ktToast('✅ تم إرسال طلبك — في انتظار التأكيد', 'success');
   closeModal();
   checkoutStep = 1;
   setTimeout(function(){ navigate('/track/' + orderCode); }, 500);
 }
+
 function viewOrders(){
   var mine = state.orders;
   return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">' + t('ord_title') + '</h1>' + (mine.length ? '<div class="col">' + mine.map(orderRow).join('') + '</div>' : '<div class="k-empty"><div class="k-empty-ic">📦</div><h3>' + t('ord_empty') + '</h3><a class="btn btn-primary" href="#/categories">' + t('ord_browse') + '</a></div>') + '</div></section>';
 }
-function orderRow(o){ var st = statusInfo(o.status); return '<a href="#/track/' + o.id + '" class="card" style="padding:22px;display:block"><div class="row-between" style="margin-bottom:16px"><div><div style="font-weight:800;font-size:15.5px">' + o.id + '</div><div class="muted tiny">' + new Date(o.createdAt).toLocaleString(KT_LANG === 'en' ? 'en-US' : 'ar-EG') + '</div></div><span class="pill ' + st.pill + '">' + st.label + '</span></div><div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' + o.items.slice(0, 5).map(function(i){ return '<span style="font-size:26px">' + i.emoji + '</span>'; }).join('') + '</div><div class="row-between"><span class="muted small">' + o.items.length + ' ' + t('ord_items') + '</span><span style="font-weight:800;color:var(--gold);font-size:19px">' + money(o.total) + '</span></div></a>'; }
+function orderRow(o){ var st = statusInfo(o.status); return '<a href="#/track/' + o.id + '" class="card" style="padding:22px;display:block"><div class="row-between" style="margin-bottom:16px"><div><div style="font-weight:800;font-size:15.5px">' + o.id + '</div><div class="muted tiny">' + new Date(o.createdAt).toLocaleString('ar-EG') + '</div></div><span class="pill ' + st.pill + '">' + st.label + '</span></div><div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' + o.items.slice(0, 5).map(function(i){ return '<span style="font-size:26px">' + i.emoji + '</span>'; }).join('') + '</div><div class="row-between"><span class="muted small">' + o.items.length + ' ' + t('ord_items') + '</span><span style="font-weight:800;color:var(--gold);font-size:19px">' + money(o.total) + '</span></div></a>'; }
 function statusInfo(st){ var map = {placed:{label:t('ord_status_placed'),pill:'pill-gold'},pending_payment:{label:t('ord_status_pending'),pill:'pill-gold'},confirmed:{label:t('ord_status_confirmed'),pill:'pill-gold'},preparing:{label:t('ord_status_preparing'),pill:'pill-info'},out:{label:t('ord_status_out'),pill:'pill-info'},delivered:{label:t('ord_status_delivered'),pill:'pill-fresh'}}; return map[st] || map.placed; }
+
 function viewTrack(oid){
   var o = state.orders.find(function(x){ return x.id === oid; });
-  if(!o) return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><h3>' + t('order_not_found') + '</h3><a class="btn btn-primary" href="#/orders" style="margin-top:16px">' + t('ord_title') + '</a></div></div></section>';
+  if(!o) return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><h3>' + t('order_not_found') + '</h3><a class="btn btn-primary" href="#/orders">' + t('ord_title') + '</a></div></div></section>';
 
   setTimeout(function(){ ktListenToOrder(oid); }, 100);
 
   var steps = [{id:'placed',label:t('ord_status_placed'),ic:'clipboard-check'},{id:'confirmed',label:t('ord_status_confirmed'),ic:'check-circle-2'},{id:'preparing',label:t('ord_status_preparing'),ic:'package'},{id:'out',label:t('ord_status_out'),ic:'truck'},{id:'delivered',label:t('ord_status_delivered'),ic:'home'}];
   var idx = steps.findIndex(function(s){ return s.id === o.status; });
-  var payStatus = (o.paymentStatus === 'pending' ? '<div style="background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--gold);font-size:14px;font-weight:700">⏳ ' + t('ord_status_pending') + '</div>' : '') + (o.paymentStatus === 'confirmed' ? '<div style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--fresh);font-size:14px;font-weight:700">✅ ' + (KT_LANG === 'en' ? 'Payment confirmed' : 'تم تأكيد الدفع') + '</div>' : '');
+  var payStatus = (o.paymentStatus === 'pending' ? '<div style="background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--gold);font-size:14px;font-weight:700">⏳ ' + t('ord_status_pending') + '</div>' : '');
   var driverTrack = (o.driver && (o.status === 'out' || o.status === 'preparing'))
     ? '<div class="card" style="padding:20px;margin-top:16px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#60a5fa);display:grid;place-items:center;font-size:26px;flex:none">🛵</div><div style="flex:1;min-width:150px"><b style="font-size:15.5px;display:block;margin-bottom:4px">' + t('ord_driver_on_way') + '</b><div class="muted tiny">' + esc(o.driver.name || t('track_driver')) + ' · ' + esc(o.driver.phone || '') + '</div></div><a href="#/track-live/' + o.id + '" class="btn btn-primary btn-sm" style="flex:none">' + t('ord_track_live') + '</a></div></div>'
     : '';
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<div class="row-between" style="margin-bottom:28px"><h1 class="h1">' + t('ord_track') + '</h1><a class="btn btn-glass btn-sm" href="#/orders">' + t('ord_title') + '</a></div><div class="card" style="padding:28px;margin-bottom:28px"><div class="row-between" style="margin-bottom:20px"><div><div class="muted tiny">' + (KT_LANG === 'en' ? 'Order ID' : 'رقم الطلب') + '</div><div class="h3" style="color:var(--gold)">' + o.id + '</div></div><span class="pill ' + statusInfo(o.status).pill + '">' + statusInfo(o.status).label + '</span></div>' + payStatus + driverTrack + '<div class="row-between" style="font-size:14.5px;margin-top:18px"><span class="muted">' + t('cart_total') + '</span><span style="font-weight:800;color:var(--gold)">' + money(o.total) + '</span></div></div><div class="card" style="padding:28px">' + steps.map(function(s, i){ var done = i < idx, current = i === idx; return '<div style="display:grid;grid-template-columns:60px 1fr;gap:18px;position:relative;padding-bottom:' + (i === steps.length - 1 ? '0' : '32px') + '">' + (i < steps.length - 1 ? '<div style="position:absolute;top:60px;inset-inline-start:30px;width:2px;height:calc(100% - 60px);background:' + (done ? 'var(--fresh)' : 'var(--line)') + '"></div>' : '') + '<div style="width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--glass)') + ';border:2px solid ' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--line-2)') + ';color:' + (done || current ? '#1a1206' : 'var(--ink-3)') + '"><svg data-lucide="' + s.ic + '" style="width:26px;height:26px"></svg></div><div style="padding-top:12px"><b style="font-size:16px">' + s.label + '</b></div></div>'; }).join('') + '</div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<div class="row-between" style="margin-bottom:28px"><h1 class="h1">' + t('ord_track') + '</h1><a class="btn btn-glass btn-sm" href="#/orders">' + t('ord_title') + '</a></div><div class="card" style="padding:28px;margin-bottom:28px"><div class="row-between" style="margin-bottom:20px"><div><div class="muted tiny">رقم الطلب</div><div class="h3" style="color:var(--gold)">' + o.id + '</div></div><span class="pill ' + statusInfo(o.status).pill + '">' + statusInfo(o.status).label + '</span></div>' + payStatus + driverTrack + '<div class="row-between" style="font-size:14.5px;margin-top:18px"><span class="muted">' + t('cart_total') + '</span><span style="font-weight:800;color:var(--gold)">' + money(o.total) + '</span></div></div><div class="card" style="padding:28px">' + steps.map(function(s, i){ var done = i < idx, current = i === idx; return '<div style="display:grid;grid-template-columns:60px 1fr;gap:18px;position:relative;padding-bottom:' + (i === steps.length - 1 ? '0' : '32px') + '">' + (i < steps.length - 1 ? '<div style="position:absolute;top:60px;inset-inline-start:30px;width:2px;height:calc(100% - 60px);background:' + (done ? 'var(--fresh)' : 'var(--line)') + '"></div>' : '') + '<div style="width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--glass)') + ';border:2px solid ' + (done ? 'var(--fresh)' : current ? 'var(--gold)' : 'var(--line-2)') + ';color:' + (done || current ? '#1a1206' : 'var(--ink-3)') + '"><svg data-lucide="' + s.ic + '" style="width:26px;height:26px"></svg></div><div style="padding-top:12px"><b style="font-size:16px">' + s.label + '</b></div></div>'; }).join('') + '</div></div></section>';
 }
 
+/* ═══ LIVE ORDER LISTENER ═══ */
 var ktTrackUnsub = null;
-
 function ktStopOrderListener(){
   if (ktTrackUnsub){
     try { ktTrackUnsub(); } catch(e){}
@@ -1722,11 +1696,9 @@ function ktStopOrderListener(){
     console.log('📴 Order listener stopped');
   }
 }
-
 function ktListenToOrder(orderId){
   ktStopOrderListener();
   if (!window.KT_FB || !firebase || !firebase.firestore) return;
-
   try {
     var db = firebase.firestore();
     ktTrackUnsub = db.collection('orders')
@@ -1738,9 +1710,7 @@ function ktListenToOrder(orderId){
         var data = doc.data();
         var localOrder = state.orders.find(function(x){ return x.id === orderId; });
         if (!localOrder) return;
-
         var oldStatus = localOrder.status;
-
         localOrder.status = data.status || localOrder.status;
         localOrder.paymentStatus = data.paymentStatus || localOrder.paymentStatus;
         if (data.driver) localOrder.driver = data.driver;
@@ -1750,50 +1720,48 @@ function ktListenToOrder(orderId){
         if (data.pickedAt) localOrder.pickedAt = data.pickedAt;
         if (data.deliveredAt) localOrder.deliveredAt = data.deliveredAt;
         persist('orders');
-
         if (oldStatus !== data.status){
-          if (data.status === 'confirmed'){
-            if (window.KT_SOUND) KT_SOUND.success();
-            ktToast('✅ تم تأكيد طلبك من المتجر', 'success');
-          } else if (data.status === 'preparing'){
-            if (window.KT_SOUND) KT_SOUND.message();
-            ktToast('📦 جاري تجهيز طلبك الآن', 'success');
-          } else if (data.status === 'out'){
-            if (window.KT_SOUND) KT_SOUND.chime();
-            ktToast('🛵 المندوب في الطريق إليك!', 'success');
-          } else if (data.status === 'delivered'){
-            if (window.KT_SOUND) KT_SOUND.cash();
-            ktToast('🎉 تم تسليم طلبك — بالهنا والشفا', 'success');
-          } else if (data.status === 'cancelled'){
-            if (window.KT_SOUND) KT_SOUND.alert();
-            ktToast('❌ تم إلغاء الطلب', 'error');
-          }
+          if (data.status === 'confirmed'){ if (window.KT_SOUND) KT_SOUND.success(); ktToast('✅ تم تأكيد طلبك', 'success'); }
+          else if (data.status === 'preparing'){ if (window.KT_SOUND) KT_SOUND.message(); ktToast('📦 جاري تجهيز طلبك', 'success'); }
+          else if (data.status === 'out'){ if (window.KT_SOUND) KT_SOUND.chime(); ktToast('🛵 المندوب في الطريق!', 'success'); }
+          else if (data.status === 'delivered'){ if (window.KT_SOUND) KT_SOUND.cash(); ktToast('🎉 تم التسليم — بالهنا والشفا', 'success'); }
+          else if (data.status === 'cancelled'){ if (window.KT_SOUND) KT_SOUND.alert(); ktToast('❌ تم إلغاء الطلب', 'error'); }
         }
-
-        if (state.route && state.route.view === 'track' && state.route.arg === orderId){
-          render();
-        } else if (state.route && state.route.view === 'orders'){
-          render();
-        }
+        if (state.route && state.route.view === 'track' && state.route.arg === orderId) render();
+        else if (state.route && state.route.view === 'orders') render();
       }, function(err){ console.warn('order listener:', err); });
   } catch(e){ console.warn(e); }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   🛵 DRIVER LIVE TRACKING — مع Leaflet
+   ═══════════════════════════════════════════════════════════ */
 var liveDriverUnsub = null;
 var liveDriverData = null;
+var liveDriverMap = null;
+var liveDriverMarker = null;
+
 function ktStartDriverListener(driverId){
   ktStopDriverListener();
   if (!window.KT_FB || !driverId) return;
-  if (!firebase || !firebase.firestore) return;
-  try {
-    var db = firebase.firestore();
-    liveDriverUnsub = db.collection('drivers').doc(driverId).onSnapshot(function(doc){
-      if (!doc.exists) return;
-      var d = doc.data();
+
+  if (typeof KT_FB.listenDriverLocation === 'function'){
+    liveDriverUnsub = KT_FB.listenDriverLocation(driverId, function(d){
+      if (!d || !d.lat || !d.lng) return;
       liveDriverData = d;
       ktUpdateDriverMap(d.lat, d.lng, d);
-    }, function(err){ console.warn('driver live error:', err); });
-  } catch(e){ console.warn('listener:', e); }
+    });
+  } else {
+    try {
+      var db = firebase.firestore();
+      liveDriverUnsub = db.collection('drivers').doc(driverId).onSnapshot(function(doc){
+        if (!doc.exists) return;
+        var d = doc.data();
+        liveDriverData = d;
+        ktUpdateDriverMap(d.lat, d.lng, d);
+      });
+    } catch(e){ console.warn(e); }
+  }
 }
 function ktStopDriverListener(){
   if (liveDriverUnsub){
@@ -1801,56 +1769,61 @@ function ktStopDriverListener(){
     liveDriverUnsub = null;
     liveDriverData = null;
   }
+  if (liveDriverMap){ try { liveDriverMap.remove(); } catch(e){} liveDriverMap = null; liveDriverMarker = null; }
 }
+
 function ktUpdateDriverMap(lat, lng, driver){
   if (!lat || !lng) return;
   var mapEl = document.getElementById('driverLiveMap');
   if (!mapEl) return;
-  var d = 0.008;
-  var src = 'https://www.openstreetmap.org/export/embed.html?bbox=' + (lng-d) + ',' + (lat-d) + ',' + (lng+d) + ',' + (lat+d) + '&layer=mapnik&marker=' + lat + ',' + lng;
-  var iframe = mapEl.querySelector('iframe');
-  if (iframe){
-    var oldSrc = iframe.src || '';
-    if (oldSrc.indexOf(lat.toFixed(4)) === -1){
-      iframe.style.transition = 'opacity .4s';
-      iframe.style.opacity = '0.5';
-      setTimeout(function(){ iframe.src = src; iframe.style.opacity = '1'; }, 200);
+
+  // استخدم Leaflet لو متاح
+  if (window.L){
+    if (!liveDriverMap){
+      liveDriverMap = L.map(mapEl, { zoomControl: true, attributionControl: false }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveDriverMap);
+      liveDriverMarker = L.marker([lat, lng]).addTo(liveDriverMap);
+      setTimeout(function(){ try { liveDriverMap.invalidateSize(); } catch(e){} }, 200);
+    } else {
+      liveDriverMap.setView([lat, lng], liveDriverMap.getZoom());
+      if (liveDriverMarker) liveDriverMarker.setLatLng([lat, lng]);
     }
   } else {
+    // fallback: iframe
+    var d = 0.008;
+    var src = 'https://www.openstreetmap.org/export/embed.html?bbox=' + (lng-d) + ',' + (lat-d) + ',' + (lng+d) + ',' + (lat+d) + '&layer=mapnik&marker=' + lat + ',' + lng;
     mapEl.innerHTML = '<iframe src="' + src + '" style="width:100%;height:100%;border:0" loading="lazy"></iframe>';
   }
+
   var coordsEl = document.getElementById('driverCoords');
   if (coordsEl) coordsEl.textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
   var timeEl = document.getElementById('driverLastSeen');
-  if (timeEl) timeEl.textContent = KT_LANG === 'en' ? 'Now' : 'الآن';
+  if (timeEl) timeEl.textContent = 'الآن';
 }
+
 function viewTrackLive(oid){
   var o = state.orders.find(function(x){ return x.id === oid; });
   if (!o){
-    return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">📦</div><h3>' + t('order_not_found') + '</h3><a class="btn btn-primary" href="#/orders" style="margin-top:20px">' + t('ord_title') + '</a></div></div></section>';
+    return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">📦</div><h3>' + t('order_not_found') + '</h3><a class="btn btn-primary" href="#/orders">' + t('ord_title') + '</a></div></div></section>';
   }
   if (!o.driver && !o.driverId){
-    return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">🛵</div><h3>' + t('track_no_driver') + '</h3><p>' + t('track_no_driver_desc') + '</p><a class="btn btn-glass" href="#/track/' + oid + '" style="margin-top:20px">' + t('track_show_status') + '</a></div></div></section>';
+    return '<section class="k-sec" style="padding-top:200px"><div class="wrap">' + ktBackBtn() + '<div class="k-empty"><div class="k-empty-ic">🛵</div><h3>' + t('track_no_driver') + '</h3><p>' + t('track_no_driver_desc') + '</p><a class="btn btn-glass" href="#/track/' + oid + '">عرض حالة الطلب</a></div></div></section>';
   }
   setTimeout(function(){ ktStartDriverListener(o.driverId); }, 150);
   var driver = o.driver || {};
   var c = o.customer || {};
-  var statusMsg = KT_LANG === 'en' ? '⏳ Awaiting update' : '⏳ في انتظار التحديث';
+  var statusMsg = '⏳ في انتظار التحديث';
   var statusColor = 'var(--gold)';
-  if (o.status === 'out'){ statusMsg = KT_LANG === 'en' ? '🛵 Driver is on the way' : '🛵 المندوب في الطريق إليك الآن'; statusColor = 'var(--fresh)'; }
-  else if (o.status === 'preparing'){ statusMsg = KT_LANG === 'en' ? '📦 Preparing your order' : '📦 جاري تجهيز طلبك'; statusColor = 'var(--info)'; }
-  else if (o.status === 'confirmed'){ statusMsg = KT_LANG === 'en' ? '✅ Order confirmed' : '✅ تم تأكيد طلبك'; statusColor = 'var(--gold)'; }
-  else if (o.status === 'delivered'){ statusMsg = KT_LANG === 'en' ? '🎉 Delivered' : '🎉 تم التسليم — بالهنا والشفا'; statusColor = 'var(--fresh)'; }
-  var mapHTML;
-  if (driver.lat && driver.lng){
-    var d = 0.008;
-    mapHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (driver.lng-d) + ',' + (driver.lat-d) + ',' + (driver.lng+d) + ',' + (driver.lat+d) + '&layer=mapnik&marker=' + driver.lat + ',' + driver.lng + '" style="width:100%;height:100%;border:0" loading="lazy"></iframe>';
-  } else {
-    mapHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--ink-3);text-align:center;padding:20px"><div><div style="font-size:52px;margin-bottom:12px;animation:ktPulseDot 1.5s infinite">📍</div><div style="font-size:14.5px;font-weight:600">' + (KT_LANG === 'en' ? 'Detecting driver location...' : 'جاري تحديد موقع المندوب...') + '</div><div style="font-size:12.5px;margin-top:6px;opacity:.75">' + (KT_LANG === 'en' ? 'Will appear in seconds' : 'هيظهر خلال ثواني') + '</div></div></div>';
-  }
+  if (o.status === 'out'){ statusMsg = '🛵 المندوب في الطريق إليك'; statusColor = 'var(--fresh)'; }
+  else if (o.status === 'preparing'){ statusMsg = '📦 جاري تجهيز طلبك'; statusColor = 'var(--info)'; }
+  else if (o.status === 'confirmed'){ statusMsg = '✅ تم تأكيد طلبك'; statusColor = 'var(--gold)'; }
+  else if (o.status === 'delivered'){ statusMsg = '🎉 تم التسليم — بالهنا والشفا'; statusColor = 'var(--fresh)'; }
+
+  var mapHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--ink-3);text-align:center;padding:20px"><div><div style="font-size:52px;margin-bottom:12px;animation:ktPulseDot 1.5s infinite">📍</div><div>جاري تحديد موقع المندوب...</div></div></div>';
+
   return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:820px">' +
     ktBackBtn() +
-    '<h1 class="h1" style="margin-bottom:24px;text-align:center">' + t('track_live_title') + '</h1>' +
+    '<h1 class="h1" style="margin-bottom:24px;text-align:center">🗺️ تتبع مباشر</h1>' +
     '<div class="card" style="padding:22px;margin-bottom:22px;text-align:center;background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(255,184,0,.05));border-color:rgba(255,107,53,.35)">' +
       '<div style="font-size:44px;margin-bottom:10px">🛵</div>' +
       '<div style="font-size:18px;font-weight:900;color:' + statusColor + '">' + statusMsg + '</div>' +
@@ -1858,39 +1831,40 @@ function viewTrackLive(oid){
     '</div>' +
     '<div class="card" style="padding:22px;margin-bottom:22px">' +
       '<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">' +
-        '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#60a5fa);display:grid;place-items:center;font-size:32px;color:#fff;flex:none;box-shadow:0 8px 24px rgba(59,130,246,.4)">🛵</div>' +
-        '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:11.5px;color:var(--ink-3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">' + t('track_driver') + '</div>' +
-          '<b style="font-size:17px;display:block;margin:4px 0">' + esc(driver.name || (KT_LANG === 'en' ? 'Kanteen Driver' : 'مندوب كانتِين')) + '</b>' +
+        '<div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#60a5fa);display:grid;place-items:center;font-size:32px;color:#fff;flex:none">🛵</div>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:11.5px;color:var(--ink-3);font-weight:700">المندوب</div>' +
+          '<b style="font-size:17px;display:block;margin:4px 0">' + esc(driver.name || 'مندوب كانتِين') + '</b>' +
           '<span style="font-size:13px;color:var(--ink-2)">📞 ' + esc(driver.phone || '—') + '</span>' +
         '</div>' +
       '</div>' +
       (driver.phone ?
         '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-          '<a href="tel:' + esc(driver.phone) + '" class="btn btn-primary" style="flex:1;min-width:130px"><svg data-lucide="phone" style="width:18px;height:18px"></svg> ' + t('action_call') + '</a>' +
-          '<a href="https://wa.me/2' + String(driver.phone).replace(/\D/g,'') + '" target="_blank" class="btn btn-gold" style="flex:1;min-width:130px"><svg data-lucide="message-circle" style="width:18px;height:18px"></svg> ' + t('action_whatsapp') + '</a>' +
+          '<a href="tel:' + esc(driver.phone) + '" class="btn btn-primary" style="flex:1">📞 اتصال</a>' +
+          '<a href="https://wa.me/2' + String(driver.phone).replace(/\D/g,'') + '" target="_blank" class="btn btn-gold" style="flex:1">💬 واتساب</a>' +
         '</div>'
       : '') +
     '</div>' +
     '<div class="card" style="padding:0;overflow:hidden;margin-bottom:22px">' +
       '<div style="padding:16px 20px;background:linear-gradient(135deg,rgba(59,130,246,.12),transparent);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-        '<b style="font-size:15px;display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 14px #22c55e;display:inline-block;animation:ktPulseDot 1.5s infinite"></span> ' + t('track_live_map') + '</b>' +
+        '<b style="font-size:15px;display:flex;align-items:center;gap:10px"><span style="width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 14px #22c55e;display:inline-block;animation:ktPulseDot 1.5s infinite"></span> موقع المندوب الآن</b>' +
         '<span id="driverCoords" style="font-family:\'Courier New\',monospace;font-size:12.5px;color:var(--info);font-weight:800">— , —</span>' +
       '</div>' +
       '<div id="driverLiveMap" style="width:100%;height:380px;background:var(--bg-3);position:relative;overflow:hidden">' + mapHTML + '</div>' +
       '<div style="padding:12px 20px;background:var(--bg-2);border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-3)">' +
-        '<span>' + t('track_live_update') + '</span>' +
-        '<span>' + t('track_last_update') + ' <b id="driverLastSeen" style="color:var(--fresh)">—</b></span>' +
+        '<span>🛰️ تحديث مباشر</span>' +
+        '<span>آخر تحديث: <b id="driverLastSeen" style="color:var(--fresh)">—</b></span>' +
       '</div>' +
     '</div>' +
     '<div class="card" style="padding:22px">' +
-      '<h3 style="font-size:15.5px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px"><svg data-lucide="map-pin" style="width:20px;height:20px;color:var(--brand)"></svg> ' + t('track_delivery_addr') + '</h3>' +
+      '<h3 style="font-size:15.5px;font-weight:800;margin-bottom:14px">📍 عنوان التسليم</h3>' +
       '<p style="font-size:14.5px;line-height:1.7;color:var(--ink-2);padding:14px;background:var(--bg-3);border-radius:12px;border:1px solid var(--line)">' + esc((c.gov||'') + ' — ' + (c.city||'') + ' — ' + (c.area||'') + ' — ' + (c.street||'')) + '</p>' +
-      (c.building ? '<p style="font-size:13.5px;color:var(--ink-3);margin-top:10px">' + t('track_building') + ' <b>' + esc(c.building) + '</b>' + (c.floor ? ' · ' + t('track_floor') + ' <b>' + esc(c.floor) + '</b>' : '') + '</p>' : '') +
+      (c.building ? '<p style="font-size:13.5px;color:var(--ink-3);margin-top:10px">🏢 مبنى <b>' + esc(c.building) + '</b>' + (c.floor ? ' · الدور <b>' + esc(c.floor) + '</b>' : '') + '</p>' : '') +
     '</div>' +
   '</div></section>';
 }
 
+/* ═══ OTP ═══ */
 var otpState = { method:'phone', phone:'', email:'', pendingName:'', sent:false, timer:null };
 
 function openOtpModal(){
@@ -1901,31 +1875,24 @@ function openOtpModal(){
     '<div style="text-align:center;padding:8px 0 20px">' +
       '<div style="font-size:64px;margin-bottom:12px">👤</div>' +
       '<h2 class="h2" style="margin-bottom:8px">' + t('otp_login') + '</h2>' +
-      '<p class="muted" style="font-size:14px">' + (KT_LANG === 'en' ? 'Sign up with phone or email' : 'سجّل برقم الهاتف أو البريد الإلكتروني') + '</p>' +
+      '<p class="muted" style="font-size:14px">سجّل برقم الهاتف أو البريد الإلكتروني</p>' +
     '</div>' +
     '<div class="kt-auth-tabs" id="otpTabs">' +
-      '<button type="button" class="kt-auth-tab on" data-m="phone" onclick="ktSwitchOtpMethod(\'phone\')">📱 ' + (KT_LANG === 'en' ? 'Phone' : 'رقم الهاتف') + '</button>' +
-      '<button type="button" class="kt-auth-tab" data-m="email" onclick="ktSwitchOtpMethod(\'email\')">✉️ ' + (KT_LANG === 'en' ? 'Email' : 'البريد الإلكتروني') + '</button>' +
+      '<button type="button" class="kt-auth-tab on" data-m="phone" onclick="ktSwitchOtpMethod(\'phone\')">📱 رقم الهاتف</button>' +
+      '<button type="button" class="kt-auth-tab" data-m="email" onclick="ktSwitchOtpMethod(\'email\')">✉️ البريد</button>' +
     '</div>' +
     '<div id="otpStep1">' +
-      '<div class="k-field" id="otpPhoneField"><label>' + t('otp_phone') + ' <span class="req">*</span></label><input type="tel" id="otpPhone" placeholder="01xxxxxxxxx" autocomplete="off" style="text-align:center;letter-spacing:2px;font-size:18px;font-weight:700"></div>' +
-      '<div class="k-field" id="otpEmailField" style="display:none"><label>' + (KT_LANG === 'en' ? 'Email Address' : 'البريد الإلكتروني') + ' <span class="req">*</span></label><input type="email" id="otpEmail" placeholder="you@example.com" autocomplete="off" style="text-align:center;font-size:16px;font-weight:600"></div>' +
-      '<div class="k-field" id="otpNameField" style="display:none"><label>' + (KT_LANG === 'en' ? 'Your Name' : 'اسمك') + ' <span class="req">*</span></label><input type="text" id="otpName" placeholder="' + (KT_LANG === 'en' ? 'Full name' : 'الاسم الكامل') + '" autocomplete="off"></div>' +
-      '<button class="btn btn-primary btn-block btn-lg" onclick="ktSendOtp()"><svg data-lucide="send" style="width:20px;height:20px"></svg> ' + t('otp_send') + '</button>' +
-      '<div class="kt-auth-note" style="margin-top:20px">' + t('otp_note') + '</div>' +
+      '<div class="k-field" id="otpPhoneField"><label>رقم الهاتف *</label><input type="tel" id="otpPhone" placeholder="01xxxxxxxxx" style="text-align:center;letter-spacing:2px;font-size:18px;font-weight:700"></div>' +
+      '<div class="k-field" id="otpEmailField" style="display:none"><label>البريد الإلكتروني *</label><input type="email" id="otpEmail" placeholder="you@example.com" style="text-align:center"></div>' +
+      '<div class="k-field" id="otpNameField" style="display:none"><label>اسمك *</label><input type="text" id="otpName" placeholder="الاسم الكامل"></div>' +
+      '<button class="btn btn-primary btn-block btn-lg" onclick="ktSendOtp()">📩 إرسال الكود</button>' +
+      '<div class="kt-auth-note" style="margin-top:20px">🔒 كود تجريبي: <b style="color:var(--gold);font-size:16px">1234</b></div>' +
     '</div>' +
     '<div id="otpStep2" style="display:none">' +
-      '<div style="text-align:center;margin-bottom:20px">' +
-        '<p class="muted" style="font-size:14px;margin-bottom:6px">' + t('otp_sent_to') + '</p>' +
-        '<b style="font-size:18px;color:var(--gold)" id="otpTargetDisplay"></b>' +
-      '</div>' +
-      '<div class="k-field"><label style="text-align:center">' + t('otp_code') + '</label><input type="tel" id="otpCode" placeholder="— — — —" maxlength="4" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;letter-spacing:20px;font-size:28px;font-weight:800;padding:20px"></div>' +
-      '<button class="btn btn-primary btn-block btn-lg" onclick="ktVerifyOtp()"><svg data-lucide="check" style="width:20px;height:20px"></svg> ' + t('otp_verify') + '</button>' +
-      '<div style="display:flex;justify-content:space-between;margin-top:16px;align-items:center">' +
-        '<button class="btn btn-ghost btn-sm" onclick="ktBackToPhone()">' + t('otp_change') + '</button>' +
-        '<span class="muted tiny" id="otpResendTimer">' + t('otp_resend_in') + '</span>' +
-      '</div>' +
-      '<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="ktSendOtp()" id="otpResendBtn" disabled>' + t('otp_resend') + '</button>' +
+      '<div style="text-align:center;margin-bottom:20px"><p class="muted" style="font-size:14px">تم إرسال الكود إلى</p><b style="font-size:18px;color:var(--gold)" id="otpTargetDisplay"></b></div>' +
+      '<div class="k-field"><label style="text-align:center">كود التحقق (4 أرقام)</label><input type="tel" id="otpCode" placeholder="— — — —" maxlength="4" inputmode="numeric" style="text-align:center;letter-spacing:20px;font-size:28px;font-weight:800;padding:20px"></div>' +
+      '<button class="btn btn-primary btn-block btn-lg" onclick="ktVerifyOtp()">✓ تحقق ودخول</button>' +
+      '<div style="display:flex;justify-content:space-between;margin-top:16px;align-items:center"><button class="btn btn-ghost btn-sm" onclick="ktBackToPhone()">← تغيير</button><span class="muted tiny" id="otpResendTimer">إعادة الإرسال بعد 60 ثانية</span></div>' +
     '</div>'
   );
   setTimeout(function(){ var el = $('#otpPhone'); if(el) el.focus(); }, 300);
@@ -1945,82 +1912,61 @@ function ktSendOtp(){
   if (otpState.method === 'email'){
     var email = $('#otpEmail').value.trim();
     var name = $('#otpName').value.trim();
-    if (!email || email.indexOf('@') === -1){ ktToast(KT_LANG === 'en' ? '❌ Invalid email' : '❌ اكتب بريد إلكتروني صحيح', 'error'); return; }
-    if (!name){ ktToast(KT_LANG === 'en' ? '❌ Enter your name' : '❌ اكتب اسمك', 'error'); return; }
-    otpState.email = email;
-    otpState.phone = '';
-    otpState.pendingName = name;
-    ktToast('📩 ' + (KT_LANG === 'en' ? 'Code sent (Demo: 1234)' : 'تم إرسال الكود (تجريبي: 1234)'), 'success');
+    if (!email || email.indexOf('@') === -1){ ktToast('❌ اكتب بريد صحيح', 'error'); return; }
+    if (!name){ ktToast('❌ اكتب اسمك', 'error'); return; }
+    otpState.email = email; otpState.phone = ''; otpState.pendingName = name;
+    ktToast('📩 تم إرسال الكود (تجريبي: 1234)', 'success');
     $('#otpStep1').style.display = 'none';
     $('#otpStep2').style.display = 'block';
     $('#otpTargetDisplay').textContent = email;
     setTimeout(function(){ var el = $('#otpCode'); if(el) el.focus(); }, 300);
-    refreshIcons();
     ktStartResendTimer();
     return;
   }
   var phone = $('#otpPhone').value.trim().replace(/\s/g,'');
-  if (!phone || phone.length < 10){ ktToast(t('otp_invalid_phone'), 'error'); return; }
+  if (!phone || phone.length < 10){ ktToast('❌ اكتب رقم هاتف صحيح', 'error'); return; }
   if (phone.startsWith('0')) phone = '+20' + phone.slice(1);
   else if (!phone.startsWith('+')) phone = '+20' + phone;
-  otpState.phone = phone;
-  otpState.email = '';
-  ktToast('📩 ' + (KT_LANG === 'en' ? 'Code sent (Demo: 1234)' : 'تم إرسال الكود (تجريبي: 1234)'), 'success');
+  otpState.phone = phone; otpState.email = '';
+  ktToast('📩 تم إرسال الكود (تجريبي: 1234)', 'success');
   $('#otpStep1').style.display = 'none';
   $('#otpStep2').style.display = 'block';
   $('#otpTargetDisplay').textContent = phone;
   setTimeout(function(){ var el = $('#otpCode'); if(el) el.focus(); }, 300);
-  refreshIcons();
   ktStartResendTimer();
 }
 
 function ktStartResendTimer(){
   var seconds = 60;
   var timer = $('#otpResendTimer');
-  var btn = $('#otpResendBtn');
-  if (btn) btn.disabled = true;
   if (otpState.timer) clearInterval(otpState.timer);
   otpState.timer = setInterval(function(){
     seconds--;
-    if (timer) timer.textContent = (KT_LANG === 'en' ? 'You can resend in ' : 'يمكنك إعادة الإرسال بعد ') + seconds + (KT_LANG === 'en' ? ' seconds' : ' ثانية');
-    if (seconds <= 0){
-      clearInterval(otpState.timer);
-      if (timer) timer.textContent = KT_LANG === 'en' ? 'You can resend now' : 'يمكنك إعادة الإرسال الآن';
-      if (btn) btn.disabled = false;
-    }
+    if (timer) timer.textContent = 'إعادة الإرسال بعد ' + seconds + ' ثانية';
+    if (seconds <= 0){ clearInterval(otpState.timer); if (timer) timer.textContent = 'يمكنك إعادة الإرسال الآن'; }
   }, 1000);
 }
 
 function ktVerifyOtp(){
   var code = $('#otpCode').value.trim();
-  if (!code || code.length !== 4){ ktToast(KT_LANG === 'en' ? '❌ Enter 4-digit code' : '❌ اكتب الكود المكوّن من 4 أرقام', 'error'); return; }
-  if (code !== '1234'){ ktToast(t('otp_invalid'), 'error'); return; }
+  if (!code || code.length !== 4){ ktToast('❌ اكتب الكود المكوّن من 4 أرقام', 'error'); return; }
+  if (code !== '1234'){ ktToast('❌ الكود غير صحيح', 'error'); return; }
   var existing;
   if (otpState.method === 'email'){
     existing = (state.users || []).find(function(u){ return u.email === otpState.email; });
-    if (existing){
-      state.user = existing;
-      ktToast(KT_LANG === 'en' ? '✅ Welcome back' : '✅ مرحباً بعودتك', 'success');
-    } else {
-      var newUser = { id: uid(), name: otpState.pendingName || t('acc_customer'), phone: '', email: otpState.email, loginMethod:'email', createdAt: new Date().toISOString() };
-      state.users = state.users || [];
-      state.users.push(newUser);
-      state.user = newUser;
-      persist('users');
-      ktToast(KT_LANG === 'en' ? '🎉 Account created' : '🎉 تم إنشاء حسابك', 'success');
+    if (existing){ state.user = existing; ktToast('✅ مرحباً بعودتك', 'success'); }
+    else {
+      var newUser = { id: uid(), name: otpState.pendingName || 'عميل كانتِين', phone: '', email: otpState.email, loginMethod:'email', createdAt: new Date().toISOString() };
+      state.users = state.users || []; state.users.push(newUser); state.user = newUser;
+      persist('users'); ktToast('🎉 تم إنشاء حسابك', 'success');
     }
   } else {
     existing = (state.users || []).find(function(u){ return u.phone === otpState.phone; });
-    if (existing){
-      state.user = existing;
-      ktToast(KT_LANG === 'en' ? '✅ Welcome back' : '✅ مرحباً بعودتك', 'success');
-    } else {
-      var newUser2 = { id: uid(), name: t('acc_customer'), phone: otpState.phone, email: '', loginMethod:'phone', createdAt: new Date().toISOString() };
-      state.users = state.users || [];
-      state.users.push(newUser2);
-      state.user = newUser2;
-      persist('users');
-      ktToast(KT_LANG === 'en' ? '🎉 Account created' : '🎉 تم إنشاء حسابك', 'success');
+    if (existing){ state.user = existing; ktToast('✅ مرحباً بعودتك', 'success'); }
+    else {
+      var newUser2 = { id: uid(), name: 'عميل كانتِين', phone: otpState.phone, email: '', loginMethod:'phone', createdAt: new Date().toISOString() };
+      state.users = state.users || []; state.users.push(newUser2); state.user = newUser2;
+      persist('users'); ktToast('🎉 تم إنشاء حسابك', 'success');
     }
   }
   persist('user');
@@ -2028,32 +1974,22 @@ function ktVerifyOtp(){
   closeModal();
   render();
 }
-function ktBackToPhone(){
-  $('#otpStep1').style.display = 'block';
-  $('#otpStep2').style.display = 'none';
-  if (otpState.timer) clearInterval(otpState.timer);
-  refreshIcons();
-}
+function ktBackToPhone(){ $('#otpStep1').style.display = 'block'; $('#otpStep2').style.display = 'none'; if (otpState.timer) clearInterval(otpState.timer); refreshIcons(); }
 
 function ktShowDriverRegistration(){
   closeModal();
   window.openModal(
-    '<div style="text-align:center;padding:8px 0 20px">' +
-      '<div style="font-size:64px;margin-bottom:12px">🛵</div>' +
-      '<h2 class="h2" style="margin-bottom:8px">' + (KT_LANG === 'en' ? 'Driver Registration' : 'تسجيل مندوب جديد') + '</h2>' +
-      '<p class="muted" style="font-size:14px">' + (KT_LANG === 'en' ? 'Your request will be reviewed by admin' : 'سيتم مراجعة طلبك من الإدارة قبل التفعيل') + '</p>' +
-    '</div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'Full Name' : 'الاسم الكامل') + ' <span class="req">*</span></label><input id="drvName" placeholder="' + (KT_LANG === 'en' ? 'Your name' : 'اسمك') + '"></div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'Phone' : 'رقم الهاتف') + ' <span class="req">*</span></label><input type="tel" id="drvPhone" placeholder="01xxxxxxxxx" maxlength="11"></div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'Email' : 'البريد الإلكتروني') + ' <span class="req">*</span></label><input type="email" id="drvEmail" placeholder="you@example.com"></div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'WhatsApp (optional)' : 'واتساب (اختياري)') + '</label><input type="tel" id="drvWhatsapp" placeholder="01xxxxxxxxx" maxlength="11"></div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'Vehicle Type' : 'نوع المركبة') + ' <span class="req">*</span></label><select id="drvVehicle" style="padding:14px 16px;border-radius:13px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;width:100%"><option value="motorcycle">🛵 موتوسيكل</option><option value="car">🚗 سيارة</option><option value="bicycle">🚲 دراجة</option><option value="van">🚐 فان</option></select></div>' +
-    '<div class="k-field"><label>' + (KT_LANG === 'en' ? 'Area' : 'المنطقة') + ' <span class="req">*</span></label><input id="drvArea" placeholder="' + (KT_LANG === 'en' ? 'Cairo - Nasr City' : 'القاهرة - مدينة نصر') + '"></div>' +
+    '<div style="text-align:center;padding:8px 0 20px"><div style="font-size:64px">🛵</div><h2 class="h2">تسجيل مندوب جديد</h2><p class="muted">سيتم مراجعة طلبك من الإدارة</p></div>' +
+    '<div class="k-field"><label>الاسم الكامل *</label><input id="drvName"></div>' +
+    '<div class="k-field"><label>رقم الهاتف *</label><input type="tel" id="drvPhone" maxlength="11"></div>' +
+    '<div class="k-field"><label>البريد الإلكتروني *</label><input type="email" id="drvEmail"></div>' +
+    '<div class="k-field"><label>واتساب (اختياري)</label><input type="tel" id="drvWhatsapp" maxlength="11"></div>' +
+    '<div class="k-field"><label>نوع المركبة *</label><select id="drvVehicle" style="padding:14px 16px;border-radius:13px;background:var(--bg-3);border:1px solid var(--line-2);color:var(--ink);font-size:15px;width:100%"><option value="motorcycle">🛵 موتوسيكل</option><option value="car">🚗 سيارة</option><option value="bicycle">🚲 دراجة</option><option value="van">🚐 فان</option></select></div>' +
+    '<div class="k-field"><label>المنطقة *</label><input id="drvArea" placeholder="القاهرة - مدينة نصر"></div>' +
     '<div style="display:flex;gap:10px;margin-top:20px">' +
-      '<button class="btn btn-ghost" onclick="closeModal()" style="flex:1">' + (KT_LANG === 'en' ? 'Cancel' : 'إلغاء') + '</button>' +
-      '<button class="btn btn-primary" style="flex:2" onclick="ktSubmitDriverRegistration()">' + (KT_LANG === 'en' ? 'Submit Request' : 'إرسال الطلب') + '</button>' +
-    '</div>' +
-    '<div class="kt-auth-note" style="margin-top:16px">💡 ' + (KT_LANG === 'en' ? 'Admin will review your request' : 'سيتم مراجعة طلبك وإشعارك قريباً') + '</div>'
+      '<button class="btn btn-ghost" onclick="closeModal()" style="flex:1">إلغاء</button>' +
+      '<button class="btn btn-primary" style="flex:2" onclick="ktSubmitDriverRegistration()">إرسال الطلب</button>' +
+    '</div>'
   );
   refreshIcons();
 }
@@ -2065,77 +2001,48 @@ function ktSubmitDriverRegistration(){
   var whatsapp = $('#drvWhatsapp').value.trim().replace(/\s/g,'');
   var vehicle = $('#drvVehicle').value;
   var area = $('#drvArea').value.trim();
-
-  if (!name || !phone || !email || !area){ ktToast(KT_LANG === 'en' ? '❌ Fill all required fields' : '❌ املأ كل الحقول المطلوبة', 'error'); return; }
-  if (phone.length < 10){ ktToast(KT_LANG === 'en' ? '❌ Invalid phone' : '❌ رقم هاتف غير صحيح', 'error'); return; }
-  if (email.indexOf('@') === -1){ ktToast(KT_LANG === 'en' ? '❌ Invalid email' : '❌ بريد غير صحيح', 'error'); return; }
-
+  if (!name || !phone || !email || !area){ ktToast('❌ املأ كل الحقول المطلوبة', 'error'); return; }
+  if (phone.length < 10){ ktToast('❌ رقم هاتف غير صحيح', 'error'); return; }
+  if (email.indexOf('@') === -1){ ktToast('❌ بريد غير صحيح', 'error'); return; }
   if (phone.startsWith('0')) phone = '+20' + phone.slice(1);
   if (whatsapp && whatsapp.startsWith('0')) whatsapp = '+20' + whatsapp.slice(1);
-
   if (!window.KT_FB){ ktToast('⏳ Loading...'); return; }
   var init = KT_FB.init();
   if (!init){ ktToast('⚠️ Firebase غير متاح', 'error'); return; }
-
   var driverData = {
     id: 'driver_' + phone.replace(/\D/g,''),
     name: name, phone: phone, email: email, whatsapp: whatsapp,
-    vehicle: vehicle, area: area,
-    status: 'pending', online: false,
+    vehicle: vehicle, area: area, status: 'pending', online: false,
     rating: 5.0, completedToday: 0, earnings: 0, commissionPerOrder: 15,
     createdAt: new Date().toISOString(),
     _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-
   init.db.collection('drivers').doc(driverData.id).set(driverData, { merge: true })
     .then(function(){
       if (KT_FB.saveNotification){
-        KT_FB.saveNotification({
-          type: 'new_driver', driverName: name, phone: phone, email: email,
-          area: area, vehicle: vehicle,
-          createdAt: new Date().toISOString(), read: false
-        });
+        KT_FB.saveNotification({ type: 'new_driver', driverName: name, phone: phone, email: email, area: area, vehicle: vehicle, createdAt: new Date().toISOString(), read: false });
       }
       closeModal();
-      ktToast(KT_LANG === 'en' ? '✅ Request sent — waiting approval' : '✅ تم إرسال الطلب — في انتظار الموافقة', 'success');
+      ktToast('✅ تم إرسال الطلب — في انتظار الموافقة', 'success');
     })
-    .catch(function(e){ console.warn(e); ktToast('❌ ' + (KT_LANG === 'en' ? 'Failed' : 'فشل'), 'error'); });
+    .catch(function(e){ console.warn(e); ktToast('❌ فشل', 'error'); });
 }
 
-function ktShowMerchantRegistration(){
-  closeModal();
-  window.location.href = 'merchant.html#register';
-}
+function ktShowMerchantRegistration(){ closeModal(); window.location.href = 'merchant.html#register'; }
 
 function ktShowAuthChoice(){
   if (state.user){ navigate('/account'); return; }
   window.openModal(
-    '<div class="kt-auth-modal-header">' +
-      '<span class="icon">👋</span>' +
-      '<h2>' + t('auth_welcome') + '</h2>' +
-      '<p>' + t('auth_choose') + '</p>' +
-    '</div>' +
+    '<div class="kt-auth-modal-header"><span class="icon">👋</span><h2>' + t('auth_welcome') + '</h2><p>' + t('auth_choose') + '</p></div>' +
     '<div class="kt-auth-choice">' +
-      '<div class="kt-auth-option" onclick="closeModal();openOtpModal()">' +
-        '<div class="kt-auth-option-icon customer">🛒</div>' +
-        '<div class="kt-auth-option-info"><b>' + t('auth_customer') + '</b><span>' + t('auth_customer_desc') + '</span></div>' +
-        '<span class="kt-auth-option-arrow">←</span>' +
-      '</div>' +
-      '<div class="kt-auth-option" onclick="ktShowMerchantRegistration()">' +
-        '<div class="kt-auth-option-icon merchant">🏪</div>' +
-        '<div class="kt-auth-option-info"><b>' + t('auth_merchant') + '</b><span>' + t('auth_merchant_desc') + '</span></div>' +
-        '<span class="kt-auth-option-arrow">←</span>' +
-      '</div>' +
-      '<div class="kt-auth-option" onclick="ktShowDriverRegistration()" style="border-color:rgba(59,130,246,.5);background:linear-gradient(135deg,rgba(59,130,246,.08),transparent);position:relative">' +
-        '<div class="kt-auth-option-icon driver">🛵</div>' +
-        '<div class="kt-auth-option-info"><b style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + t('auth_driver') + ' <span style="font-size:10px;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:800;letter-spacing:.5px">' + t('auth_new') + '</span></b><span>' + t('auth_driver_desc') + '</span></div>' +
-        '<span class="kt-auth-option-arrow" style="color:#3b82f6">←</span>' +
-      '</div>' +
+      '<div class="kt-auth-option" onclick="closeModal();openOtpModal()"><div class="kt-auth-option-icon customer">🛒</div><div class="kt-auth-option-info"><b>' + t('auth_customer') + '</b><span>' + t('auth_customer_desc') + '</span></div><span class="kt-auth-option-arrow">←</span></div>' +
+      '<div class="kt-auth-option" onclick="ktShowMerchantRegistration()"><div class="kt-auth-option-icon merchant">🏪</div><div class="kt-auth-option-info"><b>' + t('auth_merchant') + '</b><span>' + t('auth_merchant_desc') + '</span></div><span class="kt-auth-option-arrow">←</span></div>' +
+      '<div class="kt-auth-option" onclick="ktShowDriverRegistration()"><div class="kt-auth-option-icon driver">🛵</div><div class="kt-auth-option-info"><b>' + t('auth_driver') + ' <span style="font-size:10px;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:800">' + t('auth_new') + '</span></b><span>' + t('auth_driver_desc') + '</span></div><span class="kt-auth-option-arrow" style="color:#3b82f6">←</span></div>' +
     '</div>' +
     '<div class="kt-auth-note">' + t('auth_note') + '</div>' +
     '<div class="kt-modal-settings">' +
-      '<button onclick="ktToggleTheme()" type="button"><svg data-lucide="sun-moon"></svg> ' + t('theme_toggle') + '</button>' +
-      '<button onclick="ktToggleLang()" type="button"><svg data-lucide="languages"></svg> ' + t('lang_switch_to') + '</button>' +
+      '<button onclick="ktToggleTheme()" type="button">🌗 ' + t('theme_toggle') + '</button>' +
+      '<button onclick="ktToggleLang()" type="button">🌐 ' + t('lang_switch_to') + '</button>' +
     '</div>'
   );
   refreshIcons();
@@ -2143,13 +2050,13 @@ function ktShowAuthChoice(){
 
 function viewAccount(){
   if(!state.user){
-    return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:480px">' + ktBackBtn() + '<div class="card" style="padding:44px;text-align:center"><div style="font-size:72px;margin-bottom:24px">👤</div><h2 class="h2" style="margin-bottom:12px">' + t('acc_welcome') + '</h2><p class="muted" style="margin-bottom:28px">' + t('acc_login_desc') + '</p><button class="btn btn-primary btn-block btn-lg" onclick="openOtpModal()">' + t('acc_login_phone') + '</button></div></div></section>';
+    return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:480px">' + ktBackBtn() + '<div class="card" style="padding:44px;text-align:center"><div style="font-size:72px;margin-bottom:24px">👤</div><h2 class="h2">' + t('acc_welcome') + '</h2><p class="muted" style="margin-bottom:28px">' + t('acc_login_desc') + '</p><button class="btn btn-primary btn-block btn-lg" onclick="openOtpModal()">' + t('acc_login_phone') + '</button></div></div></section>';
   }
   var u = state.user;
   var contactLine = u.email ? '✉️ ' + esc(u.email) : '📱 ' + esc(u.phone || '');
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:640px">' + ktBackBtn() + '<div class="card" style="padding:32px"><div style="display:flex;align-items:center;gap:20px;margin-bottom:28px"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:36px;color:#fff">👤</div><div style="flex:1"><h1 class="h2" style="margin-bottom:6px">' + esc(u.name || t('acc_customer')) + '</h1><p class="muted small">' + contactLine + '</p></div></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#/orders" class="btn btn-glass" style="flex:1"><svg data-lucide="package" style="width:16px;height:16px"></svg> ' + t('acc_orders') + '</a><a href="#/wishlist" class="btn btn-glass" style="flex:1"><svg data-lucide="heart" style="width:16px;height:16px"></svg> ' + t('acc_wishlist') + '</a><button class="btn btn-ghost" onclick="logout()" style="color:var(--danger)">' + t('acc_logout') + '</button></div></div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:640px">' + ktBackBtn() + '<div class="card" style="padding:32px"><div style="display:flex;align-items:center;gap:20px;margin-bottom:28px"><div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;font-size:36px;color:#fff">👤</div><div style="flex:1"><h1 class="h2">' + esc(u.name || t('acc_customer')) + '</h1><p class="muted small">' + contactLine + '</p></div></div><div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#/orders" class="btn btn-glass" style="flex:1">📦 ' + t('acc_orders') + '</a><a href="#/wishlist" class="btn btn-glass" style="flex:1">♥ ' + t('acc_wishlist') + '</a><button class="btn btn-ghost" onclick="logout()" style="color:var(--danger)">' + t('acc_logout') + '</button></div></div></div></section>';
 }
-function logout(){ state.user = null; LS.del('user'); ktToast(KT_LANG === 'en' ? 'Logged out' : 'تم الخروج'); navigate('/'); }
+function logout(){ state.user = null; LS.del('user'); ktToast('تم الخروج'); navigate('/'); }
 
 function render(){
   var r = state.route || {view: 'home'};
@@ -2177,6 +2084,7 @@ function render(){
   attachProductClicks();
   refreshIcons();
 }
+
 function renderFooter(){
   var footer = $('#k-footer'); if(!footer) return;
   var SVG_WA = '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
@@ -2184,7 +2092,7 @@ function renderFooter(){
   var SVG_IG = '<svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>';
   var SVG_PHONE = '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>';
   var SVG_MAIL = '<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>';
-  footer.innerHTML = '<div class="wrap"><div class="k-footer-grid"><div><a class="k-logo" href="#/"><img src="logo.png" alt="Kanteen" class="k-footer-logo" onerror="this.style.display=\'none\'"></a><p class="muted small" style="margin-top:8px;line-height:1.7;max-width:340px">' + t('footer_desc') + '</p><p class="muted tiny" style="margin-top:14px">' + t('footer_slogan') + '</p><button type="button" class="k-pwa-footer-btn" id="ktPwaFooterBtn" onclick="ktInstallPwa()"><svg data-lucide="download"></svg><span id="ktPwaFooterText">' + t('footer_pwa_install') + '</span></button></div><div><h4>' + t('footer_shop') + '</h4><ul>' + CATEGORIES.slice(0, 6).map(function(c){ return '<li><a href="#/c/' + c.id + '">' + esc(catName(c)) + '</a></li>'; }).join('') + '</ul></div><div><h4>' + t('footer_links') + '</h4><ul><li><a href="#/account">' + t('footer_account') + '</a></li><li><a href="#/orders">' + t('footer_orders') + '</a></li><li><a href="#/wishlist">' + t('footer_wishlist') + '</a></li><li><a href="merchant.html">' + t('footer_for_merchants') + '</a></li><li><a href="driver.html">' + t('footer_for_drivers') + '</a></li><li><a href="admin.html">' + t('footer_admin') + '</a></li></ul></div><div><h4>' + t('footer_contact') + '</h4><div class="k-contact-list"><a class="phone-c" href="tel:01124169656">' + SVG_PHONE + '<span>01124169656</span></a><a class="wa-c" href="https://wa.me/' + WA_NUMBER + '" target="_blank" rel="noopener">' + SVG_WA + '<span>' + t('footer_whatsapp') + '</span></a><a class="fb-c" href="' + FB_URL + '" target="_blank" rel="noopener">' + SVG_FB + '<span>' + t('footer_facebook') + '</span></a><a class="mail-c" href="mailto:hello@kanteen.app">' + SVG_MAIL + '<span>hello@kanteen.app</span></a></div><div class="k-socials"><a class="wa" href="https://wa.me/' + WA_NUMBER + '" target="_blank" rel="noopener" aria-label="WhatsApp">' + SVG_WA + '</a><a class="fb" href="' + FB_URL + '" target="_blank" rel="noopener" aria-label="Facebook">' + SVG_FB + '</a><a class="ig" href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram">' + SVG_IG + '</a><a class="call" href="tel:01124169656" aria-label="Call">' + SVG_PHONE + '</a></div></div></div><div class="k-footer-bottom"><span>© ' + new Date().getFullYear() + ' Kanteen | كانتِين. ' + t('footer_copyright') + '</span><span class="muted tiny">kanteen2026.vercel.app</span><span style="font-size:12.5px;color:var(--ink-3);text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);width:100%">' + t('footer_developed_by') + ' <b style="color:var(--gold);font-weight:800">' + t('footer_developer_name') + '</b></span></div></div>';
+  footer.innerHTML = '<div class="wrap"><div class="k-footer-grid"><div><a class="k-logo" href="#/"><img src="logo.png" alt="Kanteen" class="k-footer-logo" onerror="this.style.display=\'none\'"></a><p class="muted small" style="margin-top:8px;line-height:1.7;max-width:340px">' + t('footer_desc') + '</p><p class="muted tiny" style="margin-top:14px">' + t('footer_slogan') + '</p><button type="button" class="k-pwa-footer-btn" id="ktPwaFooterBtn" onclick="ktInstallPwa()"><svg data-lucide="download"></svg><span id="ktPwaFooterText">' + t('footer_pwa_install') + '</span></button></div><div><h4>' + t('footer_shop') + '</h4><ul>' + CATEGORIES.slice(0, 6).map(function(c){ return '<li><a href="#/c/' + c.id + '">' + esc(catName(c)) + '</a></li>'; }).join('') + '</ul></div><div><h4>' + t('footer_links') + '</h4><ul><li><a href="#/account">' + t('footer_account') + '</a></li><li><a href="#/orders">' + t('footer_orders') + '</a></li><li><a href="#/wishlist">' + t('footer_wishlist') + '</a></li><li><a href="merchant.html">' + t('footer_for_merchants') + '</a></li><li><a href="driver.html">' + t('footer_for_drivers') + '</a></li><li><a href="admin.html">' + t('footer_admin') + '</a></li></ul></div><div><h4>' + t('footer_contact') + '</h4><div class="k-contact-list"><a class="phone-c" href="tel:01124169656">' + SVG_PHONE + '<span>01124169656</span></a><a class="wa-c" href="https://wa.me/' + WA_NUMBER + '" target="_blank" rel="noopener">' + SVG_WA + '<span>' + t('footer_whatsapp') + '</span></a><a class="fb-c" href="' + FB_URL + '" target="_blank" rel="noopener">' + SVG_FB + '<span>' + t('footer_facebook') + '</span></a><a class="mail-c" href="mailto:hello@kanteen.app">' + SVG_MAIL + '<span>hello@kanteen.app</span></a></div><div class="k-socials"><a class="wa" href="https://wa.me/' + WA_NUMBER + '" target="_blank" rel="noopener">' + SVG_WA + '</a><a class="fb" href="' + FB_URL + '" target="_blank" rel="noopener">' + SVG_FB + '</a><a class="ig" href="https://instagram.com" target="_blank" rel="noopener">' + SVG_IG + '</a><a class="call" href="tel:01124169656">' + SVG_PHONE + '</a></div></div></div><div class="k-footer-bottom"><span>© ' + new Date().getFullYear() + ' Kanteen | كانتِين. ' + t('footer_copyright') + '</span><span class="muted tiny">kanteen2026.vercel.app</span><span style="font-size:12.5px;color:var(--ink-3);text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);width:100%">' + t('footer_developed_by') + ' <b style="color:var(--gold);font-weight:800">' + t('footer_developer_name') + '</b></span></div></div>';
   setTimeout(ktUpdatePwaFooterBtn, 100);
 }
 function updateActiveNav(){ var map = {home:'home', categories:'cats', category:'cats', search:'search', cart:'cart', wishlist:'cart', checkout:'cart', orders:'account', track:'account', 'track-live':'account', account:'account'}; var active = map[state.route ? state.route.view : 'home'] || 'home'; $$('.k-bnav').forEach(function(a){ a.classList.toggle('active', a.dataset.nav === active); }); }
@@ -2194,10 +2102,10 @@ function applyCoupon(){
   var input = $('#coupon-input'); if(!input) return;
   var code = input.value.trim().toUpperCase(); if(!code) return;
   var c = COUPONS.find(function(x){ return x.code === code; });
-  if(!c){ ktToast(KT_LANG === 'en' ? 'Invalid coupon' : 'كود غير صحيح', 'error'); return; }
-  if(cartTotal() < c.min){ ktToast((KT_LANG === 'en' ? 'Minimum ' : 'الحد الأدنى ') + money(c.min), 'error'); return; }
+  if(!c){ ktToast('كود غير صحيح', 'error'); return; }
+  if(cartTotal() < c.min){ ktToast('الحد الأدنى ' + money(c.min), 'error'); return; }
   state.coupon = c; persist('coupon');
-  ktToast(KT_LANG === 'en' ? 'Coupon applied ✓' : 'تم تطبيق الكود ✓', 'success');
+  ktToast('تم تطبيق الكود ✓', 'success');
   render();
 }
 
@@ -2206,14 +2114,14 @@ function ktAddMsg(role, text){ var body = $('#kt-chat-body'); if(!body) return; 
 function ktAnswer(q){
   var s = q.toLowerCase().trim();
   var has = function(){ for(var i = 0; i < arguments.length; i++){ if(s.indexOf(arguments[i]) !== -1) return true; } return false; };
-  if(has('تتبع','track','طلبي','order')){ var lastOrder = state.orders[0]; if(lastOrder) return t('bot_track') + ' ' + lastOrder.id + '<br>' + t('bot_status') + ' <b style="color:var(--gold)">' + statusInfo(lastOrder.status).label + '</b>'; return t('bot_no_orders'); }
-  if(has('توصيل','delivery')) return t('bot_delivery');
-  if(has('كوبون','خصم','coupon','discount')) return t('bot_coupons') + '<br>• <b>KANTEEN10</b> — 10%<br>• <b>NEW20</b> — 20%<br>• <b>FLAT50</b> — 50<br>• <b>FREESHIP</b>';
-  if(has('دفع','payment')) return t('bot_pay') + '<br>• 💵 ' + t('co_pay_cod') + '<br>• 🏦 InstaPay<br>• 📱 ' + t('co_pay_voda') + '<br>• 💳 PayPal<br>• 🏪 ' + t('co_pay_fawry');
-  if(has('تواصل','اتصل','واتس','contact','call')) return t('bot_contact') + '<br>• 📱 <a href="tel:01124169656" style="color:var(--gold)">01124169656</a><br>• 💬 <a href="https://wa.me/' + WA_NUMBER + '" target="_blank" style="color:#25D366">' + t('footer_whatsapp') + '</a>';
-  if(has('مندوب','driver')) return t('bot_drivers') + ' <a href="driver.html" style="color:#3b82f6;font-weight:700">' + t('bot_register_driver') + '</a> ' + t('bot_earn');
-  if(has('سلام','مرحبا','اهلا','hi','hello')) return t('bot_hello');
-  return t('bot_not_understood');
+  if(has('تتبع','track','طلبي','order')){ var lastOrder = state.orders[0]; if(lastOrder) return '📦 آخر طلب: ' + lastOrder.id + '<br>الحالة: <b style="color:var(--gold)">' + statusInfo(lastOrder.status).label + '</b>'; return 'لم تقم بأي طلبات بعد.'; }
+  if(has('توصيل','delivery')) return '⚡ التوصيل يستغرق 10-20 دقيقة.<br>الطلبات فوق 500 ج.م توصيل مجاني!';
+  if(has('كوبون','خصم','coupon')) return '🎁 الكوبونات:<br>• KANTEEN10<br>• NEW20<br>• FLAT50<br>• FREESHIP';
+  if(has('دفع','payment')) return '💳 طرق الدفع:<br>• كاش عند الاستلام<br>• InstaPay<br>• فودافون كاش';
+  if(has('تواصل','اتصل','واتس','contact')) return '📞 تواصل:<br>• 01124169656<br>• واتساب';
+  if(has('مندوب','driver')) return '🛵 للمناديب: سجّل من <a href="driver.html">هنا</a> واكسب 15 ج.م/طلب!';
+  if(has('سلام','مرحبا','اهلا','hi','hello')) return 'أهلاً وسهلاً! 👋 كيف أقدر أساعدك؟';
+  return 'آسف، لم أفهم 🤔';
 }
 function ktSendChat(){ var input = $('#kt-chat-input'); if(!input) return; var v = input.value.trim(); if(!v) return; ktAddMsg('user', esc(v)); input.value = ''; setTimeout(function(){ ktAddMsg('bot', ktAnswer(v)); }, 500); }
 function ktOpenChat(){ var panel = $('#kt-chat-panel'); if(panel) panel.classList.add('open'); CHAT.open = true; setTimeout(function(){ var input = $('#kt-chat-input'); if(input) input.focus(); }, 300); }
@@ -2225,14 +2133,12 @@ function ktInitVideo(){
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   var isMobile = window.matchMedia('(max-width: 768px)').matches;
   var isSlow = (navigator.connection && navigator.connection.effectiveType && navigator.connection.effectiveType.includes('2g'));
-
   if (isMobile || isSlow || reduce.matches){
     v.pause();
     v.removeAttribute('src');
     v.style.display = 'none';
     return;
   }
-
   function sync(){
     if (reduce.matches || document.hidden){ v.pause(); }
     else { var p = v.play(); if(p && p.catch) p.catch(function(){}); }
@@ -2267,7 +2173,7 @@ function ktInitPWA(){
     }
   });
   window.addEventListener('appinstalled', function(){
-    ktToast(KT_LANG === 'en' ? '🎉 App installed' : '🎉 تم تثبيت التطبيق', 'success');
+    ktToast('🎉 تم تثبيت التطبيق', 'success');
     var b = document.getElementById('kPwaBanner'); if (b) b.classList.remove('show');
     LS.set('pwa_installed', true);
     ktUpdatePwaFooterBtn();
@@ -2276,12 +2182,12 @@ function ktInitPWA(){
 }
 function ktInstallPwa(){
   if (window.matchMedia('(display-mode: standalone)').matches || LS.get('pwa_installed', false)){
-    ktToast(KT_LANG === 'en' ? '✅ Already installed' : '✅ التطبيق مثبّت بالفعل'); ktUpdatePwaFooterBtn(); return;
+    ktToast('✅ التطبيق مثبّت بالفعل'); ktUpdatePwaFooterBtn(); return;
   }
-  if (!ktDeferredPrompt){ ktToast(KT_LANG === 'en' ? '📱 Use browser menu → Add to Home Screen' : '📱 استخدم قائمة المتصفح → إضافة إلى الشاشة الرئيسية'); return; }
+  if (!ktDeferredPrompt){ ktToast('📱 استخدم قائمة المتصفح → إضافة إلى الشاشة الرئيسية'); return; }
   ktDeferredPrompt.prompt();
   ktDeferredPrompt.userChoice.then(function(choice){
-    if (choice.outcome === 'accepted') ktToast(KT_LANG === 'en' ? '🎉 Installing...' : '🎉 جاري التثبيت...', 'success');
+    if (choice.outcome === 'accepted') ktToast('🎉 جاري التثبيت...', 'success');
     ktDeferredPrompt = null;
     var b = document.getElementById('kPwaBanner'); if (b) b.classList.remove('show');
     setTimeout(ktUpdatePwaFooterBtn, 1000);
@@ -2325,29 +2231,16 @@ function ktInit(){
   }
 
   var headerSearchBtn = $('#k-search-btn');
-  if (headerSearchBtn){
-    headerSearchBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      ktToggleSearchBar();
-    });
-  }
-  var searchFab = $('#kt-search-fab');
-  if (searchFab){
-    searchFab.addEventListener('click', function(){
-      ktToggleSearchBar();
-    });
-  }
+  if (headerSearchBtn){ headerSearchBtn.addEventListener('click', function(e){ e.preventDefault(); ktToggleSearchBar(); }); }
 
   document.addEventListener('click', function(e){
     var locBarEl = document.getElementById('ktLocBar');
     var searchBtnEl = document.getElementById('k-search-btn');
-    var searchFabEl = document.getElementById('kt-search-fab');
     if (!locBarEl || !searchBtnEl) return;
     if (!locBarEl.classList.contains('k-hidden')){
       var insideLocBar = locBarEl.contains(e.target);
       var insideSearchBtn = searchBtnEl.contains(e.target);
-      var insideSearchFab = searchFabEl && searchFabEl.contains(e.target);
-      if (!insideLocBar && !insideSearchBtn && !insideSearchFab){
+      if (!insideLocBar && !insideSearchBtn){
         locBarEl.classList.add('k-hidden');
       }
     }
@@ -2361,18 +2254,16 @@ function ktInit(){
   if(userBtn) userBtn.addEventListener('click', function(){ ktShowAuthChoice(); });
   var searchInput = $('#k-search-input');
   if(searchInput) searchInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ navigate('/search?q=' + encodeURIComponent(e.target.value.trim())); e.target.blur(); } });
-  var chatFab = $('#kt-chat-fab');
-  if(chatFab) chatFab.addEventListener('click', function(){ CHAT.open ? ktCloseChat() : ktOpenChat(); });
   var chatClose = $('#kt-chat-close');
   if(chatClose) chatClose.addEventListener('click', ktCloseChat);
 
   var chatBody = document.getElementById('kt-chat-body');
   if (chatBody && chatBody.children.length === 0){
     var hour = new Date().getHours();
-    var greet = hour < 12 ? t('general_good_morning') : t('general_good_evening');
-    ktAddMsg('bot', greet + '! 👋 ' + (KT_LANG === 'en' ? 'How can I help you?' : 'أنا مساعد كانتِين.<br><br>كيف أقدر أساعدك؟'));
+    var greet = hour < 12 ? 'صباح الخير' : 'مساء الخير';
+    ktAddMsg('bot', greet + '! 👋 أنا مساعد كانتِين.<br><br>كيف أقدر أساعدك؟');
   }
-  var quick = [t('chat_quick_1'), t('chat_quick_2'), t('chat_quick_3'), t('chat_quick_4')];
+  var quick = ['كيف أتتبع طلبي؟', 'أسعار التوصيل؟', 'كوبونات الخصم؟', 'طرق الدفع؟'];
   var quickEl = $('#kt-chat-quick');
   if(quickEl){
     quickEl.innerHTML = quick.map(function(q){ return '<button type="button">' + q + '</button>'; }).join('');
@@ -2395,16 +2286,13 @@ function ktInit(){
   setTimeout(ktUpdatePwaFooterBtn, 800);
 
   if (window.KT_SOUND && !LS.get('welcomed', false)){
-    setTimeout(function(){
-      KT_SOUND.welcome();
-      LS.set('welcomed', true);
-    }, 2500);
+    setTimeout(function(){ KT_SOUND.welcome(); LS.set('welcomed', true); }, 2500);
   }
 }
 window.openModal = function(html){
   var o = $('#k-overlay'); if(!o) return;
   o.classList.add('open');
-  o.innerHTML = '<div class="k-modal">' + html + '<button class="k-modal-close" onclick="closeModal()" aria-label="Close"><svg data-lucide="x"></svg></button></div>';
+  o.innerHTML = '<div class="k-modal">' + html + '<button class="k-modal-close" onclick="closeModal()"><svg data-lucide="x"></svg></button></div>';
   o.onclick = function(e){ if(e.target === o) closeModal(); };
   document.body.style.overflow = 'hidden';
   refreshIcons();
@@ -2416,18 +2304,15 @@ function ktToggleMegaMenu(){
   var backdrop = document.getElementById('ktMegaBackdrop');
   var btn = document.querySelector('.kt-mega-btn');
   if (!menu) return;
-
   var isOpen = menu.classList.contains('open');
-  if (isOpen){
-    ktCloseMegaMenu();
-  } else {
+  if (isOpen){ ktCloseMegaMenu(); }
+  else {
     menu.classList.add('open');
     backdrop.classList.add('open');
     btn.classList.add('open');
     if (window.KT_SOUND) KT_SOUND.message();
   }
 }
-
 function ktCloseMegaMenu(){
   var menu = document.getElementById('ktMegaMenu');
   var backdrop = document.getElementById('ktMegaBackdrop');

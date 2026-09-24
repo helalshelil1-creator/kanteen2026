@@ -1,6 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
-   🔥 KANTEEN — Firebase Helpers v3.0 (No Cloud Functions)
+   🔥 KANTEEN — Firebase Helpers v3.1
    Spark Plan Compatible — Uses Firestore Transactions
+   + Global Products + Driver Live Location
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -75,7 +76,7 @@
   }
 
   /* ═══════════════════════════════════════════════════════
-     ORDERS — Firestore Transaction (بدل Cloud Function)
+     ORDERS — Firestore Transaction
      ═══════════════════════════════════════════════════════ */
   async function fbPlaceOrder(payload) {
     var i = fbInit(); if (!i) throw new Error('Firebase not ready');
@@ -101,7 +102,6 @@
       var merchant = merchantDoc.data();
       if (merchant.status !== 'approved') throw new Error('المتجر غير معتمد');
 
-      // Validate + deduct stock
       var products = merchant.products || [];
       var subtotal = 0;
       var validItems = [];
@@ -120,12 +120,10 @@
         });
       }
 
-      // Delivery fee
       var delivery = 25;
       if (subtotal >= 500) delivery = 0;
       if (merchant.deliveryFee !== undefined) delivery = Number(merchant.deliveryFee);
 
-      // Coupon
       var discount = 0;
       if (coupon && coupon.code) {
         var cpDoc = await t.get(i.db.collection('coupons').doc(coupon.code));
@@ -141,10 +139,8 @@
 
       var total = Math.max(0, subtotal + delivery - discount);
 
-      // Update stock
       t.update(merchantRef, { products: products });
 
-      // Create order
       var orderRef = i.db.collection('orders').doc();
       t.set(orderRef, {
         id: orderId,
@@ -178,7 +174,6 @@
         _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
-      // Create notification for admin
       var notifRef = i.db.collection('notifications').doc();
       t.set(notifRef, {
         type: 'new_order',
@@ -206,7 +201,6 @@
     var user = i.auth.currentUser;
     if (!user) throw new Error('سجّل دخولك');
 
-    // Try both: by _fbId first, then by `id` field
     var orderRef, orderDoc;
     try { orderRef = i.db.collection('orders').doc(orderIdOrFb); orderDoc = await orderRef.get(); } catch (e) { orderDoc = null; }
     if (!orderDoc || !orderDoc.exists) {
@@ -217,7 +211,6 @@
     }
     var order = orderDoc.data();
 
-    // Admin check
     var adminDoc = await i.db.collection('admins').doc(user.uid).get();
     var isAdmin = adminDoc.exists;
     if (order.customerUid !== user.uid && !isAdmin) throw new Error('غير مصرح');
@@ -359,7 +352,6 @@
     var merchantRating = Math.min(5, Math.max(1, Number(payload.merchantRating) || 5));
     var comment = String(payload.comment || '').slice(0, 500);
 
-    // Find order
     var snap = await i.db.collection('orders').where('id', '==', orderId).limit(1).get();
     if (snap.empty) throw new Error('الطلب غير موجود');
     var order = snap.docs[0].data();
@@ -381,7 +373,6 @@
       _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    // Update averages (client-side, simple)
     await updateAvg(i, 'drivers', order.driverId, 'rating', driverRating);
     await updateAvg(i, 'merchants', order.merchantId, 'rating', merchantRating);
     return { success: true };
@@ -413,7 +404,6 @@
       var snap = await i.db.collection('merchants').orderBy('_serverCreatedAt', 'desc').limit(200).get();
       return snap.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
     } catch (e) {
-      // Fallback: without orderBy (in case index not ready yet)
       var snap2 = await i.db.collection('merchants').limit(200).get();
       return snap2.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
     }
@@ -460,7 +450,6 @@
     if (filter && filter.driverId) ref = ref.where('driverId', '==', filter.driverId);
     if (filter && filter.customerUid) ref = ref.where('customerUid', '==', filter.customerUid);
     if (filter && filter.status) ref = ref.where('status', '==', filter.status);
-    // orderBy آخر — عشان لو الـ index مش موجود، يفشل بلطف
     try {
       ref = ref.orderBy('_serverCreatedAt', 'desc').limit(200);
     } catch (e) {}
@@ -469,7 +458,6 @@
       if (typeof cb === 'function') cb(arr);
     }, function (e) {
       console.error('listenOrders error:', e);
-      // Fallback: بدون orderBy
       var fallback = i.db.collection('orders');
       if (filter && filter.merchantId) fallback = fallback.where('merchantId', '==', filter.merchantId);
       if (filter && filter.driverId) fallback = fallback.where('driverId', '==', filter.driverId);
@@ -509,7 +497,6 @@
           if (typeof cb === 'function') cb(arr);
         }, function (e) {
           console.error('listenNotifs error:', e);
-          // Fallback بدون orderBy
           i.db.collection('notifications').limit(100).onSnapshot(function (s2) {
             var a2 = s2.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
             if (typeof cb === 'function') cb(a2);
@@ -546,16 +533,66 @@
   }
 
   /* ═══════════════════════════════════════════════════════
+     🆕 GLOBAL PRODUCTS — إدارة منتجات من الأدمن
+     ═══════════════════════════════════════════════════════ */
+  async function fbSaveProduct(product, productId) {
+    var i = fbInit(); if (!i) return null;
+    try {
+      if (productId) {
+        await i.db.collection('globalProducts').doc(productId).update(Object.assign({}, product, {
+          updatedAt: new Date().toISOString()
+        }));
+        return productId;
+      } else {
+        var ref = await i.db.collection('globalProducts').add(Object.assign({}, product, {
+          createdAt: new Date().toISOString(),
+          _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }));
+        return ref.id;
+      }
+    } catch (e) { console.error('saveProduct:', e); return null; }
+  }
+
+  function fbListenGlobalProducts(cb) {
+    var i = fbInit(); if (!i) return null;
+    try {
+      return i.db.collection('globalProducts').onSnapshot(function (snap) {
+        var arr = snap.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
+        if (typeof cb === 'function') cb(arr);
+      }, function (e) { console.error('listenGlobalProducts:', e); });
+    } catch (e) { return null; }
+  }
+
+  async function fbDeleteProduct(productId) {
+    var i = fbInit(); if (!i) return false;
+    try {
+      await i.db.collection('globalProducts').doc(productId).delete();
+      return true;
+    } catch (e) { console.error('deleteProduct:', e); return false; }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     🆕 DRIVER LIVE LOCATION — تتبع المندوب لحظياً
+     ═══════════════════════════════════════════════════════ */
+  function fbListenDriverLocation(driverId, cb) {
+    var i = fbInit(); if (!i || !driverId) return null;
+    try {
+      return i.db.collection('drivers').doc(driverId).onSnapshot(function (doc) {
+        if (!doc.exists) return;
+        if (typeof cb === 'function') cb(doc.data());
+      }, function (e) { console.error('listenDriverLocation:', e); });
+    } catch (e) { return null; }
+  }
+
+  /* ═══════════════════════════════════════════════════════
      TEST
      ═══════════════════════════════════════════════════════ */
   async function fbTest() {
     try {
       var i = fbInit(); if (!i) return false;
-      // ✅ قراءة بدل كتابة (تجنب permission-denied)
       await i.db.collection('merchants').limit(1).get();
       return true;
     } catch (e) {
-      // لو حتى القراءة فشلت، Firebase نفسه شغال
       if (e && e.code === 'permission-denied') return true;
       console.warn('fbTest:', e);
       return false;
@@ -596,8 +633,14 @@
     markNotificationRead: fbMarkNotificationRead,
     deleteNotification: fbDeleteNotification,
     // Ratings
-    listenRatings: fbListenRatings
+    listenRatings: fbListenRatings,
+    // 🆕 Global Products
+    saveProduct: fbSaveProduct,
+    listenGlobalProducts: fbListenGlobalProducts,
+    deleteProduct: fbDeleteProduct,
+    // 🆕 Driver Live Location
+    listenDriverLocation: fbListenDriverLocation
   };
 
-  console.log('📦 Firebase Helpers v3.0 (Spark mode) loaded');
+  console.log('📦 Firebase Helpers v3.1 (Global Products + Driver Live) loaded');
 })();

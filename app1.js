@@ -552,9 +552,42 @@ function ktApplyMerchantProductsToProducts(){
   });
 }
 
-function ktSyncFromFirebase(){
-  if (!window.KT_FB){ setTimeout(ktSyncFromFirebase, 1000); return; }
-  KT_FB.listenMerchants(function(merchants){
+  // ✅ تحميل منتجات الأدمن العامة
+  if (typeof KT_FB.listenGlobalProducts === 'function'){
+    KT_FB.listenGlobalProducts(function(globalProducts){
+      // شيل المنتجات العامة القديمة
+      for (var gi = PRODUCTS.length - 1; gi >= 0; gi--){
+        if (PRODUCTS[gi] && PRODUCTS[gi].isGlobalProduct) PRODUCTS.splice(gi, 1);
+      }
+      // ضيف الجديدة
+      (globalProducts || []).forEach(function(gp){
+        PRODUCTS.push({
+          id: 'gp_' + gp._fbId,
+          _fbId: gp._fbId,
+          isGlobalProduct: true,
+          cat: gp.cat || 'grocery',
+          brand: gp.brand || 'Kanteen',
+          nameAr: gp.nameAr || gp.name || '',
+          nameEn: gp.nameEn || gp.nameAr || '',
+          emoji: gp.emoji || '🛒',
+          price: parseFloat(gp.price) || 0,
+          discount: parseFloat(gp.discount) || 0,
+          off: parseFloat(gp.off) || 0,
+          weight: gp.weight || '',
+          rating: gp.rating || 4.5,
+          reviews: gp.reviews || 0,
+          stock: gp.stock !== undefined ? gp.stock : 100,
+          bestSeller: !!gp.bestSeller,
+          isNew: !!gp.isNew,
+          featured: !!gp.featured,
+          barcode: gp.barcode || null,
+          image: gp.image || null,
+          addedAt: gp.createdAt || new Date().toISOString()
+        });
+      });
+      if (typeof render === 'function') render();
+    });
+  }
     ktMerchantsCache = merchants || [];
     ktMerchantProducts = [];
     ktMerchantsCache.forEach(function(m){

@@ -32,14 +32,10 @@ service cloud.firestore {
 
     // ═══ MERCHANTS ═══
     match /merchants/{merchantId} {
-
-      // قراءة: admin / owner / تاجر معتمد (للعرض العام)
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.ownerUid != null && resource.data.ownerUid == request.auth.uid)
         || resource.data.status == 'approved';
 
-      // ✅ إنشاء: أي تاجر يقدر يسجّل بحالة pending
-      //    (admin يقدر ينشئ بأي حالة)
       allow create: if isAdmin()
         || (
           request.resource.data.status == 'pending'
@@ -49,7 +45,6 @@ service cloud.firestore {
           )
         );
 
-      // تعديل: admin / owner (بحقول محددة)
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.ownerUid != null
@@ -115,6 +110,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ═══ GLOBAL PRODUCTS (Admin-only) ═══
+    match /globalProducts/{productId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // ═══ RATINGS ═══
     match /ratings/{ratingId} {
       allow read: if true;
@@ -142,6 +145,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // ═══ TEST ═══
     match /_test/{doc} {
       allow read, write: if false;
     }
