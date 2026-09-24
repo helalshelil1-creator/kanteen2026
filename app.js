@@ -183,11 +183,11 @@ var IMG = {
   honey:'https://images.pexels.com/photos/1638280/pexels-photo-1638280.jpeg?auto=compress&cs=tinysrgb&w=600',
   jam:'https://images.pexels.com/photos/4226881/pexels-photo-4226881.jpeg?auto=compress&cs=tinysrgb&w=600',
   tahini:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=600',
-  ketchup:'https://images.pexels.com/photos/1093910/pexels-photo-1093910.jpeg?auto=compress&cs=tinysrgb&w=600',
+  ketchup:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=600',
   mayo:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=600',
   oil:'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=600',
   oliveoil:'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=600',
-  sugar:'https://images.pexels.com/photos/37536/sugar-cubes-sugar-cube-white.jpg?auto=compress&cs=tinysrgb&w=600',
+ sugar:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=600',
   salt:'https://images.pexels.com/photos/235901/pexels-photo-235901.jpeg?auto=compress&cs=tinysrgb&w=600',
   soup:'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&cs=tinysrgb&w=600',
   tuna:'https://images.pexels.com/photos/1633578/pexels-photo-1633578.jpeg?auto=compress&cs=tinysrgb&w=600',
@@ -841,7 +841,7 @@ function applyLang(){
   document.documentElement.lang = KT_LANG;
   document.documentElement.dir = KT_LANG === 'ar' ? 'rtl' : 'ltr';
   var langBtn = document.getElementById('ktLangBtn');
-  if (langBtn){ langBtn.innerHTML = '<svg data-lucide="languages"></svg> ' + t('lang_toggle'); }
+if (langBtn){ langBtn.innerHTML = 'EN'; }
   var searchInput = document.getElementById('ktAddressInput');
   if (searchInput) searchInput.placeholder = t('loc_search_placeholder');
   var headerSearch = document.getElementById('k-search-input');

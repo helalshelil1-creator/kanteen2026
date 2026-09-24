@@ -46,7 +46,7 @@
 <div class="k-bg-overlay" aria-hidden="true"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     LOCATION BAR — مخفي بشكل افتراضي
+     LOCATION BAR
      ═══════════════════════════════════════════════════════════ -->
 <div class="kt-locbar k-hidden" id="ktLocBar">
   <button type="button" class="kt-locbar-btn" onclick="ktUseCurrentLocation()">📍 موقعي الحالي</button>
@@ -91,7 +91,7 @@
     <svg class="k-search-ico" data-lucide="search"></svg>
   </div>
 
-  <div class="k-actions">
+<div class="k-actions">
     <button class="kt-lang-pill" id="ktLangBtn" onclick="ktToggleLang()" aria-label="Language" title="العربية / English">
       <svg data-lucide="languages"></svg> EN
     </button>
@@ -101,8 +101,45 @@
     <a href="driver.html" class="k-icon-btn k-driver-header" id="ktDriverHeaderBtn" aria-label="مندوب توصيل" title="مندوب توصيل"><svg data-lucide="bike"></svg></a>
     <a href="admin.html" class="kt-admin-btn" id="ktAdminHeaderBtn" aria-label="الإدارة" title="الإدارة"><svg data-lucide="settings-2"></svg></a>
     <a class="k-pill-header" id="ktShopNowBtn" href="#/search">تسوّق الآن</a>
-  </div>
+
+    <!-- 🍔 زر القائمة الرئيسية — آخر عنصر يعني يظهر على الشمال في RTL -->
+    <button class="k-burger-btn" id="k-burger-btn" aria-label="القائمة الرئيسية" title="القائمة" onclick="ktToggleBurgerMenu()" type="button">
+      <svg data-lucide="menu"></svg>
+    </button>
+</div>
 </header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     🍔 BURGER MENU PANEL
+     ═══════════════════════════════════════════════════════════ -->
+<div class="kt-burger-backdrop" id="ktBurgerBackdrop" onclick="ktCloseBurgerMenu()"></div>
+<aside class="kt-burger-menu" id="ktBurgerMenu" aria-label="القائمة الرئيسية">
+  <div class="kt-burger-head">
+    <img src="logo.png" alt="كانتِين" class="kt-burger-logo" onerror="this.style.display='none'">
+    <button class="kt-burger-close" onclick="ktCloseBurgerMenu()" aria-label="إغلاق" type="button">
+      <svg data-lucide="x"></svg>
+    </button>
+  </div>
+  <nav class="kt-burger-nav">
+    <div class="kt-burger-sep">تسوّق</div>
+    <a href="#/" onclick="ktCloseBurgerMenu()"><svg data-lucide="home"></svg><span>الرئيسية</span></a>
+    <a href="#/categories" onclick="ktCloseBurgerMenu()"><svg data-lucide="layout-grid"></svg><span>الأقسام</span></a>
+    <a href="#/search?deals=1" onclick="ktCloseBurgerMenu()"><svg data-lucide="flame"></svg><span>عروض اليوم</span></a>
+    <a href="#/search?sort=popular" onclick="ktCloseBurgerMenu()"><svg data-lucide="trending-up"></svg><span>الأكثر مبيعاً</span></a>
+    <a href="#/wishlist" onclick="ktCloseBurgerMenu()"><svg data-lucide="heart"></svg><span>المفضلة</span></a>
+    <a href="#/cart" onclick="ktCloseBurgerMenu()"><svg data-lucide="shopping-bag"></svg><span>سلة التسوق</span></a>
+    <div class="kt-burger-sep">حسابي</div>
+    <a href="#/account" onclick="ktCloseBurgerMenu()"><svg data-lucide="user"></svg><span>حسابي</span></a>
+    <a href="#/orders" onclick="ktCloseBurgerMenu()"><svg data-lucide="package"></svg><span>طلباتي</span></a>
+    <div class="kt-burger-sep">لوحات التحكم</div>
+    <a href="merchant.html"><svg data-lucide="store"></svg><span>لوحة التاجر</span></a>
+    <a href="driver.html"><svg data-lucide="bike"></svg><span>لوحة المندوب</span></a>
+    <a href="admin.html"><svg data-lucide="settings-2"></svg><span>لوحة الإدارة</span></a>
+    <div class="kt-burger-sep">تواصل معنا</div>
+    <a href="https://wa.me/201124169656" target="_blank" rel="noopener"><svg data-lucide="message-circle"></svg><span>واتساب</span></a>
+    <a href="tel:01124169656"><svg data-lucide="phone"></svg><span>01124169656</span></a>
+  </nav>
+</aside>
 
 <!-- ═══════════════════════════════════════════════════════════
      MAIN + FOOTER
@@ -111,7 +148,7 @@
 <footer class="k-footer" id="k-footer"></footer>
 
 <!-- ═══════════════════════════════════════════════════════════
-     BOTTOM NAV — مع MEGA BUTTON في المنتصف
+     BOTTOM NAV
      ═══════════════════════════════════════════════════════════ -->
 <nav class="k-bottom">
   <a class="k-bnav" data-nav="home" href="#/">
@@ -122,8 +159,7 @@
     <svg data-lucide="layout-grid"></svg>
     <span>الأقسام</span>
   </a>
-  
-  <!-- ⭐ MEGA BUTTON — مركز الفوتر -->
+
   <button class="k-bnav kt-mega-btn" data-nav="mega" onclick="ktToggleMegaMenu()" aria-label="قائمة سريعة">
     <span class="kt-mega-icon">
       <svg data-lucide="plus"></svg>
@@ -131,7 +167,7 @@
     <span class="kt-mega-status checking" id="ktMegaStatus"></span>
     <span>قائمة</span>
   </button>
-  
+
   <a class="k-bnav" data-nav="cart" href="#/cart">
     <svg data-lucide="shopping-bag"></svg>
     <span>السلة</span>
@@ -143,41 +179,28 @@
   </a>
 </nav>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MEGA MENU — القائمة المنسدلة
-     ═══════════════════════════════════════════════════════════ -->
+<!-- MEGA MENU -->
 <div class="kt-mega-backdrop" id="ktMegaBackdrop" onclick="ktCloseMegaMenu()"></div>
 <div class="kt-mega-menu" id="ktMegaMenu">
-  
-  <!-- حالة التوصيل -->
   <button class="kt-mega-menu-item zone checking" id="ktMegaZone" onclick="ktCheckZoneDetails();ktCloseMegaMenu()">
     <span class="ico"><svg data-lucide="map-pin"></svg></span>
     <span class="txt" id="ktZoneText">جاري التحقق...</span>
   </button>
-  
-  <!-- بحث سريع -->
   <button class="kt-mega-menu-item search" onclick="ktCloseMegaMenu();setTimeout(ktToggleSearchBar,150)">
     <span class="ico"><svg data-lucide="search"></svg></span>
     <span class="txt">بحث سريع</span>
   </button>
-  
-  <!-- متاجر قريبة -->
   <button class="kt-mega-menu-item nearby" onclick="ktCloseMegaMenu();setTimeout(ktOpenNearbyStores,150)">
     <span class="ico"><svg data-lucide="store"></svg></span>
     <span class="txt">متاجر قريبة</span>
   </button>
-  
-  <!-- مساعد كانتِين -->
   <button class="kt-mega-menu-item chat" onclick="ktCloseMegaMenu();setTimeout(ktOpenChat,150)">
     <span class="ico"><svg data-lucide="message-square"></svg></span>
     <span class="txt">مساعد كانتِين</span>
   </button>
-  
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     DRAWER (Cart)
-     ═══════════════════════════════════════════════════════════ -->
+<!-- DRAWER -->
 <aside class="k-drawer" id="k-drawer">
   <div class="k-drawer-head">
     <h3 class="h4" style="margin:0">سلة التسوق</h3>
@@ -187,15 +210,11 @@
   <div class="k-drawer-foot" id="drawer-foot"></div>
 </aside>
 
-<!-- ═══════════════════════════════════════════════════════════
-     OVERLAY + TOASTS
-     ═══════════════════════════════════════════════════════════ -->
+<!-- OVERLAY + TOASTS -->
 <div class="k-overlay" id="k-overlay"></div>
 <div class="k-toast-wrap" id="k-toasts"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     PWA BANNER
-     ═══════════════════════════════════════════════════════════ -->
+<!-- PWA BANNER -->
 <div class="k-pwa-banner" id="kPwaBanner">
   <div class="k-pwa-banner-head">
     <div class="k-pwa-banner-icon">📱</div>
@@ -211,9 +230,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CHAT PANEL
-     ═══════════════════════════════════════════════════════════ -->
+<!-- CHAT PANEL -->
 <div class="kt-chat-panel" id="kt-chat-panel">
   <div class="kt-chat-head">
     <div class="kt-chat-av">ك</div>
@@ -228,10 +245,36 @@
   </form>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     FIREBASE STATUS
-     ═══════════════════════════════════════════════════════════ -->
+<!-- FIREBASE STATUS -->
 <div class="k-fb-status" id="kFbStatus">🔥 Firebase</div>
+
+<!-- 🍔 Burger Menu Logic -->
+<script>
+function ktToggleBurgerMenu(){
+  var m = document.getElementById('ktBurgerMenu');
+  var b = document.getElementById('ktBurgerBackdrop');
+  if (!m || !b) return;
+  var isOpen = m.classList.contains('open');
+  if (isOpen){
+    ktCloseBurgerMenu();
+  } else {
+    m.classList.add('open');
+    b.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (window.KT_SOUND){ try{ KT_SOUND.message(); }catch(e){} }
+  }
+}
+function ktCloseBurgerMenu(){
+  var m = document.getElementById('ktBurgerMenu');
+  var b = document.getElementById('ktBurgerBackdrop');
+  if (m) m.classList.remove('open');
+  if (b) b.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') ktCloseBurgerMenu();
+});
+</script>
 
 <script src="app.js"></script>
 </body>
