@@ -27,6 +27,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://images.pexels.com">
 <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Reem+Kufi:wght@400;500;600;700&family=El+Messiri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- ✅ Leaflet CDN — عشان خريطة تتبع المندوب -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="style.css">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -45,9 +48,7 @@
   src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104303_0c6d60b2-9353-408e-9449-585108a22fb5.mp4"></video>
 <div class="k-bg-overlay" aria-hidden="true"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     LOCATION BAR
-     ═══════════════════════════════════════════════════════════ -->
+<!-- LOCATION BAR -->
 <div class="kt-locbar k-hidden" id="ktLocBar">
   <button type="button" class="kt-locbar-btn" onclick="ktUseCurrentLocation()">📍 موقعي الحالي</button>
   <div class="kt-locbar-location loading" id="ktLocStatus">
@@ -66,9 +67,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     HEADER
-     ═══════════════════════════════════════════════════════════ -->
+<!-- HEADER -->
 <header class="k-header" id="k-header">
   <a class="k-logo" href="#/" aria-label="كانتِين">
     <img src="logo.png" alt="كانتِين - Kanteen" class="k-logo-img" onerror="this.dataset.error='true';this.insertAdjacentHTML('afterend','<span class=&quot;k-logo-fallback&quot;>كانتِين</span>')">
@@ -80,20 +79,20 @@
     <a href="#/orders">طلباتي</a>
   </nav>
 
-  <!-- 🔍 زر البحث (للموبايل) -->
+  <!-- 🔍 زر البحث للموبايل -->
   <button class="k-icon-btn k-search-btn" id="k-search-btn" aria-label="بحث" title="بحث">
     <svg data-lucide="search"></svg>
   </button>
 
-  <!-- 🔍 حقل البحث (للديسكتوب) -->
+  <!-- 🔍 حقل البحث للديسكتوب -->
   <div class="k-search k-search-desktop">
     <input type="search" id="k-search-input" placeholder="ابحث عن منتج..." autocomplete="off">
     <svg class="k-search-ico" data-lucide="search"></svg>
   </div>
 
-<div class="k-actions">
+  <div class="k-actions">
     <button class="kt-lang-pill" id="ktLangBtn" onclick="ktToggleLang()" aria-label="Language" title="العربية / English">
-      <svg data-lucide="languages"></svg> EN
+      <span id="ktLangLabel">EN</span>
     </button>
     <button class="k-icon-btn" id="k-wish-btn" aria-label="المفضلة"><svg data-lucide="heart"></svg><span class="k-badge" id="k-wish-badge">0</span></button>
     <button class="k-icon-btn" id="k-cart-btn" aria-label="السلة"><svg data-lucide="shopping-bag"></svg><span class="k-badge gold" id="k-cart-badge">0</span></button>
@@ -102,16 +101,14 @@
     <a href="admin.html" class="kt-admin-btn" id="ktAdminHeaderBtn" aria-label="الإدارة" title="الإدارة"><svg data-lucide="settings-2"></svg></a>
     <a class="k-pill-header" id="ktShopNowBtn" href="#/search">تسوّق الآن</a>
 
-    <!-- 🍔 زر القائمة الرئيسية — آخر عنصر يعني يظهر على الشمال في RTL -->
+    <!-- 🍔 زر القائمة الرئيسية — آخر عنصر (شمال في RTL) -->
     <button class="k-burger-btn" id="k-burger-btn" aria-label="القائمة الرئيسية" title="القائمة" onclick="ktToggleBurgerMenu()" type="button">
       <svg data-lucide="menu"></svg>
     </button>
-</div>
+  </div>
 </header>
 
-<!-- ═══════════════════════════════════════════════════════════
-     🍔 BURGER MENU PANEL
-     ═══════════════════════════════════════════════════════════ -->
+<!-- 🍔 BURGER MENU PANEL -->
 <div class="kt-burger-backdrop" id="ktBurgerBackdrop" onclick="ktCloseBurgerMenu()"></div>
 <aside class="kt-burger-menu" id="ktBurgerMenu" aria-label="القائمة الرئيسية">
   <div class="kt-burger-head">
@@ -141,15 +138,11 @@
   </nav>
 </aside>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MAIN + FOOTER
-     ═══════════════════════════════════════════════════════════ -->
+<!-- MAIN + FOOTER -->
 <main id="k-main"></main>
 <footer class="k-footer" id="k-footer"></footer>
 
-<!-- ═══════════════════════════════════════════════════════════
-     BOTTOM NAV
-     ═══════════════════════════════════════════════════════════ -->
+<!-- BOTTOM NAV -->
 <nav class="k-bottom">
   <a class="k-bnav" data-nav="home" href="#/">
     <svg data-lucide="home"></svg>
@@ -159,7 +152,6 @@
     <svg data-lucide="layout-grid"></svg>
     <span>الأقسام</span>
   </a>
-
   <button class="k-bnav kt-mega-btn" data-nav="mega" onclick="ktToggleMegaMenu()" aria-label="قائمة سريعة">
     <span class="kt-mega-icon">
       <svg data-lucide="plus"></svg>
@@ -167,7 +159,6 @@
     <span class="kt-mega-status checking" id="ktMegaStatus"></span>
     <span>قائمة</span>
   </button>
-
   <a class="k-bnav" data-nav="cart" href="#/cart">
     <svg data-lucide="shopping-bag"></svg>
     <span>السلة</span>
