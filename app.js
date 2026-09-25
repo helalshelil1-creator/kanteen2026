@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   كانتِين | Kanteen — Main Application v3.2
-   + Global Products from Admin + Driver Live Tracking
+   كانتِين | Kanteen — Main Application v3.3
+   + Global Products + Driver Live Tracking + GPS Fallback
    ═══════════════════════════════════════════════════════════ */
 
 var $ = function(s, r){ r = r || document; return r.querySelector(s); };
@@ -455,7 +455,6 @@ var PRODUCTS = [
   P(152,'dairy','Activia','أكتيفيا زبادي 4×','Activia 4pk','🥣',35,0,'4 pc',4.7,null,IMG.yogurt)
 ];
 
-
 /* ═══════ نهاية الجزء 1 — يبدأ الجزء 2 من هنا ═══════ */
 var SERVICE_CATEGORIES = [
   {id:'food', title:'اطلب الطعام', titleEn:'Order Food', desc:'توصيل مجاني وعروض حصرية وأكثر لدى شركائنا من المطاعم', descEn:'Free delivery and exclusive offers from our restaurant partners', img:IMG.food, btnText:'اطلب الآن', btnTextEn:'Order Now'},
@@ -591,11 +590,9 @@ function ktSyncFromFirebase(){
   // ✅ تحميل منتجات الأدمن العامة
   if (typeof KT_FB.listenGlobalProducts === 'function'){
     KT_FB.listenGlobalProducts(function(globalProducts){
-      // شيل القديمة
       for (var gi = PRODUCTS.length - 1; gi >= 0; gi--){
         if (PRODUCTS[gi] && PRODUCTS[gi].isGlobalProduct) PRODUCTS.splice(gi, 1);
       }
-      // ضيف الجديدة
       (globalProducts || []).forEach(function(gp){
         PRODUCTS.push({
           id: 'gp_' + gp._fbId,
@@ -1008,6 +1005,22 @@ var ktUserLocation = null, ktNearestStore = null, ktZoneStatus = 'checking';
 function ktCalcDistance(lat1, lng1, lat2, lng2){ var R = 6371; var dLat = (lat2-lat1)*Math.PI/180; var dLng = (lng2-lng1)*Math.PI/180; var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2); return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
 function ktGetMerchantStores(){ return ktMerchantsCache.filter(function(m){ return m.status === 'approved' || !m.status; }); }
 
+/* ✅ التحقق من صحة إحداثيات مصر */
+function ktIsValidEgyptCoords(lat, lng){
+  if (!lat || !lng) return false;
+  lat = parseFloat(lat); lng = parseFloat(lng);
+  if (isNaN(lat) || isNaN(lng)) return false;
+  return lat >= 22 && lat <= 32 && lng >= 24 && lng <= 37;
+}
+
+/* ✅ تحويل آمن للأرقام */
+function ktSafeNum(v){
+  if (v === null || v === undefined) return null;
+  var n = typeof v === 'number' ? v : parseFloat(v);
+  if (isNaN(n) || !isFinite(n)) return null;
+  return n;
+}
+
 function ktUpdateZoneBadge(status){
   var megaItem = document.getElementById('ktMegaZone');
   var megaStatus = document.getElementById('ktMegaStatus');
@@ -1029,7 +1042,12 @@ function ktCheckDeliveryZone(){
     var stores = ktGetMerchantStores();
     if(!stores.length){ ktZoneStatus = 'nostores'; ktUpdateZoneBadge('nostores'); return; }
     var nearest = null, minDist = Infinity;
-    stores.forEach(function(store){ if(!store.lat || !store.lng) return; var d = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, store.lat, store.lng); if(d < minDist){ minDist = d; nearest = store; } });
+    stores.forEach(function(store){
+      var sLat = ktSafeNum(store.lat), sLng = ktSafeNum(store.lng);
+      if (!ktIsValidEgyptCoords(sLat, sLng)) return;
+      var d = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, sLat, sLng);
+      if(d < minDist){ minDist = d; nearest = store; }
+    });
     if(!nearest){ ktUpdateZoneBadge('nostores'); return; }
     ktNearestStore = nearest;
     if(minDist <= KT_DELIVERY_RADIUS_KM){ ktZoneStatus = 'inside'; ktUpdateZoneBadge('inside'); }
@@ -1045,7 +1063,7 @@ function ktCheckZoneDetails(){
   }
   if(ktZoneStatus === 'inside'){
     var store = ktNearestStore;
-    var dist = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, store.lat, store.lng);
+    var dist = ktCalcDistance(ktUserLocation.lat, ktUserLocation.lng, ktSafeNum(store.lat), ktSafeNum(store.lng));
     window.openModal(
       '<div style="text-align:center;padding:12px 0"><div style="font-size:56px">✅</div><h2 class="h2" style="color:#22c55e">أنت داخل نطاق التوصيل!</h2><p class="muted">' + esc(store.name) + ' • ' + dist.toFixed(2) + ' كم</p></div>' +
       '<button class="btn btn-primary btn-block" style="margin-top:16px" onclick="closeModal();ktOpenNearbyStores()">🏪 كل المتاجر</button>'
@@ -1216,28 +1234,161 @@ function ktCloseSearchBar(){
   if (locBar) locBar.classList.add('k-hidden');
 }
 
+/* ✅ نظام جيب الموقع — 3 محاولات + IP fallback */
+function ktGetLocationWithFallback(){
+  return new Promise(function(resolve, reject){
+    if (!navigator.geolocation){
+      ktGetLocationFromIP().then(resolve).catch(reject);
+      return;
+    }
+
+    var attempts = 0;
+    var maxAttempts = 3;
+    var settings = [
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    ];
+
+    function tryNext(){
+      if (attempts >= maxAttempts){
+        ktGetLocationFromIP().then(resolve).catch(function(){
+          var savedLat = LS.get('delivery_lat', null);
+          var savedLng = LS.get('delivery_lng', null);
+          if (savedLat && savedLng && ktIsValidEgyptCoords(savedLat, savedLng)){
+            resolve({ lat: savedLat, lng: savedLng, source: 'saved' });
+          } else {
+            reject(new Error('فشل تحديد الموقع'));
+          }
+        });
+        return;
+      }
+      var opt = settings[attempts];
+      attempts++;
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          if (ktIsValidEgyptCoords(lat, lng)){
+            resolve({ lat: lat, lng: lng, source: 'gps', accuracy: pos.coords.accuracy });
+          } else {
+            tryNext();
+          }
+        },
+        function(){ tryNext(); },
+        opt
+      );
+    }
+    tryNext();
+  });
+}
+
+function ktGetLocationFromIP(){
+  return new Promise(function(resolve, reject){
+    var done = false;
+    var timer = setTimeout(function(){ if(!done){ done=true; reject(new Error('IP timeout')); } }, 5000);
+    fetch('https://ipapi.co/json/', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        var lat = ktSafeNum(d.latitude);
+        var lng = ktSafeNum(d.longitude);
+        if (lat && lng && ktIsValidEgyptCoords(lat, lng)){
+          resolve({ lat: lat, lng: lng, source: 'ip' });
+        } else {
+          reject(new Error('IP خارج مصر'));
+        }
+      })
+      .catch(function(e){ if(!done){ done=true; clearTimeout(timer); reject(e); } });
+  });
+}
+
+/* ✅ نافذة المتاجر القريبة — مع فلترة المتاجر الوهمية */
 function ktShowNearbyStoresModal(lat, lng){
   var stores = ktGetMerchantStores();
-  var withDistance = stores.filter(function(s){ return s.lat && s.lng; }).map(function(s){ var d = ktCalcDistance(lat, lng, s.lat, s.lng); return Object.assign({}, s, {_distance: d}); }).sort(function(a, b){ return a._distance - b._distance; });
+
+  // فلترة: بس المتاجر اللي ليها إحداثيات صحيحة في مصر
+  var validStores = stores.filter(function(s){
+    return ktIsValidEgyptCoords(ktSafeNum(s.lat), ktSafeNum(s.lng));
+  });
+
+  // حساب المسافة
+  var withDistance = validStores.map(function(s){
+    var d = ktCalcDistance(lat, lng, ktSafeNum(s.lat), ktSafeNum(s.lng));
+    return Object.assign({}, s, { _distance: d });
+  }).filter(function(s){
+    return s._distance < 500;
+  }).sort(function(a, b){ return a._distance - b._distance; });
+
   var insideCount = withDistance.filter(function(s){ return s._distance <= KT_DELIVERY_RADIUS_KM; }).length;
-  var storesHTML = withDistance.length
-    ? withDistance.slice(0, 15).map(function(s){
-        var inside = s._distance <= KT_DELIVERY_RADIUS_KM;
-        var productCount = (s.products || []).length;
-        var sid = s._fbId || s.id;
-        return '<div class="kt-nearby-store" onclick="ktPickStore(\'' + sid + '\')"><div class="kt-nearby-store-ic">🏪</div><div class="kt-nearby-store-info"><div class="kt-nearby-store-name">' + esc(s.name) + ' <span class="pill ' + (inside ? 'pill-fresh' : 'pill-danger') + '">' + (inside ? '✅ يوصّل لك' : '❌ خارج النطاق') + ' • ' + s._distance.toFixed(1) + ' كم</span></div><div class="kt-nearby-store-meta">📍 ' + esc(s.address || '') + '</div><div class="kt-nearby-store-meta">📞 ' + esc(s.phone) + ' · 📦 ' + productCount + ' منتج</div></div><div class="kt-nearby-store-actions"><a href="tel:' + esc(s.phone) + '" class="btn btn-gold btn-sm" onclick="event.stopPropagation()">📞</a></div></div>';
-      }).join('')
-    : '<div class="k-empty" style="padding:40px;text-align:center"><div style="font-size:64px">🏪</div><h3>لا توجد متاجر مسجلة</h3><p class="muted">سيتم إضافة المتاجر قريباً</p></div>';
+
+  // المتاجر اللي مش ليها إحداثيات
+  var noLocationStores = stores.filter(function(s){
+    return !ktIsValidEgyptCoords(ktSafeNum(s.lat), ktSafeNum(s.lng));
+  });
+
+  var totalToShow = withDistance.length + noLocationStores.length;
+  var storesHTML = '';
+
+  if (withDistance.length){
+    storesHTML += withDistance.slice(0, 15).map(function(s){
+      var inside = s._distance <= KT_DELIVERY_RADIUS_KM;
+      var productCount = (s.products || []).length;
+      var sid = s._fbId || s.id;
+      return '<div class="kt-nearby-store" onclick="ktPickStore(\'' + sid + '\')">' +
+        '<div class="kt-nearby-store-ic">🏪</div>' +
+        '<div class="kt-nearby-store-info">' +
+          '<div class="kt-nearby-store-name">' + esc(s.name) + ' <span class="pill ' + (inside ? 'pill-fresh' : 'pill-danger') + '">' + (inside ? '✅ يوصّل لك' : '❌ خارج النطاق') + ' • ' + s._distance.toFixed(1) + ' كم</span></div>' +
+          '<div class="kt-nearby-store-meta">📍 ' + esc(s.address || 'بدون عنوان') + '</div>' +
+          '<div class="kt-nearby-store-meta">📞 ' + esc(s.phone) + ' · 📦 ' + productCount + ' منتج</div>' +
+        '</div>' +
+        '<div class="kt-nearby-store-actions"><a href="tel:' + esc(s.phone) + '" class="btn btn-gold btn-sm" onclick="event.stopPropagation()">📞</a></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  if (noLocationStores.length){
+    storesHTML += '<div style="margin-top:20px;padding-top:20px;border-top:1px dashed var(--line-2)">' +
+      '<h4 style="font-size:13px;color:var(--ink-3);margin-bottom:12px">⚠️ متاجر بدون موقع محدد (' + noLocationStores.length + ')</h4>';
+    noLocationStores.forEach(function(s){
+      var sid = s._fbId || s.id;
+      storesHTML += '<div class="kt-nearby-store" onclick="ktPickStore(\'' + sid + '\')" style="opacity:.75">' +
+        '<div class="kt-nearby-store-ic">🏪</div>' +
+        '<div class="kt-nearby-store-info">' +
+          '<div class="kt-nearby-store-name">' + esc(s.name) + ' <span class="pill pill-info">📍 بدون موقع</span></div>' +
+          '<div class="kt-nearby-store-meta">📍 ' + esc(s.address || 'بدون عنوان') + '</div>' +
+          '<div class="kt-nearby-store-meta">📞 ' + esc(s.phone) + '</div>' +
+        '</div>' +
+        '<div class="kt-nearby-store-actions"><a href="tel:' + esc(s.phone) + '" class="btn btn-gold btn-sm" onclick="event.stopPropagation()">📞</a></div>' +
+      '</div>';
+    });
+    storesHTML += '</div>';
+  }
+
+  if (!totalToShow){
+    storesHTML = '<div class="k-empty" style="padding:40px;text-align:center">' +
+      '<div style="font-size:64px;margin-bottom:12px">🏪</div>' +
+      '<h3 style="margin-bottom:8px">لا توجد متاجر مسجلة</h3>' +
+      '<p class="muted">سيتم إضافة المتاجر قريباً</p>' +
+      '<a href="merchant.html" class="btn btn-primary" style="margin-top:16px">سجّل متجرك</a>' +
+    '</div>';
+  }
+
   window.openModal(
     '<div class="k-modal-head"><h3><svg data-lucide="map-pin"></svg> المتاجر القريبة (' + withDistance.length + ')</h3><button class="k-modal-close" onclick="closeModal()"><svg data-lucide="x"></svg></button></div>' +
-    '<div style="background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(255,184,0,.06));border:1px solid rgba(255,107,53,.3);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center"><div style="font-size:13px;color:var(--ink-3)">📍 موقعك الحالي</div><div style="font-size:13px;font-family:monospace;color:var(--gold)">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div><div style="font-size:12.5px;color:var(--fresh);margin-top:8px;font-weight:700">✅ ' + insideCount + ' متجر يوصّل لك في نطاق 10 كم</div></div>' +
+    '<div style="background:linear-gradient(135deg,rgba(255,107,53,.1),rgba(255,184,0,.06));border:1px solid rgba(255,107,53,.3);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center">' +
+      '<div style="font-size:13px;color:var(--ink-3);margin-bottom:6px">📍 موقعك الحالي</div>' +
+      '<div style="font-size:13px;font-family:monospace;color:var(--gold)">' + lat.toFixed(4) + ', ' + lng.toFixed(4) + '</div>' +
+      '<div style="font-size:12.5px;color:var(--fresh);margin-top:8px;font-weight:700">✅ ' + insideCount + ' متجر يوصّل لك في نطاق 10 كم</div>' +
+    '</div>' +
     '<div class="kt-nearby-stores">' + storesHTML + '</div>' +
     '<button class="btn btn-glass btn-block" style="margin-top:16px" onclick="closeModal()">إغلاق</button>'
   );
   refreshIcons();
 }
 
-/* ✅ محسّن — GPS سريع ثم دقيق مع fallback */
 function ktOpenNearbyStores(){
   if (!navigator.geolocation){
     ktToast('❌ المتصفح لا يدعم GPS');
@@ -1245,31 +1396,23 @@ function ktOpenNearbyStores(){
   }
   ktToast('📍 جاري تحديد موقعك...');
 
-  var ok = function(pos){
-    ktUserLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    ktShowNearbyStoresModal(pos.coords.latitude, pos.coords.longitude);
-  };
-  var err = function(){
-    var savedLat = LS.get('delivery_lat', null);
-    var savedLng = LS.get('delivery_lng', null);
-    if (savedLat && savedLng){
-      ktToast('📍 بنستخدم آخر موقع محفوظ');
-      ktShowNearbyStoresModal(savedLat, savedLng);
-    } else {
-      ktToast('❌ لم نتمكن من تحديد موقعك');
-    }
-  };
-
-  navigator.geolocation.getCurrentPosition(
-    ok,
-    function(){
-      navigator.geolocation.getCurrentPosition(ok, err, {
-        enableHighAccuracy: true, timeout: 12000, maximumAge: 60000
-      });
-    },
-    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-  );
+  ktGetLocationWithFallback()
+    .then(function(loc){
+      ktUserLocation = { lat: loc.lat, lng: loc.lng };
+      LS.set('delivery_lat', loc.lat);
+      LS.set('delivery_lng', loc.lng);
+      ktShowNearbyStoresModal(loc.lat, loc.lng);
+      if (loc.source === 'ip'){
+        ktToast('📍 تم تحديد موقعك تقريبياً (من الإنترنت)');
+      } else if (loc.source === 'saved'){
+        ktToast('📍 بنستخدم آخر موقع محفوظ');
+      }
+    })
+    .catch(function(){
+      ktToast('❌ لم نتمكن من تحديد موقعك — فعّل GPS');
+    });
 }
+
 function ktPickStore(storeId){
   var store = ktMerchantsCache.find(function(s){ return String(s._fbId || s.id) === String(storeId); });
   if (!store) return;
@@ -1299,7 +1442,6 @@ function ktUpdateLocStatus(status, text){
   txt.textContent = text;
 }
 
-/* ✅ محسّن — GPS سريع ثم دقيق */
 function ktUseCurrentLocation(){
   if (!navigator.geolocation){
     ktUpdateLocStatus('err', t('general_gps_not_supported'));
@@ -1307,32 +1449,30 @@ function ktUseCurrentLocation(){
   }
   ktUpdateLocStatus('loading', t('loc_detecting'));
 
-  var ok = function(pos){
-    var lat = pos.coords.latitude, lng = pos.coords.longitude;
-    LS.set('delivery_lat', lat);
-    LS.set('delivery_lng', lng);
+  ktGetLocationWithFallback()
+    .then(function(loc){
+      var lat = loc.lat, lng = loc.lng;
+      LS.set('delivery_lat', lat);
+      LS.set('delivery_lng', lng);
 
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=' + KT_LANG)
-      .then(function(r){ return r.json(); })
-      .then(function(data){
-        var addr = (data.address && (data.address.suburb || data.address.neighbourhood || data.address.city || data.address.town)) || data.display_name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
-        LS.set('delivery_address', addr);
-        ktUpdateLocStatus('ok', String(addr).substring(0, 30));
-        ktToast('✅ تم تحديد موقعك', 'success');
-        if (typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
-      })
-      .catch(function(){ ktUpdateLocStatus('ok', lat.toFixed(3) + ', ' + lng.toFixed(3)); });
-  };
-
-  navigator.geolocation.getCurrentPosition(
-    ok,
-    function(){
-      navigator.geolocation.getCurrentPosition(ok, function(){
-        ktUpdateLocStatus('err', t('general_location_error'));
-      }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
-    },
-    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-  );
+      fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=' + KT_LANG)
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+          var addr = (data.address && (data.address.suburb || data.address.neighbourhood || data.address.city || data.address.town)) || data.display_name || (lat.toFixed(4) + ', ' + lng.toFixed(4));
+          LS.set('delivery_address', addr);
+          ktUpdateLocStatus('ok', String(addr).substring(0, 30));
+          ktToast('✅ تم تحديد موقعك', 'success');
+          if (typeof ktCheckDeliveryZone === 'function') ktCheckDeliveryZone();
+        })
+        .catch(function(){
+          ktUpdateLocStatus('ok', lat.toFixed(3) + ', ' + lng.toFixed(3));
+          ktToast('✅ تم تحديد موقعك', 'success');
+        });
+    })
+    .catch(function(){
+      ktUpdateLocStatus('err', 'فشل تحديد الموقع — فعّل GPS');
+      ktToast('❌ فعّل خدمات الموقع في الإعدادات', 'error');
+    });
 }
 function ktFocusAddressInput(){ var inp = document.getElementById('ktAddressInput'); if(inp) inp.focus(); }
 function ktSearchAddress(){
@@ -1777,7 +1917,6 @@ function ktUpdateDriverMap(lat, lng, driver){
   var mapEl = document.getElementById('driverLiveMap');
   if (!mapEl) return;
 
-  // استخدم Leaflet لو متاح
   if (window.L){
     if (!liveDriverMap){
       liveDriverMap = L.map(mapEl, { zoomControl: true, attributionControl: false }).setView([lat, lng], 16);
@@ -1789,7 +1928,6 @@ function ktUpdateDriverMap(lat, lng, driver){
       if (liveDriverMarker) liveDriverMarker.setLatLng([lat, lng]);
     }
   } else {
-    // fallback: iframe
     var d = 0.008;
     var src = 'https://www.openstreetmap.org/export/embed.html?bbox=' + (lng-d) + ',' + (lat-d) + ',' + (lng+d) + ',' + (lat+d) + '&layer=mapnik&marker=' + lat + ',' + lng;
     mapEl.innerHTML = '<iframe src="' + src + '" style="width:100%;height:100%;border:0" loading="lazy"></iframe>';
@@ -2127,7 +2265,6 @@ function ktSendChat(){ var input = $('#kt-chat-input'); if(!input) return; var v
 function ktOpenChat(){ var panel = $('#kt-chat-panel'); if(panel) panel.classList.add('open'); CHAT.open = true; setTimeout(function(){ var input = $('#kt-chat-input'); if(input) input.focus(); }, 300); }
 function ktCloseChat(){ var panel = $('#kt-chat-panel'); if(panel) panel.classList.remove('open'); CHAT.open = false; }
 
-/* ✅ محسّن — يوقف الفيديو على الموبايل */
 function ktInitVideo(){
   var v = document.getElementById('k-bg-video'); if(!v) return;
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -2357,9 +2494,10 @@ Object.assign(window, {
   ktToggleLang: ktToggleLang, applyLang: applyLang, t: t,
   ktToggleMegaMenu: ktToggleMegaMenu,
   ktCloseMegaMenu: ktCloseMegaMenu,
+  ktGetLocationWithFallback: ktGetLocationWithFallback,
   openModal: window.openModal, closeModal: window.closeModal
 });
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ktInit);
 else ktInit();
-console.log('%cكانتِين | Kanteen ✨', 'background:linear-gradient(135deg,#ff6b35,#ffb800);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px', 'شليل مارت — تطوير: م. هلال شليل');
+console.log('%cكانتِين | Kanteen v3.3 ✨', 'background:linear-gradient(135deg,#ff6b35,#ffb800);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px', 'شليل مارت — تطوير: م. هلال شليل');

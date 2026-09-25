@@ -68,7 +68,7 @@ h1,h2,h3,h4,p{margin:0}
 [data-theme="light"] .k-bg-overlay{background:radial-gradient(140% 60% at 50% 40%,rgba(247,248,251,.65) 0%,rgba(247,248,251,.35) 50%,transparent 100%),linear-gradient(180deg,rgba(247,248,251,.55) 0%,rgba(247,248,251,.9) 100%)}
 
 .k-login-screen{min-height:100vh;display:grid;place-items:center;padding:28px;position:relative;overflow:hidden}
-.k-login-card{width:100%;max-width:520px;background:rgba(7,13,27,.75);backdrop-filter:blur(50px) saturate(180%);-webkit-backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:44px 36px;box-shadow:0 40px 100px rgba(0,0,0,.7);text-align:center;position:relative;overflow:hidden;max-height:95vh;overflow-y:auto}
+.k-login-card{width:100%;max-width:520px;background:rgba(7,13,27,.75);backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:44px 36px;box-shadow:0 40px 100px rgba(0,0,0,.7);text-align:center;position:relative;overflow:hidden;max-height:95vh;overflow-y:auto}
 [data-theme="light"] .k-login-card{background:rgba(255,255,255,.94)}
 .k-login-logo{height:82px;width:auto;margin:0 auto 18px;display:block;animation:ktLogoPulse 2.8s ease-in-out infinite}
 @keyframes ktLogoPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
@@ -91,7 +91,6 @@ h1,h2,h3,h4,p{margin:0}
 .k-login-toggle a{color:var(--fresh-2);font-weight:700;cursor:pointer}
 .k-login-note{margin-top:16px;padding:13px;border-radius:14px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);font-size:12.5px;color:var(--fresh-2);text-align:center;line-height:1.6}
 
-/* Map picker */
 .kt-map-picker{width:100%;height:280px;border-radius:16px;border:1px solid var(--line-2);overflow:hidden;margin-top:10px;background:var(--bg-3);position:relative}
 .kt-map-picker.leaflet-container{font-family:inherit}
 .kt-map-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -247,7 +246,7 @@ h1,h2,h3,h4,p{margin:0}
   src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104303_0c6d60b2-9353-408e-9449-585108a22fb5.mp4"></video>
 <div class="k-bg-overlay"></div>
 
-<!-- LOGIN / REGISTER SCREEN -->
+<!-- LOGIN / REGISTER -->
 <div class="k-login-screen" id="loginScreen">
   <div class="k-login-card">
     <img src="logo.png" alt="كانتِين" class="k-login-logo" onerror="this.style.display='none'">
@@ -396,7 +395,7 @@ h1,h2,h3,h4,p{margin:0}
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   🏪 MERCHANT APP v3.1 — GPS Improvements + Performance
+   🏪 MERCHANT APP v3.2 — GPS Fix (multi-attempt + IP fallback)
    ═══════════════════════════════════════════════════════════ */
 
 var $ = function(s){ return document.querySelector(s); };
@@ -464,7 +463,7 @@ function ktWaitFirebase(callback){
     _fbWaitRetries++;
     setTimeout(function(){ ktWaitFirebase(callback); }, 300);
   } else {
-    console.error('❌ Firebase failed to initialize after 9 seconds');
+    console.error('❌ Firebase failed to initialize');
     ktShowFbStatus('⚠️ Firebase فشل التحميل', true);
   }
 }
@@ -483,6 +482,7 @@ function ktBackToLogin(){
   refreshIcons();
 }
 
+/* ═══ LOGIN ═══ */
 function ktMerchantLogin(){
   var phoneInput = $('#inpPhone').value.trim().replace(/\s/g,'');
   var pass = $('#inpPass').value;
@@ -561,6 +561,7 @@ function ktMerchantLogin(){
   });
 }
 
+/* ═══ REGISTER ═══ */
 function ktMerchantRegister(){
   var name = $('#regName').value.trim();
   var owner = $('#regOwner').value.trim();
@@ -1210,7 +1211,7 @@ function ktToggleSound(){
 }
 
 /* ═══════════════════════════════════════════════════════════
-   🗺️ MAP PICKER — محسّن للدقة
+   🗺️ MAP PICKER — GPS محسّن (3 محاولات + IP fallback)
    ═══════════════════════════════════════════════════════════ */
 function ktInitRegisterMap(){
   if (!window.L) return;
@@ -1252,7 +1253,7 @@ function ktUpdateCoords(lat, lng){
   if (el) el.textContent = '📍 ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
 }
 
-/* ✅ موقعي الحالي — محسّن للدقة (سريع ثم دقيق) */
+/* ✅ محسّن — 3 محاولات + IP fallback */
 function ktMapUseMyLocation(){
   if (!navigator.geolocation){
     toast('❌ المتصفح لا يدعم GPS', 'error');
@@ -1260,57 +1261,82 @@ function ktMapUseMyLocation(){
   }
   toast('📍 جاري تحديد موقعك...');
 
-  var onGotLocation = function(pos){
-    var lat = pos.coords.latitude;
-    var lng = pos.coords.longitude;
-    var accuracy = pos.coords.accuracy || 9999;
+  var attempts = 0;
+  var maxAttempts = 3;
+  var settings = [
+    { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+  ];
 
+  var onGotLocation = function(lat, lng, accuracy){
     if (regMap && regMarker){
       regMap.setView([lat, lng], 17);
       regMarker.setLatLng([lat, lng]);
       ktUpdateCoords(lat, lng);
     }
 
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=ar', {
-      headers: { 'Accept': 'application/json' }
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      if (data && data.display_name){
-        MERCHANT.locationAddress = data.display_name;
-        var regAddr = document.getElementById('regAddress');
-        if (regAddr && !regAddr.value){
-          regAddr.value = data.display_name;
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&accept-language=ar')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data && data.display_name){
+          MERCHANT.locationAddress = data.display_name;
+          var regAddr = document.getElementById('regAddress');
+          if (regAddr && !regAddr.value){ regAddr.value = data.display_name; }
         }
-      }
-      var accText = accuracy < 100 ? '🎯 دقة عالية' : accuracy < 1000 ? '⚡ دقة متوسطة' : '📡 دقة تقريبية';
-      toast('✅ تم تحديد موقعك (' + accText + ' ±' + Math.round(accuracy) + 'م)', 'success');
-    })
-    .catch(function(){
-      toast('✅ تم تحديد موقعك', 'success');
-    });
+        var accText = accuracy < 100 ? '🎯 دقة عالية' : accuracy < 1000 ? '⚡ دقة متوسطة' : '📡 دقة تقريبية';
+        toast('✅ تم تحديد موقعك (' + accText + ')', 'success');
+      })
+      .catch(function(){ toast('✅ تم تحديد موقعك', 'success'); });
   };
 
-  var tryAccurate = function(){
-    toast('🔍 جاري تحسين الدقة...');
+  var tryIPFallback = function(){
+    toast('🔍 جاري المحاولة من الإنترنت...');
+    fetch('https://ipapi.co/json/', { cache: 'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var lat = parseFloat(d.latitude);
+        var lng = parseFloat(d.longitude);
+        if (lat && lng && lat >= 22 && lat <= 32 && lng >= 24 && lng <= 37){
+          onGotLocation(lat, lng, 99999);
+          toast('📍 تم تحديد موقعك تقريبياً', 'success');
+        } else {
+          toast('❌ فشل تحديد الموقع — اختر يدوياً من الخريطة', 'error');
+        }
+      })
+      .catch(function(){
+        toast('❌ فشل تحديد الموقع — اختر يدوياً من الخريطة', 'error');
+      });
+  };
+
+  var tryNext = function(){
+    if (attempts >= maxAttempts){
+      tryIPFallback();
+      return;
+    }
+    var opt = settings[attempts];
+    attempts++;
     navigator.geolocation.getCurrentPosition(
-      function(pos){ onGotLocation(pos); },
-      function(err){
-        console.warn('geo:', err);
-        toast('❌ لم نتمكن من تحديد موقعك — تأكد من إذن الموقع', 'error');
+      function(pos){
+        var lat = pos.coords.latitude;
+        var lng = pos.coords.longitude;
+        if (lat >= 22 && lat <= 32 && lng >= 24 && lng <= 37){
+          onGotLocation(lat, lng, pos.coords.accuracy || 9999);
+        } else {
+          tryNext();
+        }
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      function(err){
+        console.warn('geo attempt ' + attempts + ':', err.code);
+        tryNext();
+      },
+      opt
     );
   };
 
-  navigator.geolocation.getCurrentPosition(
-    function(pos){ onGotLocation(pos); },
-    function(){ tryAccurate(); },
-    { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
-  );
+  tryNext();
 }
 
-/* ✅ البحث من العنوان — محسّن */
 function ktMapSearchAddress(){
   var addr = $('#regAddress').value.trim();
   if (!addr){
@@ -1318,9 +1344,7 @@ function ktMapSearchAddress(){
     return;
   }
   toast('🔍 جاري البحث...');
-  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1&accept-language=ar', {
-    headers: { 'Accept': 'application/json' }
-  })
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(addr) + '&limit=1&accept-language=ar')
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (data && data.length){
@@ -1331,15 +1355,13 @@ function ktMapSearchAddress(){
           regMarker.setLatLng([lat, lng]);
           ktUpdateCoords(lat, lng);
           MERCHANT.locationAddress = r.display_name || addr;
-          toast('✅ تم تحديد الموقع على الخريطة', 'success');
+          toast('✅ تم تحديد الموقع', 'success');
         }
       } else {
-        toast('❌ لم نجد هذا العنوان — جرّب كتابة أدق', 'error');
+        toast('❌ لم نجد هذا العنوان', 'error');
       }
     })
-    .catch(function(){
-      toast('❌ فشل البحث — تحقق من الإنترنت', 'error');
-    });
+    .catch(function(){ toast('❌ فشل البحث', 'error'); });
 }
 
 function ktEditLocation(){
@@ -1383,15 +1405,30 @@ function ktEditLocation(){
         updateCoords(la, ln);
         toast('✅ تم تحديد موقعك', 'success');
       };
-      navigator.geolocation.getCurrentPosition(
-        onLoc,
-        function(){
-          navigator.geolocation.getCurrentPosition(onLoc, function(){
-            toast('❌ فشل تحديد الموقع', 'error');
-          }, { enableHighAccuracy: true, timeout: 12000 });
-        },
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
+      var tryNext = function(attempt){
+        var opts = [
+          { enableHighAccuracy: false, timeout: 5000 },
+          { enableHighAccuracy: true, timeout: 10000 },
+          { enableHighAccuracy: true, timeout: 15000 }
+        ];
+        if (attempt >= opts.length){
+          fetch('https://ipapi.co/json/', { cache: 'no-store' })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              var la = parseFloat(d.latitude), ln = parseFloat(d.longitude);
+              if (la && ln && la >= 22 && la <= 32 && ln >= 24 && ln <= 37){
+                map.setView([la, ln], 15);
+                marker.setLatLng([la, ln]);
+                updateCoords(la, ln);
+                toast('📍 موقع تقريبي', 'success');
+              } else { toast('❌ فشل تحديد الموقع', 'error'); }
+            })
+            .catch(function(){ toast('❌ فشل تحديد الموقع', 'error'); });
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(onLoc, function(){ tryNext(attempt + 1); }, opts[attempt]);
+      };
+      tryNext(0);
     };
   }, 300);
   refreshIcons();
@@ -1419,9 +1456,7 @@ function ktEditMapSave(){
       toast('✅ تم تحديث الموقع', 'success');
       closeModal();
       renderProfile();
-    }).catch(function(){
-      toast('⚠️ فشل الحفظ', 'error');
-    });
+    }).catch(function(){ toast('⚠️ فشل الحفظ', 'error'); });
   });
 }
 
@@ -1475,7 +1510,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-  console.log('%c🏪 Merchant Panel v3.1 (GPS improved)', 'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
+  console.log('%c🏪 Merchant Panel v3.2 (GPS Fix)','background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
 });
 
 Object.assign(window, {
