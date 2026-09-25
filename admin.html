@@ -41,7 +41,6 @@ h1,h2,h3,h4,p{margin:0}
 ::-webkit-scrollbar-thumb:hover{background:var(--brand)}
 .k-bg-image{position:fixed;inset:0;background-image:url('mandoop.jpg');background-size:cover;background-position:left center;background-repeat:no-repeat;z-index:-2;pointer-events:none;filter:brightness(.85) saturate(1.1)}
 @media(max-width:900px){.k-bg-image{background-attachment:scroll;background-size:cover;background-position:35% center}}
-@media(max-width:480px){.k-bg-image::after{background-position:center 20%}}
 .k-bg-overlay{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(140% 60% at 50% 40%,rgba(2,6,15,.55) 0%,rgba(2,6,15,.35) 50%,transparent 100%),linear-gradient(180deg,rgba(2,6,15,.7) 0%,rgba(2,6,15,.92) 100%)}
 [data-theme="light"] .k-bg-overlay{background:radial-gradient(140% 60% at 50% 40%,rgba(247,248,251,.75) 0%,rgba(247,248,251,.45) 50%,transparent 100%),linear-gradient(180deg,rgba(247,248,251,.7) 0%,rgba(247,248,251,.95) 100%)}
 @keyframes ktFadeSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -49,13 +48,10 @@ h1,h2,h3,h4,p{margin:0}
 @keyframes ktScaleIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 @keyframes ktSlideIn{from{transform:translateX(120px);opacity:0}to{transform:none;opacity:1}}
 @keyframes ktBadgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-@keyframes ktPulseDot{0%,100%{box-shadow:0 0 14px var(--fresh)}50%{box-shadow:0 0 26px var(--fresh)}}
-@keyframes ktFlame{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 .kt-anim-1{animation:ktFadeSlideUp .5s var(--ease-out) .05s both}
 .kt-anim-2{animation:ktFadeSlideUp .5s var(--ease-out) .15s both}
 .kt-anim-3{animation:ktFadeSlideUp .5s var(--ease-out) .25s both}
 .kt-anim-4{animation:ktFadeSlideUp .5s var(--ease-out) .35s both}
-.kt-anim-5{animation:ktFadeSlideUp .5s var(--ease-out) .45s both}
 .k-stat{animation:ktScaleIn .4s var(--ease-out) both}
 .k-login-screen{min-height:100vh;display:grid;place-items:center;padding:28px;position:relative;overflow:hidden}
 .k-login-card{width:100%;max-width:480px;background:rgba(7,13,27,.85);backdrop-filter:blur(50px) saturate(180%);border:1px solid var(--line-2);border-radius:var(--r-xl);padding:44px 36px;box-shadow:0 40px 100px rgba(0,0,0,.7);text-align:center;position:relative;animation:ktScaleIn .5s var(--ease-out)}
@@ -219,8 +215,6 @@ h1,h2,h3,h4,p{margin:0}
   .k-modal{padding:22px 18px;border-radius:18px}
   .k-card{padding:18px}
   .k-login-card{padding:32px 22px}
-  .k-login-card h1{font-size:26px}
-  .k-login-logo{height:70px}
   .k-stat-value{font-size:26px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
@@ -231,26 +225,20 @@ h1,h2,h3,h4,p{margin:0}
 <div class="k-bg-image"></div>
 <div class="k-bg-overlay"></div>
 
-<!-- ═══ LOGIN ═══ -->
+<!-- LOGIN -->
 <div class="k-login-screen" id="loginScreen">
   <div class="k-login-card">
     <img src="logo.png" alt="كانتِين" class="k-login-logo" onerror="this.style.display='none'">
     <h1><span class="gold">لوحة</span> <span class="blue">التحكم</span></h1>
     <p>سجّل دخولك للوصول إلى لوحة التحكم</p>
-    <div class="k-login-field">
-      <label>✉️ البريد الإلكتروني</label>
-      <input type="email" id="inpEmail" placeholder="xxxxxx" autocomplete="email">
-    </div>
-    <div class="k-login-field">
-      <label>🔑 كلمة المرور</label>
-      <input type="password" id="inpPass" placeholder="••••••••" autocomplete="current-password">
-    </div>
+    <div class="k-login-field"><label>✉️ البريد الإلكتروني</label><input type="email" id="inpEmail" placeholder="admin@kanteen.app" autocomplete="email"></div>
+    <div class="k-login-field"><label>🔑 كلمة المرور</label><input type="password" id="inpPass" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="k-login-btn" id="loginBtn" onclick="doLogin()"><svg data-lucide="log-in"></svg> دخول</button>
     <div class="k-login-err" id="errBox"></div>
   </div>
 </div>
 
-<!-- ═══ SHELL ═══ -->
+<!-- SHELL -->
 <div class="k-shell" id="appShell">
   <aside class="k-sidebar" id="sidebar">
     <div class="k-brand">
@@ -282,6 +270,7 @@ h1,h2,h3,h4,p{margin:0}
   <main class="k-main">
     <header class="k-topbar">
       <button class="k-icon-btn k-burger" onclick="document.getElementById('sidebar').classList.toggle('open')"><i data-lucide="menu"></i></button>
+      <button class="k-icon-btn" id="adminBackBtn" onclick="ktAdminBack()" title="رجوع" style="display:none;color:var(--gold);border-color:rgba(255,184,0,.35);background:linear-gradient(135deg,rgba(255,184,0,.1),rgba(255,184,0,.02))"><i data-lucide="arrow-right"></i></button>
       <div class="k-topbar-title">
         <span id="pageTitle">لوحة القيادة</span>
         <small id="pageSub">نظرة عامة</small>
@@ -301,10 +290,7 @@ h1,h2,h3,h4,p{margin:0}
 
 <div class="k-modal-bd" id="modalBd"><div class="k-modal" id="modalContent"></div></div>
 <div class="k-fb-status" id="kFbStatus">🔥 Firebase</div>
-<div class="kt-lightbox" id="ktLightbox" onclick="ktCloseLightbox()">
-  <button class="close" onclick="ktCloseLightbox()">✕</button>
-  <img id="ktLightboxImg" src="" alt="">
-</div>
+<div class="kt-lightbox" id="ktLightbox" onclick="ktCloseLightbox()"><button class="close" onclick="ktCloseLightbox()">✕</button><img id="ktLightboxImg" src="" alt=""></div>
 
 <script>
 var $ = function(s){ return document.querySelector(s); };
@@ -355,7 +341,6 @@ function ktTimeAgo(iso){
 function ktOpenLightbox(src){ var lb = document.getElementById('ktLightbox'); var img = document.getElementById('ktLightboxImg'); if (!lb || !img) return; img.src = src; lb.classList.add('open'); }
 function ktCloseLightbox(){ var lb = document.getElementById('ktLightbox'); if (lb) lb.classList.remove('open'); }
 
-/* ═══ LOGIN ═══ */
 function doLogin(){
   var email = ($('#inpEmail').value || '').trim().toLowerCase();
   var pass = $('#inpPass').value || '';
@@ -418,15 +403,17 @@ function startDashboard(){
 function ktInitListeners(){
   ktWaitFirebase(function(init){
     try {
+      console.log('🔄 Starting orders listener...');
       _unsubs.orders = KT_FB.listenOrders(function(orders){
         FB_ORDERS = orders || [];
+        console.log('📦 Orders received:', FB_ORDERS.length);
         updateCounts();
         if (currentTab === 'dashboard') renderDashboard($('#content'));
         else if (currentTab === 'orders') renderOrders($('#content'));
         else if (currentTab === 'analytics') renderAnalytics($('#content'));
         else if (currentTab === 'notifications') renderNotifications($('#content'));
       });
-    } catch(e){ console.warn('orders:', e); }
+    } catch(e){ console.error('❌ orders:', e); }
     try {
       _unsubs.merchants = KT_FB.listenMerchants(function(merchants){
         FB_MERCHANTS = merchants || [];
@@ -458,7 +445,6 @@ function ktInitListeners(){
         if (currentTab === 'ratings') renderRatings($('#content'));
       }, function(e){ console.warn('ratings:', e.code); });
     } catch(e){ console.warn('ratings:', e); }
-    // ✅ Global Products
     try {
       if (typeof KT_FB.listenGlobalProducts === 'function'){
         _unsubs.globalProducts = KT_FB.listenGlobalProducts(function(prods){
@@ -493,6 +479,8 @@ function updateCounts(){
 
 function switchTab(tab){
   currentTab = tab;
+  var backBtn = document.getElementById('adminBackBtn');
+  if (backBtn) backBtn.style.display = (tab === 'dashboard') ? 'none' : 'grid';
   $$('.k-nav-item').forEach(function(n){ n.classList.toggle('active', n.dataset.tab === tab); });
   var titles = {
     dashboard:['لوحة القيادة','نظرة عامة على المتجر'],
@@ -528,7 +516,13 @@ document.addEventListener('click', function(e){
   if (item){ switchTab(item.dataset.tab); }
 });
 
-/* ═══ DASHBOARD ═══ */
+function ktAdminBack(){
+  var modal = document.getElementById('modalBd');
+  if (modal && modal.classList.contains('open')){ closeModal(); return; }
+  if (currentTab !== 'dashboard'){ switchTab('dashboard'); return; }
+  if (confirm('تسجيل الخروج؟')) doLogout();
+}
+
 function renderDashboard(el){
   var pending = FB_MERCHANTS.filter(function(m){ return m.status === 'pending'; });
   var approved = FB_MERCHANTS.filter(function(m){ return m.status === 'approved' || !m.status; });
@@ -549,16 +543,14 @@ function renderDashboard(el){
   }
 
   var html = '';
-  html += '<div class="kt-anim-1"><div class="kt-group-head"><span class="ico" style="background:rgba(239,68,68,.15)"><i data-lucide="alert-circle" style="color:var(--danger)"></i></span><h3>تحتاج مراجعتك</h3><span class="line"></span></div>';
-  html += '<div class="k-stats">';
+  html += '<div class="kt-anim-1"><div class="k-stats">';
   html += statCard({tab:'notifications', icon:'bell-ring', label:'إشعارات جديدة', value:FB_NOTIFS.filter(function(n){return !n.read;}).length, color:'danger'});
   html += statCard({tab:'orders', icon:'package', label:'طلبات جديدة', value:newOrders.length, color:'warn'});
   html += statCard({tab:'pending', icon:'clock', label:'تجار قيد المراجعة', value:pending.length, color:'gold'});
   html += statCard({tab:'drivers', icon:'bike', label:'مناديب قيد المراجعة', value:pendingDrivers.length, color:'blue'});
   html += '</div></div>';
 
-  html += '<div class="kt-anim-2"><div class="kt-group-head"><span class="ico" style="background:rgba(34,197,94,.15)"><i data-lucide="activity" style="color:var(--fresh)"></i></span><h3>الحالة العامة</h3><span class="line"></span></div>';
-  html += '<div class="k-stats">';
+  html += '<div class="kt-anim-2"><div class="k-stats">';
   html += statCard({tab:'merchants', icon:'store', label:'التجار المعتمدون', value:approved.length, color:'purple'});
   html += statCard({tab:'drivers', icon:'wifi', label:'مناديب متصلون', value:onlineDrivers.length, color:'green'});
   html += statCard({tab:'orders', icon:'check-circle-2', label:'طلبات مكتملة', value:deliveredOrders.length, color:'green'});
@@ -566,46 +558,218 @@ function renderDashboard(el){
   html += statCard({tab:'products', icon:'package-plus', label:'المنتجات العامة', value:FB_GLOBAL_PRODUCTS.length, color:'gold'});
   html += '</div></div>';
 
-  html += '<div class="kt-anim-3"><div class="kt-group-head"><span class="ico" style="background:rgba(255,184,0,.15)"><i data-lucide="wallet" style="color:var(--gold)"></i></span><h3>المالية</h3><span class="line"></span></div>';
-  html += '<div class="k-stats">';
+  html += '<div class="kt-anim-3"><div class="k-stats">';
   html += statCard({tab:'analytics', icon:'wallet', label:'الإيرادات', value:money(revenue), color:'gold'});
   html += statCard({tab:'orders', icon:'clock-4', label:'دفعات معلقة', value:FB_ORDERS.filter(function(o){ return o.paymentStatus === 'pending'; }).length, color:'warn'});
   html += '</div></div>';
+
+  // تنبيهات عاجلة
+  if (newOrders.length || pending.length || pendingDrivers.length){
+    html += '<div class="k-card kt-anim-4" style="border-color:rgba(239,68,68,.5);background:linear-gradient(135deg,rgba(239,68,68,.08),transparent)">';
+    html += '<div class="k-card-head"><h3><i data-lucide="alert-circle" style="color:var(--danger)"></i> تنبيهات عاجلة</h3></div>';
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+    if (newOrders.length) html += '<button class="k-btn k-btn-success" onclick="switchTab(\'orders\')">📦 ' + newOrders.length + ' طلب جديد</button>';
+    if (pending.length) html += '<button class="k-btn k-btn-gold" onclick="switchTab(\'pending\')">⏰ ' + pending.length + ' تاجر</button>';
+    if (pendingDrivers.length) html += '<button class="k-btn k-btn-primary" onclick="switchTab(\'drivers\')">🛵 ' + pendingDrivers.length + ' مندوب</button>';
+    html += '</div></div>';
+  }
 
   el.innerHTML = html;
   refreshIcons();
 }
 
-/* ═══ NOTIFICATIONS ═══ */
-function renderNotifications(el){
-  if (!FB_NOTIFS.length){
-    el.innerHTML = '<div class="k-card"><div class="k-empty"><i data-lucide="bell-off"></i><h3>لا توجد إشعارات</h3><p>كل الإشعارات تمت معالجتها ✅</p></div></div>';
-    refreshIcons(); return;
+/* ═══════════════════════════════════════════════════════════
+   📦 ORDERS — مع تأكيد + تفاصيل
+   ═══════════════════════════════════════════════════════════ */
+function statusLabels(s){
+  var map = {
+    placed: {label:'🆕 جديد', pill:'k-pill-gold'},
+    pending_payment: {label:'⏳ دفع معلق', pill:'k-pill-gold'},
+    confirmed: {label:'✅ مؤكد', pill:'k-pill-info'},
+    preparing: {label:'📦 تحضير', pill:'k-pill-info'},
+    out: {label:'🛵 في الطريق', pill:'k-pill-info'},
+    delivered: {label:'✓ تم التسليم', pill:'k-pill-fresh'},
+    cancelled: {label:'❌ ملغي', pill:'k-pill-danger'}
+  };
+  return map[s] || map.placed;
+}
+
+function renderOrderCardForConfirm(o){
+  var c = o.customer || {};
+  var address = [c.gov, c.city, c.area].filter(Boolean).join(' — ');
+  return '<div class="k-merchant-card pending" style="grid-template-columns:auto 1fr auto">' +
+    '<div class="k-merchant-avatar" style="background:linear-gradient(135deg,var(--brand),var(--gold))">📦</div>' +
+    '<div class="k-merchant-info">' +
+      '<h4>' + esc(o.id) + ' <span class="k-pill k-pill-gold">' + (o.status === 'pending_payment' ? '⏳ دفع معلق' : '🆕 جديد') + '</span></h4>' +
+      '<div class="meta"><i data-lucide="user"></i> <b>' + esc(c.name || 'عميل') + '</b> · 📞 ' + esc(c.phone || '—') + '</div>' +
+      '<div class="meta"><i data-lucide="map-pin"></i> ' + esc(address || '—') + '</div>' +
+      '<div class="meta"><i data-lucide="shopping-bag"></i> ' + ((o.items||[]).length) + ' منتج · <b style="color:var(--gold)">' + money(o.total) + '</b></div>' +
+      '<div class="meta"><i data-lucide="clock"></i> ' + ktTimeAgo(o.createdAt) + '</div>' +
+    '</div>' +
+    '<div class="k-merchant-actions">' +
+      '<button class="k-btn k-btn-success k-btn-sm" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' +
+      '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')"><i data-lucide="eye"></i> تفاصيل</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderOrders(el){
+  el = el || document.getElementById('content');
+  var newOrders = FB_ORDERS.filter(function(o){ return o.status === 'placed'; });
+  var pending = FB_ORDERS.filter(function(o){ return o.status === 'pending_payment'; });
+  var html = '';
+
+  if (newOrders.length){
+    html += '<div class="k-card" style="border-color:rgba(34,197,94,.5);background:linear-gradient(135deg,rgba(34,197,94,.08),transparent)">';
+    html += '<div class="k-card-head"><h3><i data-lucide="package" style="color:var(--fresh)"></i> ' + newOrders.length + ' طلب جديد يحتاج تأكيد</h3></div>';
+    newOrders.forEach(function(o){ html += renderOrderCardForConfirm(o); });
+    html += '</div>';
   }
-  el.innerHTML = '<div class="k-card"><div class="k-card-head"><h3><i data-lucide="bell"></i> الإشعارات (' + FB_NOTIFS.length + ')</h3></div>' +
-    FB_NOTIFS.map(function(n){
-      var typeIcon = {payment_pending:'💳',new_merchant:'🏪',new_driver:'🛵',new_order:'📦',order_confirmed:'✅',late_driver:'🚨'}[n.type] || '🔔';
-      var typeTitle = {payment_pending:'طلب دفع',new_merchant:'تاجر جديد',new_driver:'مندوب جديد',new_order:'طلب جديد',order_confirmed:'تم تأكيد طلب',late_driver:'🚨 مندوب متأخر'}[n.type] || 'إشعار';
-      return '<div class="k-merchant-card ' + (n.read ? '' : 'pending') + '" style="grid-template-columns:auto 1fr auto">' +
-        '<div class="k-merchant-avatar" style="background:linear-gradient(135deg,var(--gold),var(--brand))">' + typeIcon + '</div>' +
-        '<div class="k-merchant-info">' +
-          '<h4>' + typeTitle + ' <span class="k-pill ' + (n.read ? 'k-pill-info' : 'k-pill-danger') + '">' + (n.read ? 'مقروء' : 'جديد') + '</span></h4>' +
-          (n.orderId ? '<div class="meta"><i data-lucide="package"></i> الطلب: <b>' + esc(n.orderId) + '</b></div>' : '') +
-          (n.merchantName ? '<div class="meta"><i data-lucide="store"></i> المتجر: <b>' + esc(n.merchantName) + '</b></div>' : '') +
-          (n.driverName ? '<div class="meta"><i data-lucide="bike"></i> المندوب: <b>' + esc(n.driverName) + '</b></div>' : '') +
-          (n.total ? '<div class="meta"><i data-lucide="wallet"></i> المبلغ: <b style="color:var(--gold)">' + money(n.total) + '</b></div>' : '') +
-          '<div class="meta"><i data-lucide="clock"></i> ' + ktTimeAgo(n.createdAt) + '</div>' +
-        '</div>' +
-        '<div class="k-merchant-actions">' +
-          (!n.read ? '<button class="k-btn k-btn-success k-btn-sm" onclick="KT_FB.markNotificationRead(\'' + n._fbId + '\')">✓ مقروء</button>' : '') +
-          '<button class="k-btn k-btn-danger k-btn-sm" onclick="KT_FB.deleteNotification(\'' + n._fbId + '\')"><i data-lucide="trash-2"></i></button>' +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
+
+  if (pending.length){
+    html += '<div class="k-card" style="border-color:rgba(255,184,0,.5);background:linear-gradient(135deg,rgba(255,184,0,.08),transparent)">';
+    html += '<div class="k-card-head"><h3><i data-lucide="wallet" style="color:var(--gold)"></i> ' + pending.length + ' دفعة معلقة</h3></div>';
+    pending.forEach(function(o){ html += renderOrderCardForConfirm(o); });
+    html += '</div>';
+  }
+
+  html += '<div class="k-card">';
+  html += '<div class="k-card-head"><h3><i data-lucide="list"></i> كل الطلبات (' + FB_ORDERS.length + ')</h3></div>';
+  if (FB_ORDERS.length){
+    html += '<div class="k-table-wrap"><table class="k-table"><thead><tr><th>رقم الطلب</th><th>العميل</th><th>المتجر</th><th>الإجمالي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
+    FB_ORDERS.forEach(function(o){
+      var st = statusLabels(o.status);
+      var canConfirm = o.status === 'placed' || o.status === 'pending_payment';
+      html += '<tr>' +
+        '<td><b style="color:var(--brand);cursor:pointer" onclick="ktViewOrderDetails(\'' + o._fbId + '\')">' + esc(o.id) + '</b><br><span style="font-size:11px;color:var(--ink-4)">' + ktTimeAgo(o.createdAt) + '</span></td>' +
+        '<td>' + esc((o.customer && o.customer.name) || '—') + '<br><span style="font-size:12px;color:var(--ink-3)">' + esc((o.customer && o.customer.phone) || '') + '</span></td>' +
+        '<td>' + esc(o.merchantName || '—') + '</td>' +
+        '<td><b style="color:var(--gold)">' + money(o.total) + '</b></td>' +
+        '<td><span class="k-pill ' + st.pill + '">' + st.label + '</span></td>' +
+        '<td style="white-space:nowrap">' +
+          (canConfirm ? '<button class="k-btn k-btn-success k-btn-sm" style="margin-inline-end:6px" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' : '') +
+          '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')"><i data-lucide="eye"></i></button>' +
+        '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table></div>';
+  } else {
+    html += '<div class="k-empty"><i data-lucide="inbox"></i><h3>لا توجد طلبات</h3><p>ستظهر هنا عند وصول طلبات جديدة</p></div>';
+  }
+  html += '</div>';
+
+  el.innerHTML = html;
   refreshIcons();
 }
 
-/* ═══ PENDING / MERCHANTS / DRIVERS ═══ */
+function ktAdminConfirmOrder(orderFbId, notifFbId){
+  if (!orderFbId){ toast('⚠️ معرف الطلب غير موجود', 'error'); return; }
+  var order = FB_ORDERS.find(function(o){ return o._fbId === orderFbId; });
+  if (!order){ toast('⚠️ الطلب غير موجود', 'error'); return; }
+  if (order.status !== 'placed' && order.status !== 'pending_payment'){
+    toast('ℹ️ الطلب مؤكد بالفعل');
+    return;
+  }
+  if (!confirm('✅ تأكيد الطلب #' + order.id + '؟')) return;
+
+  ktWaitFirebase(function(init){
+    init.db.collection('orders').doc(orderFbId).update({
+      status: 'confirmed',
+      confirmedAt: new Date().toISOString(),
+      confirmedBy: 'admin',
+      confirmedByName: ADMIN_EMAIL || 'الإدارة',
+      statusHistory: firebase.firestore.FieldValue.arrayUnion({ status: 'confirmed', at: new Date().toISOString() })
+    }).then(function(){
+      if (window.KT_SOUND) KT_SOUND.success();
+      toast('✅ تم تأكيد الطلب ' + order.id, 'success');
+      if (notifFbId) KT_FB.markNotificationRead(notifFbId);
+    }).catch(function(e){ toast('❌ ' + (e.message || 'فشل'), 'error'); });
+  });
+}
+
+function ktViewOrderDetails(fbId){
+  var o = FB_ORDERS.find(function(x){ return x._fbId === fbId; });
+  if (!o){ toast('⚠️ الطلب غير موجود', 'error'); return; }
+  var c = o.customer || {};
+  var itemsHTML = (o.items || []).map(function(it){
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)">' +
+      '<span style="font-size:24px">' + (it.emoji || '🛒') + '</span>' +
+      '<div style="flex:1"><b style="font-size:14px">' + esc(it.nameAr || '') + '</b><div style="font-size:12px;color:var(--ink-3)">' + it.qty + ' × ' + money(it.price) + '</div></div>' +
+      '<b style="color:var(--gold);font-size:14px">' + money(it.price * it.qty) + '</b>' +
+    '</div>';
+  }).join('');
+  var address = [c.gov, c.city, c.area, c.street].filter(Boolean).join(' — ');
+  var canConfirm = o.status === 'placed' || o.status === 'pending_payment';
+
+  openModal(
+    '<div class="k-modal-head"><h3><i data-lucide="package"></i> ' + esc(o.id) + '</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)"><span class="muted">الحالة:</span><span class="k-pill ' + statusLabels(o.status).pill + '">' + statusLabels(o.status).label + '</span></div>' +
+    '<h4 style="margin:18px 0 10px;font-size:15px;font-weight:800">👤 العميل</h4>' +
+    '<div style="background:var(--bg-3);border-radius:12px;padding:14px">' +
+      '<div style="display:flex;justify-content:space-between;padding:6px 0"><span class="muted">الاسم:</span><b>' + esc(c.name || '—') + '</b></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:6px 0"><span class="muted">الهاتف:</span><a href="tel:' + esc(c.phone) + '" style="color:var(--fresh);font-weight:700">' + esc(c.phone || '—') + '</a></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:6px 0"><span class="muted">العنوان:</span><b style="text-align:end;font-size:13px">' + esc(address || '—') + '</b></div>' +
+      (c.notes ? '<div style="padding:6px 0"><span class="muted">ملاحظات:</span> <b style="color:var(--gold)">' + esc(c.notes) + '</b></div>' : '') +
+    '</div>' +
+    (c.phone ? '<div style="display:flex;gap:10px;margin:14px 0"><a href="tel:' + esc(c.phone) + '" class="k-btn k-btn-primary" style="flex:1"><i data-lucide="phone"></i> اتصال</a><a href="https://wa.me/2' + String(c.phone).replace(/\D/g,'') + '" target="_blank" class="k-btn k-btn-success" style="flex:1"><i data-lucide="message-circle"></i> واتساب</a></div>' : '') +
+    '<h4 style="margin:18px 0 10px;font-size:15px;font-weight:800">🛍️ المنتجات (' + ((o.items||[]).length) + ')</h4>' + itemsHTML +
+    '<div style="display:flex;justify-content:space-between;padding:18px 0 0;margin-top:14px;border-top:2px solid var(--line-2);font-size:20px;font-weight:900"><span>الإجمالي</span><span style="color:var(--gold)">' + money(o.total) + '</span></div>' +
+    (canConfirm ? '<button class="k-btn k-btn-success k-btn-block" style="margin-top:20px" onclick="ktAdminConfirmOrder(\'' + fbId + '\');closeModal()"><i data-lucide="check-circle"></i> تأكيد الطلب</button>' : '') +
+    '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:10px" onclick="closeModal()">إغلاق</button>'
+  );
+}
+
+/* ═══ NOTIFICATIONS ═══ */
+function renderNotifications(el){
+  el = el || document.getElementById('content');
+  if (!FB_NOTIFS.length){
+    el.innerHTML = '<div class="k-card"><div class="k-empty"><i data-lucide="bell-off"></i><h3>لا توجد إشعارات</h3></div></div>';
+    refreshIcons(); return;
+  }
+  var html = '<div class="k-card"><div class="k-card-head"><h3><i data-lucide="bell"></i> الإشعارات (' + FB_NOTIFS.length + ')</h3>';
+  html += '<button class="k-btn k-btn-glass k-btn-sm" onclick="markAllNotifsRead()"><i data-lucide="check-check"></i> تعليم الكل كمقروء</button>';
+  html += '</div>';
+
+  FB_NOTIFS.forEach(function(n){
+    var typeIcon = {payment_pending:'💳',new_merchant:'🏪',new_driver:'🛵',new_order:'📦',late_driver:'🚨'}[n.type] || '🔔';
+    var typeTitle = {payment_pending:'طلب دفع',new_merchant:'تاجر جديد',new_driver:'مندوب جديد',new_order:'طلب جديد',late_driver:'🚨 مندوب متأخر'}[n.type] || 'إشعار';
+    var orderObj = n.orderId ? FB_ORDERS.find(function(o){ return o.id === n.orderId; }) : null;
+    var canConfirm = (n.type === 'new_order' || n.type === 'payment_pending') && orderObj && (orderObj.status === 'placed' || orderObj.status === 'pending_payment');
+
+    html += '<div class="k-merchant-card ' + (n.read ? '' : 'pending') + '" style="grid-template-columns:auto 1fr auto">';
+    html += '<div class="k-merchant-avatar" style="background:linear-gradient(135deg,var(--gold),var(--brand))">' + typeIcon + '</div>';
+    html += '<div class="k-merchant-info">';
+    html += '<h4>' + typeTitle + ' <span class="k-pill ' + (n.read ? 'k-pill-info' : 'k-pill-danger') + '">' + (n.read ? 'مقروء' : 'جديد') + '</span></h4>';
+    if (n.orderId) html += '<div class="meta"><i data-lucide="package"></i> الطلب: <b>' + esc(n.orderId) + '</b></div>';
+    if (n.customer) html += '<div class="meta"><i data-lucide="user"></i> ' + esc(n.customer.name || '') + ' · 📞 ' + esc(n.customer.phone || '') + '</div>';
+    if (n.merchantName) html += '<div class="meta"><i data-lucide="store"></i> ' + esc(n.merchantName) + '</div>';
+    if (n.driverName) html += '<div class="meta"><i data-lucide="bike"></i> ' + esc(n.driverName) + '</div>';
+    if (n.total) html += '<div class="meta"><i data-lucide="wallet"></i> <b style="color:var(--gold)">' + money(n.total) + '</b></div>';
+    html += '<div class="meta"><i data-lucide="clock"></i> ' + ktTimeAgo(n.createdAt) + '</div>';
+    html += '</div>';
+    html += '<div class="k-merchant-actions">';
+    if (canConfirm) html += '<button class="k-btn k-btn-success k-btn-sm" onclick="ktAdminConfirmOrder(\'' + orderObj._fbId + '\',\'' + n._fbId + '\')"><i data-lucide="check-circle"></i> تأكيد</button>';
+    if (orderObj) html += '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktViewOrderDetails(\'' + orderObj._fbId + '\')"><i data-lucide="eye"></i> تفاصيل</button>';
+    if (n.type === 'new_merchant') html += '<button class="k-btn k-btn-primary k-btn-sm" onclick="switchTab(\'pending\')">مراجعة</button>';
+    if (n.type === 'new_driver') html += '<button class="k-btn k-btn-primary k-btn-sm" onclick="switchTab(\'drivers\')">مراجعة</button>';
+    if (!n.read) html += '<button class="k-btn k-btn-glass k-btn-sm" onclick="KT_FB.markNotificationRead(\'' + n._fbId + '\')">✓</button>';
+    html += '<button class="k-btn k-btn-danger k-btn-sm" onclick="KT_FB.deleteNotification(\'' + n._fbId + '\')"><i data-lucide="trash-2"></i></button>';
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+  refreshIcons();
+}
+
+function markAllNotifsRead(){
+  FB_NOTIFS.forEach(function(n){
+    if (!n.read && n._fbId) KT_FB.markNotificationRead(n._fbId);
+  });
+  toast('✅ تم تعليم الكل كمقروء', 'success');
+}
+
+/* ═══ PENDING ═══ */
 function renderPending(el){
   var pendingM = FB_MERCHANTS.filter(function(m){ return m.status === 'pending'; });
   var pendingD = FB_DRIVERS.filter(function(d){ return d.status === 'pending'; });
@@ -646,6 +810,7 @@ function renderPending(el){
   refreshIcons();
 }
 
+/* ═══ MERCHANTS ═══ */
 function renderMerchants(el){
   var approved = FB_MERCHANTS.filter(function(m){ return m.status === 'approved' || !m.status; });
   var suspended = FB_MERCHANTS.filter(function(m){ return m.status === 'suspended'; });
@@ -699,39 +864,7 @@ function renderDrivers(el){
   refreshIcons();
 }
 
-/* ═══ ORDERS ═══ */
-function statusLabels(s){
-  var map = {
-    placed: {label:'🆕 جديد', pill:'k-pill-gold'},
-    pending_payment: {label:'⏳ دفع معلق', pill:'k-pill-gold'},
-    confirmed: {label:'✅ مؤكد', pill:'k-pill-info'},
-    preparing: {label:'📦 تحضير', pill:'k-pill-info'},
-    out: {label:'🛵 في الطريق', pill:'k-pill-info'},
-    delivered: {label:'✓ تم التسليم', pill:'k-pill-fresh'},
-    cancelled: {label:'❌ ملغي', pill:'k-pill-danger'}
-  };
-  return map[s] || map.placed;
-}
-function renderOrders(el){
-  var newOrders = FB_ORDERS.filter(function(o){ return o.status === 'placed'; });
-  el.innerHTML = (newOrders.length ? '<div class="k-card" style="border-color:rgba(34,197,94,.5)"><div class="k-card-head"><h3>🆕 ' + newOrders.length + ' طلب جديد</h3></div></div>' : '') +
-    '<div class="k-card"><div class="k-card-head"><h3><i data-lucide="package"></i> الطلبات (' + FB_ORDERS.length + ')</h3></div>' +
-    (FB_ORDERS.length ? '<div class="k-table-wrap"><table class="k-table"><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody>' +
-      FB_ORDERS.map(function(o){
-        var st = statusLabels(o.status);
-        return '<tr><td><b style="color:var(--brand)">' + esc(o.id) + '</b></td>' +
-          '<td>' + esc((o.customer && o.customer.name) || '') + '</td>' +
-          '<td>' + esc(o.merchantName || '') + '</td>' +
-          '<td><b style="color:var(--gold)">' + money(o.total) + '</b></td>' +
-          '<td><span class="k-pill ' + st.pill + '">' + st.label + '</span></td></tr>';
-      }).join('') + '</tbody></table></div>' : '<div class="k-empty"><i data-lucide="inbox"></i><h3>لا توجد طلبات</h3></div>') +
-    '</div>';
-  refreshIcons();
-}
-
-/* ═══════════════════════════════════════════════════════════
-   🆕 GLOBAL PRODUCTS MANAGEMENT
-   ═══════════════════════════════════════════════════════════ */
+/* ═══ GLOBAL PRODUCTS ═══ */
 function renderProducts(el){
   el = el || document.getElementById('content');
   var list = FB_GLOBAL_PRODUCTS || [];
@@ -778,8 +911,8 @@ function openAddGlobalProduct(){
       '<div class="k-field"><label>العلامة التجارية</label><input id="gpBrand" placeholder="Al Alali"></div>' +
       '<div class="k-field"><label>القسم</label><select id="gpCat">' + cats.map(function(c){ return '<option value="' + c.id + '">' + c.n + '</option>'; }).join('') + '</select></div>' +
       '<div class="k-field"><label>السعر (ج.م) *</label><input type="number" id="gpPrice" step="0.5" placeholder="25"></div>' +
-      '<div class="k-field"><label>السعر قبل الخصم (اختياري)</label><input type="number" id="gpOldPrice" step="0.5" placeholder="35"></div>' +
-      '<div class="k-field"><label>الكمية بالمخزون</label><input type="number" id="gpStock" value="100" min="0"></div>' +
+      '<div class="k-field"><label>السعر قبل الخصم</label><input type="number" id="gpOldPrice" step="0.5" placeholder="35"></div>' +
+      '<div class="k-field"><label>الكمية</label><input type="number" id="gpStock" value="100" min="0"></div>' +
       '<div class="k-field"><label>الحجم / الوزن</label><input id="gpWeight" placeholder="1kg"></div>' +
       '<div class="k-field"><label>الإيموجي</label><input id="gpEmoji" value="🛒" maxlength="4"></div>' +
       '<div class="k-field" style="grid-column:1/-1"><label>رابط الصورة</label><input id="gpImage" placeholder="https://..." dir="ltr"></div>' +
@@ -1012,11 +1145,12 @@ document.addEventListener('DOMContentLoaded', function(){
   if ('serviceWorker' in navigator){
     window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(e){}); });
   }
-  console.log('%c🎛️ Admin Panel v11.0 — Global Products','background:linear-gradient(135deg,#ff6b35,#ffb800);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
+  console.log('%c🎛️ Admin Panel v11.1 — Full Fix','background:linear-gradient(135deg,#ff6b35,#ffb800);color:#fff;padding:6px 14px;border-radius:6px;font-weight:800;font-size:13px');
 });
 
 Object.assign(window, {
   doLogin, doLogout, switchTab, toggleTheme, refresh,
+  ktAdminBack, ktAdminConfirmOrder, ktViewOrderDetails, markAllNotifsRead,
   openAddMerchantModal, saveManualMerchant,
   renderProducts, openAddGlobalProduct, openEditGlobalProduct, saveGlobalProduct, deleteGlobalProduct,
   approveMerchant, rejectMerchant, suspendMerchant, activateMerchant, deleteMerchant,
