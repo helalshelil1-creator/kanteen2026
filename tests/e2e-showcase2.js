@@ -28,7 +28,8 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   await ctx.addInitScript(()=>{window.confirm=()=>true;});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));pg.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))pg.errs.push('console:'+m.text().slice(0,150))});return {ctx,pg}};
  const mkC=async(email)=>{const x=await mk();await x.pg.goto(BASE+'/index.html');await sleep(1650);await sleep(900);return x};
- const A=await mkC('a@x.com');await A.pg.setViewportSize({width:390,height:844});
+ const writes=[];b.on&&0;
+ const A=await mkC('a@x.com');A.ctx.on('request',r=>{const u=r.url();if(/127\.0\.0\.1:8085/.test(u)&&(/Write\/channel/.test(u)||/:commit|batchWrite/.test(u)))writes.push(u.slice(-60))});await A.pg.setViewportSize({width:390,height:844});
  const routes=['/','/categories','/deals','/cart','/orders','/account','/contact'];
  const bad=[];
  for(const r of routes){await A.pg.evaluate(x=>navigate(x),r);await sleep(900);
@@ -46,6 +47,9 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  await A.pg.locator('button:has-text("أضف")').first().click();await sleep(500);
  await A.pg.evaluate(()=>navigate('/checkout'));await sleep(900);
  ok('checkout page explains demo BEFORE the form',/عرض|تجريب/.test(await A.pg.evaluate(()=>document.body.innerText)),await A.pg.evaluate(()=>document.body.innerText.slice(0,300)));
+ ok('storefront session made ZERO Firestore write requests (browse, add to cart, checkout)',writes.length===0,writes.slice(0,3));
+ const before=writes.length;await A.pg.evaluate(async()=>{try{await KT_FB.init().db.collection('orders').doc('ctl').set({x:1})}catch(e){}});await sleep(1500);
+ ok('control: the write detector does see a deliberate raw write',writes.length>before,{before,after:writes.length});
  // merchant / driver
  const M=await mk();await M.pg.goto(BASE+'/merchant.html#register');await sleep(2000);
  const m=await M.pg.evaluate(()=>({reg:document.querySelector('#registerForm')&&getComputedStyle(document.querySelector('#registerForm')).display,toggle:[...document.querySelectorAll('.k-login-toggle')].map(e=>getComputedStyle(e).display)}));
@@ -53,6 +57,9 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  const m2=await M.pg.evaluate(()=>getComputedStyle(document.querySelector('#registerForm')).display);
  ok('merchant.html#register direct URL and ktShowRegister(): sign-up form stays hidden, login remains',m.reg==='none'&&m2==='none'&&await M.pg.evaluate(()=>getComputedStyle(document.querySelector('#loginForm')).display!=='none'),{m,m2});
  await M.pg.screenshot({path:'/downloads/kanteen-e2e-showcase-merchant.png'});
+ await M.pg.goto(BASE+'/merchant.html');await sleep(1200);await M.pg.fill('#inpPhone','01000000001');await M.pg.fill('#inpPass','NewPass123');await M.pg.click('#loginBtn');await sleep(2500);
+ ok('existing merchant login still works in showcase (private panel not broken)',await M.pg.evaluate(()=>!!(window.MERCHANT&&MERCHANT.fbId)),await M.pg.evaluate(()=>String(window.MERCHANT&&MERCHANT.fbId)));
+ ok('existing merchant write helper not blocked in the private panel',await M.pg.evaluate(()=>!KT_FB.__showcase),null);
  const D=await mk();await D.pg.goto(BASE+'/driver.html');await sleep(2000);
  const d=await D.pg.evaluate(()=>{const t=document.querySelector('#tabSignup');return {tab:t?getComputedStyle(t).display:'none'}});
  await D.pg.evaluate(()=>{try{ktSwitchAuthMode('signup')}catch(e){}});await sleep(400);

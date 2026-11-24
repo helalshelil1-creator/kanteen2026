@@ -9,6 +9,7 @@
 
   // 1) No Firestore / Auth writes from the public showcase (reads stay).
   function blockWrites() {
+    if (!isStore) return; // private panels (merchant/driver) keep their existing behavior
     if (!window.KT_FB || KT_FB.__showcase) return;
     ['placeOrder', 'cancelOrder', 'merchantConfirmOrder', 'assignDriverToOrder', 'driverUpdateStatus', 'submitRating',
       'updateOrder', 'updateMerchant', 'deleteMerchant', 'saveNotification', 'markNotificationRead', 'deleteNotification',
@@ -20,7 +21,7 @@
 
   // 2) No real-world links out: WhatsApp, calls, mail.
   var realOpen = window.open;
-  window.open = function (u) { if (/wa\.me|whatsapp|^tel:|^mailto:/i.test(String(u || ''))) return null; return realOpen.apply(window, arguments); };
+  if (isStore) window.open = function (u) { if (/wa\.me|whatsapp|^tel:|^mailto:/i.test(String(u || ''))) return null; return realOpen.apply(window, arguments); };
 
   function disable(a) {
     a.removeAttribute('href'); a.removeAttribute('target');
@@ -42,7 +43,7 @@
     while ((n = w.nextNode())) { if (PH.test(n.nodeValue)) hits.push(n); PH.lastIndex = 0; }
     hits.forEach(function (t) { t.nodeValue = t.nodeValue.replace(PH, '—'); });
   }
-  function run() { try { scrub(document.body); } catch (e) {} }
+  function run() { if (!isStore) return; try { scrub(document.body); } catch (e) {} }
   var pending = false;
   new MutationObserver(function () { if (pending) return; pending = true; setTimeout(function () { pending = false; run(); }, 60); })
     .observe(document.documentElement, { childList: true, subtree: true });
