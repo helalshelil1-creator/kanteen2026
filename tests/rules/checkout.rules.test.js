@@ -1,0 +1,25 @@
+const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');const fs=require('fs');
+const RULES=process.env.RULES||'firestore.rules';
+let p=0,f=0;const T=async(n,exp,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r='DENY'}const g=r===exp;g?p++:f++;console.log((g?'PASS':'FAIL')+' ['+exp+'] '+n)};
+(async()=>{
+ const env=await initializeTestEnvironment({projectId:'demo-kt5',firestore:{rules:fs.readFileSync(RULES,'utf8'),host:'127.0.0.1',port:8085}});
+ await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();
+  await d.doc('admins/adm').set({x:1});
+  await d.doc('merchants/m1').set({name:'M',phone:'+20100',status:'approved',ownerUid:'own1',products:[{id:'p1',name:'A',price:10,stock:5}]});
+  await d.doc('merchantsPublic/m1').set({name:'M',status:'approved',products:[{id:'p1',name:'A',price:10,stock:5}]});});
+ const cu=()=>env.authenticatedContext('cust1').firestore();
+ console.log('RULES='+RULES);
+ await T('EXISTING fbPlaceOrder: customer transaction reads merchant + decrements stock','DENY',async()=>{const d=cu();await d.runTransaction(async t=>{const r=d.doc('merchants/m1');const s=await t.get(r);const pr=s.data().products;pr[0].stock-=1;t.update(r,{products:pr});t.set(d.collection('orders').doc('o1'),{customerUid:'cust1',merchantId:'m1',status:'placed'});})});
+ await T('customer reads merchant doc directly (old transaction first step)','DENY',()=>cu().doc('merchants/m1').get());
+ await T('PENDING REQUEST: customer creates order status placed, no stock mutation','ALLOW',()=>cu().doc('orders/o2').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:10}],total:35}));
+ await T('customer creates order for someone else uid','DENY',()=>cu().doc('orders/o3').set({customerUid:'other',merchantId:'m1',status:'placed'}));
+ await T('customer creates order already status delivered','DENY',()=>cu().doc('orders/o4').set({customerUid:'cust1',merchantId:'m1',status:'delivered',total:0}));
+ await T('KNOWN LIMIT: low tampered total (rules cannot price-check item arrays; accept step must verify)','ALLOW',()=>cu().doc('orders/o5').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:0.01}],total:0.01}));
+ await T('customer reads own order','ALLOW',()=>cu().doc('orders/o2').get());
+ await T('other customer reads that order','DENY',()=>env.authenticatedContext('c2').firestore().doc('orders/o2').get());
+ await T('ACCEPT: merchant owner batch (order->confirmed + stock decrement)','ALLOW',async()=>{const d=env.authenticatedContext('own1').firestore();const b=d.batch();b.update(d.doc('orders/o2'),{status:'confirmed',confirmedAt:'x',statusHistory:[]});b.update(d.doc('merchants/m1'),{products:[{id:'p1',name:'A',price:10,stock:4}]});await b.commit()});
+ await T('merchant owner of other shop accepts','DENY',()=>env.authenticatedContext('own9').firestore().doc('orders/o2').update({status:'confirmed'}));
+ await T('customer cancels own placed order','ALLOW',async()=>{await env.withSecurityRulesDisabled(c=>c.firestore().doc('orders/o6').set({customerUid:'cust1',merchantId:'m1',status:'placed'}));await cu().doc('orders/o6').update({status:'cancelled',cancelledAt:'x',statusHistory:[]})});
+ await T('customer edits total of own order','DENY',()=>cu().doc('orders/o6').update({total:1}));
+ await T('anon spam with arbitrary fields','DENY',()=>env.unauthenticatedContext().firestore().collection('notifications').add({type:'new_order',read:false,junk:'x'.repeat(100)}));
+ console.log('SUMMARY pass='+p+' fail='+f);await env.cleanup();process.exit(0);})();

@@ -66,3 +66,9 @@ Known unrelated conflict: firebase-helpers.js placeOrder runs a customer-side tr
 neither the old rules nor these allow a customer to write a merchant doc, and with private merchants the read fails too. Order placement needs a server function
 (Blaze) or a redesign; not changed.
 Tests: tests/rules/merchant-claim.rules.test.js (24), merchant-failclosed.rules.test.js (17), merchant-auth.emulator.test.js (4, Auth+Firestore emulators).
+
+## Checkout (found in review)
+- app.js calls `KT_FB.saveOrder`, which is not defined anywhere, so Firestore orders are never written today; orders live in localStorage plus the WhatsApp message. `fbPlaceOrder` (firebase-helpers.js) exists but is never called.
+- `fbPlaceOrder` would be DENIED under current repo rules (customer transaction mutates merchants/{id}.products) and under rules.next. Tested in tests/rules/checkout.rules.test.js.
+- Free-compatible route (tested at rules level): customer creates a pending order request (status 'placed', no stock mutation); merchant owner/admin accepts with one batch (order -> confirmed + stock decrement). Known limit: rules cannot price-check item arrays, so the accept step must verify totals against the catalog. Oversell is prevented at accept time, not at request time.
+- Not wired into app.js yet.

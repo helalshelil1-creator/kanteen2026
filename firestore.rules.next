@@ -127,8 +127,15 @@ service cloud.firestore {
         || (isSignedIn() && resource.data.merchantId != null
             && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid);
 
+      // Pending order REQUEST only: no stock mutation by customers.
+      // Merchant owner/admin accept + decrement stock atomically (batch).
       allow create: if isSignedIn()
-        && request.resource.data.customerUid == request.auth.uid;
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.status == 'placed'
+        && request.resource.data.total is number
+        && request.resource.data.total > 0 && request.resource.data.total < 100000
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50;
 
       allow update: if isAdmin()
         || (isSignedIn() && resource.data.driverId == request.auth.uid
@@ -168,7 +175,9 @@ service cloud.firestore {
     // ═══ NOTIFICATIONS ═══
     match /notifications/{notifId} {
       allow read: if isAdmin();
-      allow create: if true;
+      allow create: if request.resource.data.keys().hasOnly(['type','orderId','orderFbId','merchantId','merchantName','customer','total','method','area','createdAt','read','_serverCreatedAt','driverName','phone','email','vehicle'])
+        && request.resource.data.type in ['new_order','payment_pending','new_driver']
+        && request.resource.data.read == false;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
@@ -184,8 +193,15 @@ service cloud.firestore {
     // ═══ RATINGS ═══
     match /ratings/{ratingId} {
       allow read: if true;
+      // Pending order REQUEST only: no stock mutation by customers.
+      // Merchant owner/admin accept + decrement stock atomically (batch).
       allow create: if isSignedIn()
-        && request.resource.data.customerUid == request.auth.uid;
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.status == 'placed'
+        && request.resource.data.total is number
+        && request.resource.data.total > 0 && request.resource.data.total < 100000
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50;
       allow update, delete: if isAdmin();
     }
 
