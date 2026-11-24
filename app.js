@@ -1834,7 +1834,10 @@ function viewTrack(oid){
 
   var steps = [{id:'placed',label:t('ord_status_placed'),ic:'clipboard-check'},{id:'confirmed',label:t('ord_status_confirmed'),ic:'check-circle-2'},{id:'preparing',label:t('ord_status_preparing'),ic:'package'},{id:'out',label:t('ord_status_out'),ic:'truck'},{id:'delivered',label:t('ord_status_delivered'),ic:'home'}];
   var idx = steps.findIndex(function(s){ return s.id === o.status; });
-  var payStatus = (o.paymentStatus === 'pending' ? '<div style="background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--gold);font-size:14px;font-weight:700">⏳ ' + t('ord_status_pending') + '</div>' : '');
+  var quoteBox = (o.quoteStatus === 'awaiting_customer' && o.quotedTotal != null)
+    ? '<div class="card" style="padding:16px;margin-top:14px;border:1px solid rgba(255,184,0,.5);color:var(--gold);font-weight:700;line-height:1.8">⚠️ إجمالي طلبك: ' + money(o.total) + ' — إجمالي المتجر حسب الأسعار: ' + money(o.quotedTotal) + '. الطلب غير مؤكد حتى تتفق مع المتجر على الإجمالي (واتساب/اتصال).</div>'
+    : (o.pendingConfirm && o.status === 'placed' ? '<div class="card" style="padding:14px;margin-top:14px;color:var(--gold);font-weight:700">⏳ في انتظار تأكيد المتجر (لم يتأكد بعد)</div>' : '');
+  var payStatus = quoteBox + (o.paymentStatus === 'pending' ? '<div style="background:rgba(255,184,0,.12);border:1px solid rgba(255,184,0,.35);border-radius:12px;padding:14px;margin-top:14px;text-align:center;color:var(--gold);font-size:14px;font-weight:700">⏳ ' + t('ord_status_pending') + '</div>' : '');
   var driverTrack = (o.driver && (o.status === 'out' || o.status === 'preparing'))
     ? '<div class="card" style="padding:20px;margin-top:16px"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#60a5fa);display:grid;place-items:center;font-size:26px;flex:none">🛵</div><div style="flex:1;min-width:150px"><b style="font-size:15.5px;display:block;margin-bottom:4px">' + t('ord_driver_on_way') + '</b><div class="muted tiny">' + esc(o.driver.name || t('track_driver')) + ' · ' + esc(o.driver.phone || '') + '</div></div><a href="#/track-live/' + o.id + '" class="btn btn-primary btn-sm" style="flex:none">' + t('ord_track_live') + '</a></div></div>'
     : '';
@@ -1855,8 +1858,14 @@ function ktListenToOrder(orderId){
   if (!window.KT_FB || !firebase || !firebase.firestore) return;
   try {
     var db = firebase.firestore();
-    ktTrackUnsub = db.collection('orders')
-      .where('id', '==', orderId)
+    var ktQ = db.collection('orders').where('id', '==', orderId);
+    // Secure rules only allow queries provably limited to the customer's own orders.
+    if (window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS){
+      var ktU = firebase.auth && firebase.auth().currentUser;
+      if (!ktU) return;
+      ktQ = ktQ.where('customerUid', '==', ktU.uid);
+    }
+    ktTrackUnsub = ktQ
       .limit(1)
       .onSnapshot(function(snap){
         if (snap.empty) return;
@@ -1867,6 +1876,10 @@ function ktListenToOrder(orderId){
         var oldStatus = localOrder.status;
         localOrder.status = data.status || localOrder.status;
         localOrder.paymentStatus = data.paymentStatus || localOrder.paymentStatus;
+        localOrder.quoteStatus = data.quoteStatus || localOrder.quoteStatus;
+        if (data.quotedTotal != null) localOrder.quotedTotal = data.quotedTotal;
+        if (data.confirmedTotal != null) localOrder.confirmedTotal = data.confirmedTotal;
+        if (data.status && data.status !== 'placed' || data.stockTaken) localOrder.pendingConfirm = false;
         if (data.driver) localOrder.driver = data.driver;
         if (data.driverId) localOrder.driverId = data.driverId;
         if (data.confirmedAt) localOrder.confirmedAt = data.confirmedAt;
