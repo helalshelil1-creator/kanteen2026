@@ -46,7 +46,7 @@ const T=async(name,expect,fn)=>{let ok;try{await fn();ok='ALLOW'}catch(e){ok='DE
  const g=okc===1; g?pass++:fail++; console.log((g?'PASS':'FAIL')+' [exactly 1 of 2 concurrent claims succeeds] succeeded='+okc+' owner='+owner);
  // public secret absence
  await seed();
- await T('anon reads approved merchant doc (public)','ALLOW',async()=>{const s=await env.unauthenticatedContext().firestore().doc('merchants/m1').get();if('password' in s.data())throw 1;if('activationId' in s.data())throw 1;});
+ await T('anon reads approved merchant doc directly (now private, fail closed)','DENY',async()=>env.unauthenticatedContext().firestore().doc('merchants/m1').get());
  await T('anon writes legacy password on create (register)','DENY',async()=>env.unauthenticatedContext().firestore().doc('merchants/n').set({status:'pending',ownerUid:null,name:'x',password:'p'}));
  await T('signed-in creates pending merchant bound to self, no password','ALLOW',async()=>env.authenticatedContext('u5').firestore().doc('merchants/n5').set({status:'pending',ownerUid:'u5',name:'x',phone:'+20199'}));
  await T('signed-in creates pending merchant with password field','DENY',async()=>env.authenticatedContext('u5').firestore().doc('merchants/n6').set({status:'pending',ownerUid:'u5',name:'x',password:'p'}));

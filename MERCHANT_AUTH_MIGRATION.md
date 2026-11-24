@@ -53,3 +53,16 @@ standard reset needs a real mailbox). Recovery = admin issues a new one-time act
 Run tests: firebase emulators:exec --only firestore "node tests/rules/merchant-claim.rules.test.js" (copy firestore.rules.next to firestore.rules for the test project).
 Remaining before go-live: client wiring behind KT_CONFIG.SECURE_MERCHANT_AUTH (merchant.html/admin.html), Auth emulator test of merchant-auth.js register/login/claim,
 admin deletes legacy password fields, rules deployed, public merchant docs checked to contain no secrets (legacy docs still hold the password field until deleted: rules cannot hide a field).
+
+## Fail-closed public reads (final design)
+`merchants/{id}` is private (owner/admin only). The storefront reads `merchantsPublic/{id}`, an explicit whitelist projection
+(rules reject password/ownerUid/any non-listed key; only approved merchants; written by admin or by the approved merchant's owner).
+Legacy password docs are therefore unreadable publicly even before cleanup. Rules cannot filter a query by field absence, which is why
+a projection collection is used instead of `!('password' in resource.data)`.
+Client sites that must change before activation (not changed yet): app.js ktSyncFromFirebase/listenMerchants -> merchantsPublic;
+admin.html merchants list stays on merchants (admin); merchant.html login/register/updates -> merchant-auth.js; every merchant product edit
+must also write merchantsPublic in one batch; admin one-time job copies whitelisted fields of approved merchants to merchantsPublic.
+Known unrelated conflict: firebase-helpers.js placeOrder runs a customer-side transaction that reads merchant products and updates stock on merchants/{id};
+neither the old rules nor these allow a customer to write a merchant doc, and with private merchants the read fails too. Order placement needs a server function
+(Blaze) or a redesign; not changed.
+Tests: tests/rules/merchant-claim.rules.test.js (24), merchant-failclosed.rules.test.js (17), merchant-auth.emulator.test.js (4, Auth+Firestore emulators).
