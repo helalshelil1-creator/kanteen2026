@@ -1,0 +1,57 @@
+const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');
+const fs=require('fs');const M=require('./merchant-auth.js');
+let pass=0,fail=0;
+const T=async(name,expect,fn)=>{let ok;try{await fn();ok='ALLOW'}catch(e){ok='DENY'}const good=ok===expect;good?pass++:fail++;console.log((good?'PASS':'FAIL')+' ['+expect+'] '+name+(good?'':' got '+ok));};
+(async()=>{
+ const env=await initializeTestEnvironment({projectId:'demo-kt2',firestore:{rules:fs.readFileSync('firestore.rules','utf8'),host:'127.0.0.1',port:8085}});
+ const ts=(ms)=>require('firebase/compat/app').default.firestore.Timestamp.fromMillis(ms);
+ const now=Date.now();
+ const seed=async()=>{await env.clearFirestore();await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();
+  await d.doc('admins/adm').set({x:1});
+  await d.doc('merchants/m1').set({name:'Legacy1',phone:'+20100',status:'approved',ownerUid:null});
+  await d.doc('merchants/m2').set({name:'Legacy2',phone:'+20101',status:'approved',ownerUid:null});
+  await d.doc('merchantActivations/CODE1').set({merchantId:'m1',used:false,expiresAt:ts(now+3600e3)});
+  await d.doc('merchantActivations/EXPIRED').set({merchantId:'m1',used:false,expiresAt:ts(now-3600e3)});
+  await d.doc('merchantActivations/USED').set({merchantId:'m1',used:true,usedBy:'someone',expiresAt:ts(now+3600e3)});
+  await d.doc('merchantActivations/FORM2').set({merchantId:'m2',used:false,expiresAt:ts(now+3600e3)});});};
+ // claim helper that skips Auth (uid from test context): same batch the helper builds
+ const claimAs=(uid,code,mid,extra)=>async()=>{const db=env.authenticatedContext(uid).firestore();const b=db.batch();
+   b.update(db.doc('merchants/'+mid),{ownerUid:uid,activationId:code,...(extra||{})});
+   b.update(db.doc('merchantActivations/'+code),{used:true,usedBy:uid,usedAt:Date.now()});await b.commit();};
+ await seed();
+ await T('valid claim of m1 with CODE1 by u1','ALLOW',claimAs('u1','CODE1','m1'));
+ await T('replay: second user reuses CODE1','DENY',claimAs('u2','CODE1','m1'));
+ await T('ownership immutable: owner u1 changes ownerUid to u2','DENY',async()=>env.authenticatedContext('u1').firestore().doc('merchants/m1').update({ownerUid:'u2'}));
+ await T('owner u1 cannot self-approve/change status','DENY',async()=>env.authenticatedContext('u1').firestore().doc('merchants/m1').update({status:'rejected'}));
+ await T('owner u1 can edit shop name','ALLOW',async()=>env.authenticatedContext('u1').firestore().doc('merchants/m1').update({name:'New name'}));
+ await T('owner u1 cannot write a password field','DENY',async()=>env.authenticatedContext('u1').firestore().doc('merchants/m1').update({password:'x'}));
+ await seed();
+ await T('expired code','DENY',claimAs('u1','EXPIRED','m1'));
+ await T('already used code','DENY',claimAs('u1','USED','m1'));
+ await T('code for m2 used on m1 (mismatched merchant)','DENY',claimAs('u1','FORM2','m1'));
+ await T('code for m2 on m2 by u3','ALLOW',claimAs('u3','FORM2','m2'));
+ await seed();
+ await T('claim merchant doc without consuming code','DENY',async()=>env.authenticatedContext('u1').firestore().doc('merchants/m1').update({ownerUid:'u1',activationId:'CODE1'}));
+ await T('consume code but bind merchant to someone else (usedBy mismatch)','DENY',async()=>{const db=env.authenticatedContext('u1').firestore();const b=db.batch();b.update(db.doc('merchants/m1'),{ownerUid:'u1',activationId:'CODE1'});b.update(db.doc('merchantActivations/CODE1'),{used:true,usedBy:'u9',usedAt:1});await b.commit();});
+ await T('unauthenticated claim','DENY',async()=>{const db=env.unauthenticatedContext().firestore();const b=db.batch();b.update(db.doc('merchants/m1'),{ownerUid:'u1',activationId:'CODE1'});b.update(db.doc('merchantActivations/CODE1'),{used:true,usedBy:'u1',usedAt:1});await b.commit();});
+ await T('unauthorised user lists activation codes','DENY',async()=>env.authenticatedContext('u1').firestore().collection('merchantActivations').get());
+ await T('anonymous reads an activation code','DENY',async()=>env.unauthenticatedContext().firestore().doc('merchantActivations/CODE1').get());
+ await T('non-admin creates activation code','DENY',async()=>env.authenticatedContext('u1').firestore().doc('merchantActivations/NEW').set({merchantId:'m1',used:false,expiresAt:ts(now+1e6)}));
+ await T('admin creates activation code','ALLOW',async()=>env.authenticatedContext('adm').firestore().doc('merchantActivations/NEW').set({merchantId:'m1',used:false,expiresAt:ts(now+1e6)}));
+ // concurrent claims of the same code by two users
+ await seed();
+ const res=await Promise.allSettled([claimAs('c1','CODE1','m1')(),claimAs('c2','CODE1','m1')()]);
+ const okc=res.filter(r=>r.status==='fulfilled').length;
+ const owner=(await env.withSecurityRulesDisabled(async c=>{global.o=(await c.firestore().doc('merchants/m1').get()).data().ownerUid;}),global.o);
+ const g=okc===1; g?pass++:fail++; console.log((g?'PASS':'FAIL')+' [exactly 1 of 2 concurrent claims succeeds] succeeded='+okc+' owner='+owner);
+ // public secret absence
+ await seed();
+ await T('anon reads approved merchant doc (public)','ALLOW',async()=>{const s=await env.unauthenticatedContext().firestore().doc('merchants/m1').get();if('password' in s.data())throw 1;if('activationId' in s.data())throw 1;});
+ await T('anon writes legacy password on create (register)','DENY',async()=>env.unauthenticatedContext().firestore().doc('merchants/n').set({status:'pending',ownerUid:null,name:'x',password:'p'}));
+ await T('signed-in creates pending merchant bound to self, no password','ALLOW',async()=>env.authenticatedContext('u5').firestore().doc('merchants/n5').set({status:'pending',ownerUid:'u5',name:'x',phone:'+20199'}));
+ await T('signed-in creates pending merchant with password field','DENY',async()=>env.authenticatedContext('u5').firestore().doc('merchants/n6').set({status:'pending',ownerUid:'u5',name:'x',password:'p'}));
+ await T('signed-in creates merchant owned by someone else','DENY',async()=>env.authenticatedContext('u5').firestore().doc('merchants/n7').set({status:'pending',ownerUid:'u6',name:'x'}));
+ await T('login query by ownerUid as owner','ALLOW',async()=>env.authenticatedContext('u5').firestore().collection('merchants').where('ownerUid','==','u5').get());
+ await T('unfiltered merchants list by anon','DENY',async()=>env.unauthenticatedContext().firestore().collection('merchants').get());
+ console.log('SUMMARY pass='+pass+' fail='+fail);
+ await env.cleanup();process.exit(fail?1:0);})();

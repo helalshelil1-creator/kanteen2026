@@ -1,0 +1,198 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══ HELPERS ═══
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function onlyFieldsChanged(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ═══ ADMINS ═══
+    match /admins/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    // ═══ USERS ═══
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update: if isSignedIn() && request.auth.uid == uid
+        && onlyFieldsChanged(['name','phone','photoURL','updatedAt','fcmToken','preferences','defaultAddress']);
+      allow delete: if isAdmin();
+    }
+
+    // ═══ MERCHANTS (secure-auth version; NOT deployed) ═══
+    // Fields a merchant doc may ever contain. No password / secret fields are allowed to be written.
+    function merchantKeysOk(d) {
+      return d.keys().hasOnly(['name','address','phone','whatsapp','lat','lng','products','hours',
+                               'description','photoURL','category','deliveryFee','type','status',
+                               'ownerUid','activationId','createdAt','updatedAt','_serverCreatedAt',
+                               'id','rating','ratingCount','ordersCount','email','area','city','notes']);
+    }
+    function activationDoc(code) {
+      return get(/databases/$(database)/documents/merchantActivations/$(code)).data;
+    }
+    function activationAfter(code) {
+      return getAfter(/databases/$(database)/documents/merchantActivations/$(code)).data;
+    }
+
+    match /merchants/{merchantId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.ownerUid != null && resource.data.ownerUid == request.auth.uid)
+        || resource.data.status == 'approved';
+
+      // New merchants are created pending and already bound to the signed-in creator, or by an admin.
+      allow create: if isAdmin()
+        || (isSignedIn()
+            && request.resource.data.status == 'pending'
+            && request.resource.data.ownerUid == request.auth.uid
+            && merchantKeysOk(request.resource.data));
+
+      allow update: if isAdmin()
+        // owner edits: ownerUid and status can never change
+        || (isSignedIn()
+            && resource.data.ownerUid != null
+            && resource.data.ownerUid == request.auth.uid
+            && request.resource.data.ownerUid == resource.data.ownerUid
+            && request.resource.data.status == resource.data.status
+            && merchantKeysOk(request.resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                 ['name','address','phone','whatsapp','lat','lng','products','hours','description',
+                  'photoURL','updatedAt','category','deliveryFee']))
+        // one-time claim of an unowned merchant, atomic with consuming the activation code (batched write)
+        || (isSignedIn()
+            && resource.data.ownerUid == null
+            && request.resource.data.ownerUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerUid','activationId'])
+            && activationDoc(request.resource.data.activationId).merchantId == merchantId
+            && activationDoc(request.resource.data.activationId).used == false
+            && activationDoc(request.resource.data.activationId).expiresAt > request.time
+            && activationAfter(request.resource.data.activationId).used == true
+            && activationAfter(request.resource.data.activationId).usedBy == request.auth.uid);
+
+      allow delete: if isAdmin();
+    }
+
+    // ═══ MERCHANT ACTIVATION CODES ═══
+    // Document id = the secret (128-bit random). No list: knowing the id is the only way to read it.
+    match /merchantActivations/{code} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.used == false
+        && request.resource.data.keys().hasOnly(['merchantId','expiresAt','used','createdAt'])
+        && request.resource.data.expiresAt > request.time;
+      allow update: if isSignedIn()
+        && resource.data.used == false
+        && resource.data.expiresAt > request.time
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.merchantId == resource.data.merchantId
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used','usedBy','usedAt']);
+      allow delete: if isAdmin();
+    }
+
+    // ═══ ORDERS ═══
+    match /orders/{orderId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.customerUid == request.auth.uid)
+        || (isSignedIn() && resource.data.driverId == request.auth.uid)
+        || (isSignedIn() && resource.data.merchantId != null
+            && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid);
+
+      allow create: if isSignedIn()
+        && request.resource.data.customerUid == request.auth.uid;
+
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.driverId == request.auth.uid
+            && onlyFieldsChanged(['status','pickedAt','deliveredAt','acceptedAt',
+                                  'driverLat','driverLng','driverNotes','cancellationReason',
+                                  'statusHistory','paymentStatus']))
+        || (isSignedIn() && resource.data.merchantId != null
+            && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid
+            && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes','statusHistory']))
+        || (isSignedIn() && resource.data.customerUid == request.auth.uid
+            && onlyFieldsChanged(['status','cancelledAt','cancellationReason','statusHistory']));
+
+      allow delete: if isAdmin();
+
+      match /chat/{messageId} {
+        allow read, create: if isAdmin()
+          || (isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.customerUid == request.auth.uid)
+          || (isSignedIn() && get(/databases/$(database)/documents/orders/$(orderId)).data.driverId == request.auth.uid);
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // ═══ DRIVERS ═══
+    match /drivers/{driverId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == driverId
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+        || (isSignedIn() && request.auth.uid == driverId
+            && onlyFieldsChanged(['name','phone','whatsapp','email','vehicle','area',
+                                  'online','lat','lng','lastSeen','fcmToken',
+                                  'profilePhoto','idCardFront','idCardBack',
+                                  'locationAddress','updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    // ═══ NOTIFICATIONS ═══
+    match /notifications/{notifId} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══ GLOBAL PRODUCTS (Admin-only) ═══
+    match /globalProducts/{productId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ═══ RATINGS ═══
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.customerUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ═══ COUPONS ═══
+    match /coupons/{couponId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ═══ CONFIG ═══
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ═══ FCM TOKENS ═══
+    match /fcmTokens/{token} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ═══ TEST ═══
+    match /_test/{doc} {
+      allow read, write: if false;
+    }
+  }
+}

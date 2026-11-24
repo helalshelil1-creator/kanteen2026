@@ -45,3 +45,11 @@ Recovery design (no email, no trust in phone alone, no client-only approval):
 5. Plaintext `password` fields: admin deletes them after activation, and the rules must stop exposing them: either delete the field or restrict approved-merchant public read to a separate `merchantsPublic` collection (name, address, hours, products). Public read of the full merchants doc should be removed.
 Rollback: restore the exported merchants minus the password field, keep Auth users. Never restore plaintext passwords or the old public-read rule.
 Not yet implemented: the code and rule changes above (need tests on the emulator first); nothing is live.
+
+## Implemented locally (not deployed): firestore.rules.next, merchant-auth.js, tests/rules/*
+Design chosen: Firebase Auth email/password with a synthetic email (cannot receive mail, so no email reset; Firebase's
+standard reset needs a real mailbox). Recovery = admin issues a new one-time activation code. Activation doc id is the
+128-bit secret, no list access, claim is one batched write that consumes the code and sets ownerUid together (rules use get/getAfter).
+Run tests: firebase emulators:exec --only firestore "node tests/rules/merchant-claim.rules.test.js" (copy firestore.rules.next to firestore.rules for the test project).
+Remaining before go-live: client wiring behind KT_CONFIG.SECURE_MERCHANT_AUTH (merchant.html/admin.html), Auth emulator test of merchant-auth.js register/login/claim,
+admin deletes legacy password fields, rules deployed, public merchant docs checked to contain no secrets (legacy docs still hold the password field until deleted: rules cannot hide a field).
