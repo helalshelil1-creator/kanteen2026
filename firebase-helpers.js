@@ -409,9 +409,13 @@
     }
   }
 
-  function fbListenMerchants(cb) {
+  function fbListenMerchants(cb, opts) {
     var i = fbInit(); if (!i) return null;
-    return i.db.collection('merchants').onSnapshot(function (snap) {
+    var q = i.db.collection('merchants');
+    // Public (non-admin) visitors may only read approved merchants (Firestore rules are not filters),
+    // so an unfiltered listener is rejected with "Missing or insufficient permissions".
+    if (opts && opts.approvedOnly) q = q.where('status', '==', 'approved');
+    return q.onSnapshot(function (snap) {
       var arr = snap.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
       if (typeof cb === 'function') cb(arr);
     }, function (e) { console.error('listenMerchants:', e); });

@@ -585,7 +585,7 @@ function ktSyncFromFirebase(){
       ktBuildMedicineProducts().forEach(function(p){ PRODUCTS.push(p); });
     }
     if (typeof render === 'function') render();
-  });
+  }, { approvedOnly: true });
 
   // ✅ تحميل منتجات الأدمن العامة
   if (typeof KT_FB.listenGlobalProducts === 'function'){
