@@ -43,7 +43,17 @@
     while ((n = w.nextNode())) { if (PH.test(n.nodeValue)) hits.push(n); PH.lastIndex = 0; }
     hits.forEach(function (t) { t.nodeValue = t.nodeValue.replace(PH, '—'); });
   }
-  function run() { if (!isStore) return; try { scrub(document.body); } catch (e) {} }
+  function heroNotice() {
+    var a = document.querySelector('.k-hero-actions');
+    if (!a || document.querySelector('[data-testid="home-notice"]')) return;
+    var en = document.documentElement.lang === 'en' || document.documentElement.dir === 'ltr';
+    var d = document.createElement('div');
+    d.setAttribute('data-testid', 'home-notice');
+    d.style.cssText = 'margin:0 0 14px;font-size:13px;line-height:1.7;color:var(--gold,#f5c542);font-weight:700;text-align:center';
+    d.textContent = en ? 'Demo edition: no real orders are taken and nothing is charged.' : 'نسخة عرض تجريبية: لا تُنفَّذ طلبات حقيقية ولا يُسحب أي مبلغ.';
+    a.parentNode.insertBefore(d, a);
+  }
+  function run() { if (!isStore) return; try { scrub(document.body); heroNotice(); } catch (e) {} }
   var pending = false;
   new MutationObserver(function () { if (pending) return; pending = true; setTimeout(function () { pending = false; run(); }, 60); })
     .observe(document.documentElement, { childList: true, subtree: true });
