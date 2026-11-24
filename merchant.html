@@ -1094,7 +1094,7 @@ function openOrderModal(fbId){
   if (o.status === 'placed' || o.status === 'pending_payment'){
     var secureO = window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS;
     if (secureO && o.quoteStatus === 'awaiting_customer'){
-      actionBtns = '<div style="background:var(--bg-3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:14px">⚠️ إجمالي العميل المطلوب: <b>' + money(o.total) + '</b><br>إجمالي المتجر حسب الأسعار: <b>' + money(o.quotedTotal) + '</b><br>بانتظار موافقة العميل (تواصل معه واتساب/اتصال). لا يُعتبر العميل موافقاً حتى تسجّل ذلك.</div>' +
+      actionBtns = '<div data-testid="quote-box" style="background:var(--bg-3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:14px">⚠️ إجمالي العميل المطلوب: <b>' + money(o.total) + '</b><br>إجمالي المتجر حسب الأسعار: <b>' + money(o.quotedTotal) + '</b><br>بانتظار موافقة العميل (تواصل معه واتساب/اتصال). لا يُعتبر العميل موافقاً حتى تسجّل ذلك.</div>' +
         '<button class="k-btn k-btn-success k-btn-block" onclick="ktSecureOrderAction(\'' + fbId + '\', \'confirmed\', true)"><i data-lucide="check"></i> العميل وافق على ' + money(o.quotedTotal) + ' — تأكيد</button>';
     } else {
       actionBtns = '<button class="k-btn k-btn-success k-btn-block" onclick="updateOrderStatus(\'' + fbId + '\', \'confirmed\')"><i data-lucide="check"></i> ' + (secureO ? 'مراجعة الأسعار وتأكيد الطلب' : 'تأكيد الطلب') + '</button>';

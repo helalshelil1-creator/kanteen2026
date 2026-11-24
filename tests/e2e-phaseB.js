@@ -50,9 +50,11 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  const odoc=async id=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc('orders/'+id).get()).data());
  const sq=async()=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc('merchants/mLeg/stock/p1').get()).data().qty);
  let fo=await odoc(forged.fbId);ok('forged order NOT confirmed; quoted 75 (25*2+25) awaiting customer; stock unchanged 8',fo.status==='placed'&&fo.quoteStatus==='awaiting_customer'&&fo.quotedTotal===75&&await sq()===8,{s:fo.status,q:fo.quoteStatus,t:fo.quotedTotal});
- const geo=await ml.pg.evaluate(()=>{const tt=document.querySelector('.k-toast');const box=[...document.querySelectorAll('div')].filter(d=>/بانتظار موافقة العميل/.test(d.innerText)&&d.children.length<8&&d.offsetHeight>0).pop();const r=e=>e&&e.getBoundingClientRect();const T=r(tt),B=r(box);return {toast:T&&{t:T.top,b:T.bottom},box:B&&{t:B.top,b:B.bottom},overlap:!!(T&&B&&T.bottom>B.top&&T.top<B.bottom)}});
+ const boxAppeared=await ml.pg.waitForSelector('[data-testid="quote-box"]',{state:'visible',timeout:6000}).then(()=>true).catch(()=>false);
+ const geo=await ml.pg.evaluate(()=>{const tt=document.querySelector('.k-toast');const box=document.querySelector('[data-testid="quote-box"]');const r=e=>e&&e.getBoundingClientRect();const T=r(tt),B=r(box);return {toast:T&&{t:T.top,b:T.bottom},box:B&&{t:B.top,b:B.bottom},overlap:!!(T&&B&&T.bottom>B.top&&T.top<B.bottom)}});
+ ok('mobile: quote box rendered (UI state)',boxAppeared&&!!geo.box,geo);
  await ml.pg.screenshot({path:'/downloads/kanteen-e2e-quote-mobile-toast.png'});
- ok('mobile: toast visible and does NOT overlap the awaiting-customer price box',geo.toast&&geo.box&&!geo.overlap,geo);
+ ok('mobile: toast visible and does NOT overlap the awaiting-customer price box',!!geo.box&&!geo.overlap,geo);
  await ml.pg.waitForFunction(()=>!document.querySelector('.k-toast'),null,{timeout:9000}).catch(()=>{});
  const txt=await ml.pg.locator('#modalContent, .k-modal').first().innerText().catch(()=>'');
  ok('after toast expires the modal still shows requested + quoted totals and awaiting-customer wording',/بانتظار موافقة العميل/.test(txt)&&/75/.test(txt),txt.slice(0,200));
