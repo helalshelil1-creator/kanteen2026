@@ -1601,3 +1601,8 @@ img:not([loading]){
 /* Firebase debug pill is not for end users: show only errors, and keep it above the bottom nav */
 .k-fb-status:not(.err){display:none!important}
 .k-fb-status{bottom:84px}
+
+.k-pwa-banner-icon img{width:100%;height:100%;object-fit:contain;border-radius:14px;display:block}
+.k-pwa-banner-close .k-pwa-x{font-size:24px;line-height:1}
+.k-pwa-manual{font-size:13px;line-height:1.7;color:var(--ink-2,#cbd5e1);background:var(--glass);border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.k-pwa-manual[hidden]{display:none}

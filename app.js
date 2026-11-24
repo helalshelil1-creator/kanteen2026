@@ -673,7 +673,7 @@ var KT_T = {
     action_view_cart: 'عرض السلة', action_continue: 'التالي', action_back: 'رجوع',
     action_close: 'إغلاق', action_save: 'حفظ', action_cancel: 'إلغاء', action_delete: 'حذف',
     action_confirm: 'تأكيد', action_call: 'اتصال', action_whatsapp: 'واتساب', action_apply: 'تطبيق',
-    cart_title: 'سلة التسوق', cart_empty: 'سلتك فارغة', tag_best: 'الأكثر مبيعاً', tag_new: 'جديد', sec_browse_categories: 'تصفح الأقسام', prod_not_found: 'المنتج غير موجود', cart_start_shopping: 'ابدأ التسوق',
+    cart_title: 'سلة التسوق', cart_empty: 'سلتك فارغة', pwa_title: 'ثبّت تطبيق كانتِين', pwa_sub: 'وصول أسرع من الشاشة الرئيسية لموبايلك', pwa_install: '📥 تثبيت الآن', pwa_later: 'لاحقاً', pwa_close: 'إغلاق', pwa_manual_ios: 'على الآيفون: اضغط زر المشاركة في سفاري، ثم «إضافة إلى الشاشة الرئيسية».', pwa_manual_other: 'من قائمة المتصفح (⋮) اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».', tag_best: 'الأكثر مبيعاً', tag_new: 'جديد', sec_browse_categories: 'تصفح الأقسام', prod_not_found: 'المنتج غير موجود', cart_start_shopping: 'ابدأ التسوق',
     cart_browse_products: 'تصفح المنتجات', cart_subtotal: 'المجموع الفرعي', cart_delivery: 'التوصيل',
     cart_discount: 'الخصم', cart_total: 'الإجمالي', cart_free: 'مجاناً',
     cart_coupon: 'كود الخصم', cart_summary: 'ملخص الطلب', cart_qty: 'الكمية',
@@ -779,7 +779,7 @@ var KT_T = {
     action_view_cart: 'View Cart', action_continue: 'Next', action_back: 'Back',
     action_close: 'Close', action_save: 'Save', action_cancel: 'Cancel', action_delete: 'Delete',
     action_confirm: 'Confirm', action_call: 'Call', action_whatsapp: 'WhatsApp', action_apply: 'Apply',
-    cart_title: 'Shopping Cart', cart_empty: 'Your cart is empty', tag_best: 'Best seller', tag_new: 'New', sec_browse_categories: 'Browse Categories', prod_not_found: 'Product not found', cart_start_shopping: 'Start Shopping',
+    cart_title: 'Shopping Cart', cart_empty: 'Your cart is empty', pwa_title: 'Install the Kanteen app', pwa_sub: 'Quick access from your phone home screen', pwa_install: '📥 Install now', pwa_later: 'Later', pwa_close: 'Close', pwa_manual_ios: 'On iPhone: tap the Share button in Safari, then \'Add to Home Screen\'.', pwa_manual_other: 'From the browser menu (⋮) choose \'Install app\' or \'Add to Home Screen\'.', tag_best: 'Best seller', tag_new: 'New', sec_browse_categories: 'Browse Categories', prod_not_found: 'Product not found', cart_start_shopping: 'Start Shopping',
     cart_browse_products: 'Browse Products', cart_subtotal: 'Subtotal', cart_delivery: 'Delivery',
     cart_discount: 'Discount', cart_total: 'Total', cart_free: 'Free',
     cart_coupon: 'Coupon code', cart_summary: 'Order Summary', cart_qty: 'Quantity',
@@ -901,6 +901,7 @@ function applyLang(){
   if (chatTitle) chatTitle.textContent = t('chat_title');
   var chatStatus = document.querySelector('.kt-chat-info span');
   if (chatStatus) chatStatus.textContent = t('chat_online');
+  ktRenderPwaTexts();
   var kcb = document.getElementById('kt-chat-body'); if (kcb && kcb.children.length === 1 && kcb.children[0].className.indexOf('bot') !== -1){ kcb.innerHTML = ''; var kh = new Date().getHours(); var kg = kh < 12 ? t('general_good_morning') : t('general_good_evening'); ktAddMsg('bot', KT_LANG === 'en' ? kg + '! 👋 I am the Kanteen assistant.<br><br>How can I help you?' : kg + '! 👋 أنا مساعد كانتِين.<br><br>كيف أقدر أساعدك؟'); }
   document.querySelectorAll('#kt-chat-quick button').forEach(function(b, i){ b.textContent = t('chat_quick_' + (i + 1)); });
   var locBarBtn = document.querySelector('.kt-locbar-btn');
@@ -2346,6 +2347,26 @@ function ktUpdatePwaFooterBtn(){
   if (isInstalled){ btn.classList.add('installed'); txt.textContent = t('footer_pwa_installed'); }
   else { btn.classList.remove('installed'); txt.textContent = t('footer_pwa_install'); }
 }
+function ktPwaIsInstalled(){
+  return !!(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true || LS.get('pwa_installed', false));
+}
+function ktRenderPwaTexts(){
+  var m = {kPwaTitle: 'pwa_title', kPwaSub: 'pwa_sub', kPwaInstallBtn: 'pwa_install', kPwaLater: 'pwa_later'};
+  Object.keys(m).forEach(function(id){ var el = document.getElementById(id); if (el) el.textContent = t(m[id]); });
+  var c = document.getElementById('kPwaClose'); if (c) c.setAttribute('aria-label', t('pwa_close'));
+  var mn = document.getElementById('kPwaManual'); if (mn && !mn.hidden) mn.textContent = ktPwaManualText();
+}
+function ktPwaManualText(){
+  var ua = navigator.userAgent || '';
+  var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return t(ios ? 'pwa_manual_ios' : 'pwa_manual_other');
+}
+function ktMaybeShowPwaBanner(){
+  if (ktPwaIsInstalled() || LS.get('pwa_dismissed', false)) return;
+  var b = document.getElementById('kPwaBanner'); if (!b) return;
+  ktRenderPwaTexts();
+  b.classList.add('show');
+}
 function ktInitPWA(){
   if ('serviceWorker' in navigator){
     window.addEventListener('load', function(){
@@ -2355,10 +2376,9 @@ function ktInitPWA(){
   window.addEventListener('beforeinstallprompt', function(e){
     e.preventDefault();
     ktDeferredPrompt = e;
-    if (!LS.get('pwa_dismissed', false)){
-      setTimeout(function(){ var b = document.getElementById('kPwaBanner'); if (b) b.classList.add('show'); }, 3000);
-    }
+    ktMaybeShowPwaBanner();
   });
+  setTimeout(ktMaybeShowPwaBanner, 3500);
   window.addEventListener('appinstalled', function(){
     ktToast('🎉 تم تثبيت التطبيق', 'success');
     var b = document.getElementById('kPwaBanner'); if (b) b.classList.remove('show');
@@ -2368,10 +2388,15 @@ function ktInitPWA(){
   ktUpdatePwaFooterBtn();
 }
 function ktInstallPwa(){
-  if (window.matchMedia('(display-mode: standalone)').matches || LS.get('pwa_installed', false)){
+  if (ktPwaIsInstalled()){
     ktToast('✅ التطبيق مثبّت بالفعل'); ktUpdatePwaFooterBtn(); return;
   }
-  if (!ktDeferredPrompt){ ktToast('📱 استخدم قائمة المتصفح → إضافة إلى الشاشة الرئيسية'); return; }
+  if (!ktDeferredPrompt){
+    var b0 = document.getElementById('kPwaBanner'), mn = document.getElementById('kPwaManual');
+    if (b0 && mn){ mn.hidden = false; mn.textContent = ktPwaManualText(); b0.classList.add('show'); }
+    else ktToast('📱 استخدم قائمة المتصفح → إضافة إلى الشاشة الرئيسية');
+    return;
+  }
   ktDeferredPrompt.prompt();
   ktDeferredPrompt.userChoice.then(function(choice){
     if (choice.outcome === 'accepted') ktToast('🎉 جاري التثبيت...', 'success');

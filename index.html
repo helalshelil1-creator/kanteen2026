@@ -208,18 +208,19 @@
 <div class="k-toast-wrap" id="k-toasts"></div>
 
 <!-- PWA BANNER -->
-<div class="k-pwa-banner" id="kPwaBanner">
+<div class="k-pwa-banner" id="kPwaBanner" role="dialog" aria-labelledby="kPwaTitle">
   <div class="k-pwa-banner-head">
-    <div class="k-pwa-banner-icon">📱</div>
+    <div class="k-pwa-banner-icon"><img src="logo.png" alt="" width="54" height="54" onerror="this.replaceWith(document.createTextNode('📱'))"></div>
     <div class="k-pwa-banner-info">
-      <b>ثبّت تطبيق كانتِين</b>
-      <span>تجربة أسرع + يعمل أوفلاين</span>
+      <b id="kPwaTitle">ثبّت تطبيق كانتِين</b>
+      <span id="kPwaSub">وصول أسرع من الشاشة الرئيسية لموبايلك</span>
     </div>
-    <button class="k-pwa-banner-close" onclick="ktDismissPwa()" aria-label="إغلاق"><svg data-lucide="x"></svg></button>
+    <button class="k-pwa-banner-close" id="kPwaClose" onclick="ktDismissPwa()" aria-label="إغلاق"><span class="k-pwa-x" aria-hidden="true">×</span></button>
   </div>
+  <div class="k-pwa-manual" id="kPwaManual" hidden></div>
   <div class="k-pwa-banner-actions">
-    <button class="k-pwa-install-btn" onclick="ktInstallPwa()">📥 تثبيت الآن</button>
-    <button class="k-pwa-later-btn" onclick="ktDismissPwa()">لاحقاً</button>
+    <button class="k-pwa-install-btn" id="kPwaInstallBtn" onclick="ktInstallPwa()">📥 تثبيت الآن</button>
+    <button class="k-pwa-later-btn" id="kPwaLater" onclick="ktDismissPwa()">لاحقاً</button>
   </div>
 </div>
 
