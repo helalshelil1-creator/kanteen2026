@@ -21,19 +21,41 @@ let p=0,f=0;const T=async(n,exp,fn)=>{let r,m='';try{await fn();r='ALLOW'}catch(
  await reset(3);const ids=[];for(let i=0;i<5;i++)ids.push((await req('u'+i,1,10)).fbId);
  const r5=await Promise.allSettled(ids.map(i=>flow.acceptOrder(own(),i)));
  await T('CONCURRENCY: 5 competing, stock 3 -> exactly 3 confirmed, stock 0','ALLOW',async()=>{const w=r5.filter(x=>x.status==='fulfilled').length;await (async c=>{const st=await c.firestore().doc('merchants/m1/stock/p1').get();if(w!==3||st.data().qty!==0)throw new Error('wins='+w+' qty='+st.data().qty+' '+r5.filter(x=>x.status==='rejected').map(x=>x.reason.code+':'+String(x.reason.message).slice(0,40)).join('|'))})(cust('adm'))});
- // tamper
+ // tamper + quote-before-confirm
  await reset(5);
  const tr=await req('c9',2,0.01,0);
- await T('TAMPER: forged price 0.01 request accepted into pending (rules cannot price-check)','ALLOW',async()=>{});
- let out;await T('TAMPER: accept recomputes from catalog, not submitted total','ALLOW',async()=>{out=await flow.acceptOrder(own(),tr.fbId);if(out.confirmedTotal!==45||!out.totalCorrected)throw new Error(JSON.stringify(out))});
- await T('TAMPER: order doc shows confirmedTotal=45, submitted kept, totalCorrected=true','ALLOW',async()=>{await (async c=>{const d=(await c.firestore().doc('orders/'+tr.fbId).get()).data();if(d.confirmedTotal!==45||d.total>=45||d.totalCorrected!==true)throw new Error(JSON.stringify([d.confirmedTotal,d.total]))})(cust('adm'))});
+ const stockQty=async(pid)=>{const s=await cust('adm').firestore().doc('merchants/m1/stock/'+pid).get();return s.data().qty};
+ const ord=async(id)=>(await cust('adm').firestore().doc('orders/'+id).get()).data();
+ await T('TAMPER: forged low total lands as pending request (rules cannot price-check arrays)','ALLOW',async()=>{});
+ let out;await T('TAMPER: accept does NOT confirm; quotes catalog total 45 awaiting customer; stock untouched','ALLOW',async()=>{out=await flow.acceptOrder(own(),tr.fbId);const o=await ord(tr.fbId);if(out.confirmed||!out.needsAgreement||out.quotedTotal!==45||o.status!=='placed'||o.quoteStatus!=='awaiting_customer'||o.quotedTotal!==45||await stockQty('p1')!==5)throw new Error(JSON.stringify(out))});
+ await T('TAMPER: requested total and quoted total both visible on the order','ALLOW',async()=>{const o=await ord(tr.fbId);if(!(o.total<45)||o.quotedTotal!==45)throw new Error('x')});
+ await T('TAMPER: repeated accept without agreement still not confirmed','ALLOW',async()=>{const r=await flow.acceptOrder(own(),tr.fbId);if(r.confirmed)throw new Error('confirmed')});
+ await T('TAMPER: after merchant records customer agreement -> confirmed at 45, stock 3','ALLOW',async()=>{const r=await flow.acceptOrder(own(),tr.fbId,{agreedQuote:true});const o=await ord(tr.fbId);if(!r.confirmed||o.confirmedTotal!==45||o.status!=='confirmed'||o.quoteStatus!=='agreed_recorded_by_merchant'||o.stockTaken!==true||await stockQty('p1')!==3)throw new Error(JSON.stringify([r,o.status]))});
+ await T('REPLAY: double-click accept after confirm is rejected, stock stays 3','DENY',async()=>{await flow.acceptOrder(own(),tr.fbId,{agreedQuote:true})});
+ await T('stock still 3 after replay','ALLOW',async()=>{if(await stockQty('p1')!==3)throw new Error('q')});
+ await T('agreedQuote on a never-quoted mismatching order does not skip the quote','ALLOW',async()=>{const x=await req('c8',1,0.01,0,'K-c8');const r=await flow.acceptOrder(own(),x.fbId,{agreedQuote:true});if(r.confirmed)throw new Error('confirmed')});
+ // cancel + stock restoration exactly once
+ await reset(5);
+ const cA=await req('d1',2,10);
+ await flow.acceptOrder(own(),cA.fbId);
+ await T('CANCEL: stock 3 after accept','ALLOW',async()=>{if(await stockQty('p1')!==3)throw new Error('q')});
+ const dbl=await Promise.allSettled([flow.cancelOrder(own(),cA.fbId),flow.cancelOrder(own(),cA.fbId)]);
+ await T('CANCEL double-click concurrent: exactly one restores, stock 5 (not 7)','ALLOW',async()=>{const q=await stockQty('p1');const o=await ord(cA.fbId);if(q!==5||o.status!=='cancelled'||o.stockTaken!==false)throw new Error(q+' '+dbl.map(x=>x.status))});
+ await T('CANCEL replay later: rejected, stock stays 5','DENY',()=>flow.cancelOrder(own(),cA.fbId));
+ await T('CANCEL of a placed (stock untouched) order restores nothing','ALLOW',async()=>{const x=await req('d2',1,10);const r=await flow.cancelOrder(own(),x.fbId);if(r.stockRestored||await stockQty('p1')!==5)throw new Error('bad '+await stockQty('p1'))});
+ await T('RULE: cancel link cannot decrease stock (restore must equal +itemQty)','DENY',async()=>{const x=await req('d3',2,10);await flow.acceptOrder(own(),x.fbId);const O=own();const bt=O.batch();bt.update(O.doc('orders/'+x.fbId),{status:'cancelled',stockTaken:false});bt.update(O.doc('merchants/m1/stock/p1'),{qty:0,lastOrderId:x.fbId});await bt.commit()});
+ await T('RULE: owner restock above cap 100000','DENY',()=>own().doc('merchants/m1/stock/p1').update({qty:100001}));
+ await T('RULE: customer cannot cancel a confirmed order','DENY',async()=>{const x=await req('d4',1,10);await flow.acceptOrder(own(),x.fbId);await cust('d4').firestore().doc('orders/'+x.fbId).update({status:'cancelled'})});
+ await T('RULE: customer can cancel own placed order','ALLOW',async()=>{const x=await req('d5',1,10);await cust('d5').firestore().doc('orders/'+x.fbId).update({status:'cancelled'})});
+ await T('RULE: customer forges stockTaken/quote fields on create','DENY',()=>cust('d6').firestore().doc('orders/forge').set({customerUid:'d6',merchantId:'m1',status:'placed',total:5,items:[{id:'p1'}],itemQty:{p1:1},stockTaken:true}));
+ await T('ELIGIBILITY: merchant suspended -> accept rejected','DENY',async()=>{await cust('adm').firestore().doc('merchants/m1').update({status:'suspended'});const x=await req('d7',1,10);await flow.acceptOrder(own(),x.fbId)});
  // rules-level constraints on accept
  await reset(5);const a=await req('c1',2,10);const b=await req('c2',2,10);
  const O=own();
  await T('RULE: owner arbitrary stock decrease with no order link','DENY',()=>O.doc('merchants/m1/stock/p1').update({qty:0}));
  await T('RULE: decrement larger than order qty (links order but wrong amount)','DENY',async()=>{const bt=O.batch();bt.update(O.doc('orders/'+a.fbId),{status:'confirmed'});bt.update(O.doc('merchants/m1/stock/p1'),{qty:0,lastOrderId:a.fbId});await bt.commit()});
  await T('RULE: stock decrement while order stays placed (no confirm in same batch)','DENY',()=>O.doc('merchants/m1/stock/p1').update({qty:3,lastOrderId:a.fbId}));
- await T('RULE: exact decrement + confirm in one batch','ALLOW',async()=>{const bt=O.batch();bt.update(O.doc('orders/'+a.fbId),{status:'confirmed'});bt.update(O.doc('merchants/m1/stock/p1'),{qty:3,lastOrderId:a.fbId});await bt.commit()});
+ await T('RULE: exact decrement + confirm in one batch','ALLOW',async()=>{const bt=O.batch();bt.update(O.doc('orders/'+a.fbId),{status:'confirmed',stockTaken:true});bt.update(O.doc('merchants/m1/stock/p1'),{qty:3,lastOrderId:a.fbId});await bt.commit()});
  await T('RULE: replay same order link again','DENY',()=>O.doc('merchants/m1/stock/p1').update({qty:1,lastOrderId:a.fbId}));
  await T('RULE: owner of another shop cannot touch stock','DENY',()=>env.authenticatedContext('own9').firestore().doc('merchants/m1/stock/p1').update({qty:99}));
  await T('RULE: customer cannot read or write stock','DENY',()=>cust('c1').firestore().doc('merchants/m1/stock/p1').update({qty:99}));

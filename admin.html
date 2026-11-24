@@ -25,6 +25,8 @@
 <script src="config.js"></script>
 <script src="firebase-config.js"></script>
 <script src="firebase-helpers.js"></script>
+<script src="order-flow.js"></script>
+<script src="merchant-auth.js"></script>
 <script src="kt-sound.js"></script>
 <style>
 :root,[data-theme="dark"]{--brand:#ff6b35;--brand-2:#ff8a5b;--gold:#ffb800;--gold-2:#ffd9a0;--fresh:#22c55e;--fresh-2:#4ade80;--danger:#ef4444;--info:#3b82f6;--purple:#a78bfa;--bg:#02060f;--bg-2:#070d1b;--bg-3:#0d1524;--ink:#fff;--ink-2:#c4d0dd;--ink-3:#8a95a3;--ink-4:#5a6472;--line:rgba(196,214,232,.12);--line-2:rgba(196,214,232,.22);--glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.1);--r-lg:20px;--r-xl:26px;--r-pill:999px;--sh-2:0 12px 36px rgba(0,0,0,.5);--ease:cubic-bezier(.25,.8,.35,1);--ease-out:cubic-bezier(.16,1,.3,1);--sidebar-w:300px}
@@ -815,7 +817,7 @@ function renderMerchants(el){
   var approved = FB_MERCHANTS.filter(function(m){ return m.status === 'approved' || !m.status; });
   var suspended = FB_MERCHANTS.filter(function(m){ return m.status === 'suspended'; });
   el.innerHTML = '<div class="k-card kt-anim-1"><div class="k-card-head"><h3><i data-lucide="store"></i> التجار المعتمدون (' + approved.length + ')</h3>' +
-    '<button class="k-btn k-btn-success k-btn-sm" onclick="openAddMerchantModal()"><i data-lucide="plus"></i> إضافة تاجر</button></div>' +
+    '<span>' + (ktSecureM() ? '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktRunMigration()">ترحيل التجار</button> ' : '') + '<button class="k-btn k-btn-success k-btn-sm" onclick="openAddMerchantModal()"><i data-lucide="plus"></i> إضافة تاجر</button></span></div>' +
     (approved.length ? approved.map(function(m){ return renderMerchantCard(m, 'approved'); }).join('') : '<div class="k-empty"><p>لا يوجد تجار معتمدون</p></div>') +
     (suspended.length ? '<div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line)"><h4 style="margin-bottom:14px;color:var(--danger);font-size:15px">⏸️ الموقوفة (' + suspended.length + ')</h4>' + suspended.map(function(m){ return renderMerchantCard(m, 'suspended'); }).join('') + '</div>' : '') +
     '</div>';
@@ -833,13 +835,45 @@ function renderMerchantCard(m, status){
     '<div class="meta"><i data-lucide="phone"></i> ' + esc(m.phone || '') + '</div>' +
     '<div class="meta"><i data-lucide="map-pin"></i> ' + esc(m.address || '') + '</div>' +
     '<div style="margin-top:14px"><span class="k-pill k-pill-fresh">📦 ' + productCount + ' منتج</span></div></div>' +
-    '<div class="k-merchant-actions">' + actions + '</div></div>';
+    '<div class="k-merchant-actions">' + actions + (ktSecureM() && status !== 'suspended' ? '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktIssueCode(\'' + m._fbId + '\')"><i data-lucide="key"></i> كود تفعيل</button>' : '') + '</div></div>';
 }
-function approveMerchant(fbId){ KT_FB.updateMerchant(fbId, { status: 'approved', approvedAt: new Date().toISOString() }); toast('✅ تم القبول', 'success'); }
-function rejectMerchant(fbId){ if (!confirm('رفض الطلب؟')) return; KT_FB.updateMerchant(fbId, { status: 'rejected' }); toast('❌ تم الرفض', 'error'); }
-function suspendMerchant(fbId){ if (!confirm('إيقاف المتجر؟')) return; KT_FB.updateMerchant(fbId, { status: 'suspended' }); toast('⏸️ تم الإيقاف', 'success'); }
-function activateMerchant(fbId){ KT_FB.updateMerchant(fbId, { status: 'approved' }); toast('▶️ تم التنشيط', 'success'); }
-function deleteMerchant(fbId){ if (!confirm('حذف المتجر نهائياً؟')) return; KT_FB.deleteMerchant(fbId); toast('✅ تم الحذف', 'success'); }
+function ktSecureM(){ return !!(window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH && window.KT_MERCH_AUTH); }
+function ktSetMerchantStatus(fbId, patch, okMsg, okType){
+  var i = KT_FB.init(); var ref = i.db.collection('merchants').doc(fbId);
+  ref.update(patch).then(function(){ return ref.get(); }).then(function(s){
+    if (ktSecureM()) return KT_MERCH_AUTH.syncPublic(i.db, fbId, s.data());
+  }).then(function(){ toast(okMsg, okType); })
+  .catch(function(e){ toast('❌ ' + (e.message || 'فشل'), 'error'); });
+}
+function approveMerchant(fbId){ ktSetMerchantStatus(fbId, { status: 'approved', approvedAt: new Date().toISOString() }, '✅ تم القبول', 'success'); }
+function rejectMerchant(fbId){ if (!confirm('رفض الطلب؟')) return; ktSetMerchantStatus(fbId, { status: 'rejected' }, '❌ تم الرفض', 'error'); }
+function suspendMerchant(fbId){ if (!confirm('إيقاف المتجر؟')) return; ktSetMerchantStatus(fbId, { status: 'suspended' }, '⏸️ تم الإيقاف', 'success'); }
+function activateMerchant(fbId){ ktSetMerchantStatus(fbId, { status: 'approved' }, '▶️ تم التنشيط', 'success'); }
+function deleteMerchant(fbId){
+  if (!confirm('حذف المتجر نهائياً؟')) return;
+  var i = KT_FB.init();
+  var p = ktSecureM() ? KT_MERCH_AUTH.unpublish(i.db, fbId) : Promise.resolve();
+  p.then(function(){ return KT_FB.deleteMerchant(fbId); }).then(function(){ toast('✅ تم الحذف', 'success'); });
+}
+/* secure merchant auth: admin-issued one-time activation code (replaces shared passwords) */
+function ktIssueCode(fbId){
+  var i = KT_FB.init();
+  KT_MERCH_AUTH.adminIssueCode(i.db, fbId, 48, firebase.firestore.FieldValue.serverTimestamp(), function(ms){ return firebase.firestore.Timestamp.fromMillis(ms); })
+    .then(function(code){
+      openModal('<div class="k-modal-head"><h3>🔑 كود تفعيل</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+        '<p>أعطِ هذا الكود للتاجر شخصياً. صالح 48 ساعة ويُستخدم مرة واحدة. يدخل به صفحة التاجر ← "تفعيل حسابي" ويختار كلمة مرور جديدة.</p>' +
+        '<div id="ktCodeBox" style="direction:ltr;font-family:monospace;word-break:break-all;background:var(--bg-3);padding:14px;border-radius:12px;font-size:15px">' + code + '</div>' +
+        '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:12px" onclick="closeModal()">إغلاق</button>');
+    }).catch(function(e){ toast('❌ ' + (e.message || 'فشل إصدار الكود'), 'error'); });
+}
+function ktRunMigration(){
+  if (!confirm('ترحيل التجار: نشر النسخة العامة، حذف كلمات المرور القديمة، وتجهيز المخزون. هل تريد المتابعة؟')) return;
+  var i = KT_FB.init();
+  KT_MERCH_AUTH.adminMigrate(i.db, firebase.firestore.FieldValue.delete(), KT_ORDERS.syncStock).then(function(r){
+    window._ktMigration = r;
+    toast('✅ تم الترحيل: نشر ' + r.published + '، حذف كلمات مرور ' + r.passwordsRemoved + (r.errors.length ? '، أخطاء ' + r.errors.length : ''), r.errors.length ? 'error' : 'success');
+  }).catch(function(e){ toast('❌ ' + e.message, 'error'); });
+}
 function approveDriver(fbId){ KT_FB.init().db.collection('drivers').doc(fbId).update({ status: 'approved', approvedAt: new Date().toISOString() }); toast('✅ تم قبول المندوب', 'success'); }
 function rejectDriver(fbId){ if (!confirm('رفض المندوب؟')) return; KT_FB.init().db.collection('drivers').doc(fbId).update({ status: 'rejected' }); toast('❌ تم الرفض', 'error'); }
 function suspendDriver(fbId){ if (!confirm('إيقاف المندوب؟')) return; KT_FB.init().db.collection('drivers').doc(fbId).update({ status: 'suspended', online: false }); toast('⏸️ تم الإيقاف', 'success'); }
@@ -1070,7 +1104,7 @@ function openAddMerchantModal(){
       '<div class="k-field"><label>اسم المالك *</label><input id="amOwner"></div>' +
       '<div class="k-field"><label>الهاتف *</label><input type="tel" id="amPhone" maxlength="11"></div>' +
       '<div class="k-field"><label>النوع *</label><select id="amType">' + typeOptions + '</select></div>' +
-      '<div class="k-field"><label>كلمة المرور *</label><input type="text" id="amPass" value="kanteen@123"></div>' +
+      (ktSecureM() ? '<div class="k-field" style="grid-column:1/-1"><small>سيحصل التاجر على كود تفعيل لمرة واحدة ويختار كلمة مرور بنفسه.</small></div>' : '<div class="k-field"><label>كلمة المرور *</label><input type="text" id="amPass" value="kanteen@123"></div>') +
       '<div class="k-field" style="grid-column:1/-1"><label>العنوان *</label><input id="amAddress"></div>' +
     '</div>' +
     '<div style="display:flex;gap:12px;margin-top:20px">' +
@@ -1084,21 +1118,27 @@ function saveManualMerchant(){
   var owner = $('#amOwner').value.trim();
   var phone = $('#amPhone').value.trim().replace(/\s/g,'');
   var type = $('#amType').value;
-  var pass = $('#amPass').value;
+  var passEl = $('#amPass'); var pass = passEl ? passEl.value : '';
   var address = $('#amAddress').value.trim();
-  if (!name || !owner || !phone || !address || !pass){ toast('❌ املأ كل الحقول', 'error'); return; }
+  var secure = ktSecureM();
+  if (!name || !owner || !phone || !address || (!secure && !pass)){ toast('❌ املأ كل الحقول', 'error'); return; }
   if (phone.startsWith('0')) phone = '+20' + phone.slice(1);
   ktWaitFirebase(function(init){
-    init.db.collection('merchants').add({
+    var data = {
       id: 'merchant_' + phone.replace(/\D/g,''),
       name: name, owner: owner, phone: phone,
-      password: pass, type: type, address: address,
+      type: type, address: address,
       status: 'approved', products: [],
       createdAt: new Date().toISOString(),
       approvedAt: new Date().toISOString(),
       _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(){ toast('✅ تم إضافة التاجر', 'success'); closeModal(); })
-    .catch(function(e){ toast('❌ ' + e.message, 'error'); });
+    };
+    if (!secure) data.password = pass;   // legacy behavior until SECURE_MERCHANT_AUTH is enabled
+    else data.ownerUid = null;
+    init.db.collection('merchants').add(data).then(function(ref){
+      if (!secure) { toast('✅ تم إضافة التاجر', 'success'); closeModal(); return; }
+      return KT_MERCH_AUTH.syncPublic(init.db, ref.id, data).then(function(){ closeModal(); toast('✅ تم إضافة التاجر', 'success'); ktIssueCode(ref.id); });
+    }).catch(function(e){ toast('❌ ' + e.message, 'error'); });
   });
 }
 
@@ -1153,7 +1193,7 @@ Object.assign(window, {
   ktAdminBack, ktAdminConfirmOrder, ktViewOrderDetails, markAllNotifsRead,
   openAddMerchantModal, saveManualMerchant,
   renderProducts, openAddGlobalProduct, openEditGlobalProduct, saveGlobalProduct, deleteGlobalProduct,
-  approveMerchant, rejectMerchant, suspendMerchant, activateMerchant, deleteMerchant,
+  approveMerchant, rejectMerchant, suspendMerchant, activateMerchant, deleteMerchant, ktIssueCode, ktRunMigration,
   approveDriver, rejectDriver, suspendDriver,
   closeModal, openModal, ktOpenLightbox, ktCloseLightbox
 });

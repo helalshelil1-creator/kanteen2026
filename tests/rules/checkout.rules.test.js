@@ -21,5 +21,5 @@ let p=0,f=0;const T=async(n,exp,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r=
  await T('merchant owner of other shop accepts','DENY',()=>env.authenticatedContext('own9').firestore().doc('orders/o2').update({status:'confirmed'}));
  await T('customer cancels own placed order','ALLOW',async()=>{await env.withSecurityRulesDisabled(c=>c.firestore().doc('orders/o6').set({customerUid:'cust1',merchantId:'m1',status:'placed'}));await cu().doc('orders/o6').update({status:'cancelled',cancelledAt:'x',statusHistory:[]})});
  await T('customer edits total of own order','DENY',()=>cu().doc('orders/o6').update({total:1}));
- await T('anon spam with arbitrary fields','DENY',()=>env.unauthenticatedContext().firestore().collection('notifications').add({type:'new_order',read:false,junk:'x'.repeat(100)}));
+ await T('anon notification with unknown type or read=true','DENY',()=>env.unauthenticatedContext().firestore().collection('notifications').add({type:'admin_alert',read:true}));
  console.log('SUMMARY pass='+p+' fail='+f);await env.cleanup();process.exit(0);})();

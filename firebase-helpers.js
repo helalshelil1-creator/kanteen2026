@@ -23,7 +23,11 @@
       }
       _fb = firebase;
       _db = firebase.firestore();
+      if (window.KT_EMULATOR) { // local test harness only; never set in production
+        try { _db.useEmulator(window.KT_EMULATOR.fsHost, window.KT_EMULATOR.fsPort); } catch (e) { console.warn('emu fs', e); }
+      }
       _auth = firebase.auth ? firebase.auth() : null;
+      if (window.KT_EMULATOR && _auth) { try { _auth.useEmulator(window.KT_EMULATOR.authUrl, { disableWarnings: true }); } catch (e) { console.warn('emu auth', e); } }
       _msg = (firebase.messaging && typeof firebase.messaging === 'function') ? firebase.messaging() : null;
       _initialized = true;
       console.log('✅ Firebase initialized (Spark mode)');
@@ -411,7 +415,8 @@
 
   function fbListenMerchants(cb, opts) {
     var i = fbInit(); if (!i) return null;
-    var q = i.db.collection('merchants');
+    var q = i.db.collection((window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH) ? 'merchantsPublic' : 'merchants');
+    if (window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH) opts = Object.assign({}, opts, { approvedOnly: false });
     // Public (non-admin) visitors may only read approved merchants (Firestore rules are not filters),
     // so an unfiltered listener is rejected with "Missing or insufficient permissions".
     if (opts && opts.approvedOnly) q = q.where('status', '==', 'approved');
@@ -619,8 +624,10 @@
     currentUser: fbCurrentUser,
     isAdmin: fbIsAdmin,
     // Orders
-    requestOrder: function (p) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.requestOrder(i.db, i.auth.currentUser, p); },
-    acceptOrder: function (id) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.acceptOrder(i.db, id); },
+    requestOrder: function (p) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.requestOrder(i.db, i.auth.currentUser, Object.assign({ serverTs: firebase.firestore.FieldValue.serverTimestamp() }, p)); },
+    acceptOrder: function (id, opts) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.acceptOrder(i.db, id, opts); },
+    cancelOrder2: function (id) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.cancelOrder(i.db, id); },
+    syncStock: function (mid, products) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.syncStock(i.db, mid, products); },
     placeOrder: fbPlaceOrder,
     cancelOrder: fbCancelOrder,
     merchantConfirmOrder: fbMerchantConfirmOrder,

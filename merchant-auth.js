@@ -60,6 +60,39 @@
     return code;
   }
 
-  var api = { emailFor: emailFor, register: register, login: login, claim: claim, adminIssueCode: adminIssueCode, normPhone: normPhone };
+
+  // ---- public projection + migration (admin / approved owner) ----
+  var PUBLIC_KEYS = ['name','address','phone','whatsapp','lat','lng','products','hours','description','photoURL','category','deliveryFee','type','area','city','id'];
+  function toPublic(m, nowIso) {
+    var out = {};
+    PUBLIC_KEYS.forEach(function (k) { if (m[k] !== undefined && m[k] !== null) out[k] = m[k]; });
+    out.status = 'approved'; out.updatedAt = nowIso || new Date().toISOString();
+    return out;
+  }
+  function stripSecrets(obj) { var c = JSON.parse(JSON.stringify(obj || {})); delete c.password; return c; }
+  async function syncPublic(db, merchantId, data) {
+    if (data.status !== 'approved') return unpublish(db, merchantId);
+    await db.collection('merchantsPublic').doc(merchantId).set(toPublic(stripSecrets(data)));
+  }
+  async function unpublish(db, merchantId) { try { await db.collection('merchantsPublic').doc(merchantId).delete(); } catch (e) { if (e.code !== 'not-found') throw e; } }
+  // Admin one-off: publish projections for approved merchants, delete legacy password fields, seed stock docs.
+  // `deleteField` is firebase.firestore.FieldValue.delete(); `syncStock` comes from order-flow.js. Idempotent.
+  async function adminMigrate(db, deleteField, syncStock) {
+    var snap = await db.collection('merchants').get();
+    var r = { merchants: snap.size, published: 0, unpublished: 0, passwordsRemoved: 0, stockCreated: 0, errors: [] };
+    for (var i = 0; i < snap.docs.length; i++) {
+      var d = snap.docs[i], data = d.data();
+      try {
+        if (data.password !== undefined) { await d.ref.update({ password: deleteField }); r.passwordsRemoved++; }
+        if (data.status === 'approved') {
+          await syncPublic(db, d.id, data); r.published++;
+          if (syncStock) { var s = await syncStock(db, d.id, data.products || []); r.stockCreated += s.created; }
+        } else { await unpublish(db, d.id); r.unpublished++; }
+      } catch (e) { r.errors.push(d.id + ':' + (e.code || e.message)); }
+    }
+    return r;
+  }
+
+  var api = { toPublic: toPublic, syncPublic: syncPublic, unpublish: unpublish, adminMigrate: adminMigrate, emailFor: emailFor, register: register, login: login, claim: claim, adminIssueCode: adminIssueCode, normPhone: normPhone };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KT_MERCH_AUTH = api;
 })(typeof window !== 'undefined' ? window : globalThis);

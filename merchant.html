@@ -26,6 +26,7 @@
 <script src="firebase-config.js"></script>
 <script src="firebase-helpers.js"></script>
 <script src="order-flow.js"></script>
+<script src="merchant-auth.js"></script>
 <script src="kt-sound.js"></script>
 
 <style>
@@ -269,6 +270,7 @@ h1,h2,h3,h4,p{margin:0}
       </button>
       <div class="k-login-err" id="errBox">❌ بيانات الدخول غير صحيحة</div>
       <div class="k-login-info" id="loginInfoBox"></div>
+      <div class="k-login-toggle" id="ktClaimLink" style="display:none"><a onclick="ktOpenClaim()">لدي كود تفعيل من الإدارة — تفعيل حسابي</a></div>
       <div class="k-login-toggle">ليس لديك حساب؟ <a onclick="ktShowRegister()">سجّل متجرك الآن</a></div>
     </div>
 
@@ -507,6 +509,24 @@ function ktMerchantLogin(){
   btn.innerHTML = '<svg data-lucide="loader"></svg> جاري الدخول...';
   refreshIcons();
 
+  if ((window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH && window.KT_MERCH_AUTH)){
+    return ktWaitFirebase(function(init){
+      KT_MERCH_AUTH.login(init.auth, init.db, phone, pass).then(function(r){
+        MERCHANT = Object.assign({}, r.data, { fbId: r.merchantId, ownerUid: r.uid });
+        delete MERCHANT.password;
+        LS_set('merchant_data', MERCHANT);
+        if (window.KT_SOUND) KT_SOUND.success();
+        ktLoginSuccess();
+      }).catch(function(e){
+        var msg = '❌ بيانات الدخول غير صحيحة';
+        if (e && e.message === 'no-merchant') msg = '❌ لا يوجد متجر مرتبط بهذا الحساب — فعّل حسابك بكود من الإدارة';
+        else if (e && e.code === 'auth/too-many-requests') msg = '⚠️ محاولات كثيرة — انتظر قليلاً';
+        else if (e && e.code === 'auth/network-request-failed') msg = '⚠️ تعذّر الاتصال';
+        err.textContent = msg; err.style.display = 'block';
+        btn.disabled = false; btn.innerHTML = '<svg data-lucide="log-in"></svg> دخول'; refreshIcons();
+      });
+    });
+  }
   ktWaitFirebase(function(init){
     init.db.collection('merchants').where('phone', '==', phone).limit(1).get()
       .then(function(snap){
@@ -630,7 +650,10 @@ function ktMerchantRegister(){
         _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      init.db.collection('merchants').add(saveData)
+      var ktRegP = (window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH && window.KT_MERCH_AUTH)
+        ? KT_MERCH_AUTH.register(init.auth, init.db, (function(d){ var c = Object.assign({}, d); delete c.password; delete c.ownerUid; return c; })(saveData), pass).then(function(r){ return { id: r.merchantId }; })
+        : init.db.collection('merchants').add(saveData);
+      ktRegP
         .then(function(ref){
           return init.db.collection('notifications').add({
             type: 'new_merchant',
@@ -767,7 +790,7 @@ function ktInitListeners(){
         updateOrdersBadge(newCount);
         if (currentTab === 'orders') renderOrders();
         else if (currentTab === 'dashboard') renderDashboard();
-      }, { merchantId: MERCHANT.id });
+      }, { merchantId: MERCHANT.fbId || MERCHANT.id });
     }
   });
 }
@@ -995,6 +1018,12 @@ function ktSaveProducts(updatedProducts){
   ktWaitFirebase(function(init){
     init.db.collection('merchants').doc(MERCHANT.fbId).update({
       products: updatedProducts
+    }).then(function(){
+      if (!((window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH && window.KT_MERCH_AUTH))) return;
+      var d = Object.assign({}, MERCHANT); delete d.password;
+      return KT_MERCH_AUTH.syncPublic(init.db, MERCHANT.fbId, d)
+        .then(function(){ return KT_ORDERS.syncStock(init.db, MERCHANT.fbId, updatedProducts); })
+        .then(function(s){ if (s.lowerIgnored.length) toast('⚠️ لا يمكن خفض المخزون يدوياً (' + s.lowerIgnored.length + ' منتج) — يخصم المخزون تلقائياً عند تأكيد الطلبات', 'error'); });
     }).then(function(){ renderProducts(); })
     .catch(function(e){ console.warn(e); toast('⚠️ فشل الحفظ', 'error'); });
   });
@@ -1054,9 +1083,17 @@ function openOrderModal(fbId){
   var addressLine = (c.gov || '') + ' — ' + (c.city || '') + ' — ' + (c.area || '') + ' — ' + (c.street || '');
   var actionBtns = '';
   if (o.status === 'placed' || o.status === 'pending_payment'){
-    actionBtns = '<button class="k-btn k-btn-success k-btn-block" onclick="updateOrderStatus(\'' + fbId + '\', \'confirmed\')"><i data-lucide="check"></i> تأكيد الطلب</button>';
+    var secureO = window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS;
+    if (secureO && o.quoteStatus === 'awaiting_customer'){
+      actionBtns = '<div style="background:var(--bg-3);border-radius:12px;padding:12px;margin-bottom:10px;font-size:14px">⚠️ إجمالي العميل المطلوب: <b>' + money(o.total) + '</b><br>إجمالي المتجر حسب الأسعار: <b>' + money(o.quotedTotal) + '</b><br>بانتظار موافقة العميل (تواصل معه واتساب/اتصال). لا يُعتبر العميل موافقاً حتى تسجّل ذلك.</div>' +
+        '<button class="k-btn k-btn-success k-btn-block" onclick="ktSecureOrderAction(\'' + fbId + '\', \'confirmed\', true)"><i data-lucide="check"></i> العميل وافق على ' + money(o.quotedTotal) + ' — تأكيد</button>';
+    } else {
+      actionBtns = '<button class="k-btn k-btn-success k-btn-block" onclick="updateOrderStatus(\'' + fbId + '\', \'confirmed\')"><i data-lucide="check"></i> ' + (secureO ? 'مراجعة الأسعار وتأكيد الطلب' : 'تأكيد الطلب') + '</button>';
+    }
+    if (secureO) actionBtns += '<button class="k-btn k-btn-danger k-btn-block" style="margin-top:8px" onclick="updateOrderStatus(\'' + fbId + '\', \'cancelled\')">إلغاء الطلب</button>';
   } else if (o.status === 'confirmed'){
     actionBtns = '<button class="k-btn k-btn-primary k-btn-block" onclick="updateOrderStatus(\'' + fbId + '\', \'preparing\')"><i data-lucide="package"></i> ابدأ التحضير</button>';
+    if (window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS) actionBtns += '<button class="k-btn k-btn-danger k-btn-block" style="margin-top:8px" onclick="updateOrderStatus(\'' + fbId + '\', \'cancelled\')">إلغاء الطلب واسترجاع المخزون</button>';
   } else if (o.status === 'preparing'){
     actionBtns = '<button class="k-btn k-btn-gold k-btn-block" onclick="updateOrderStatus(\'' + fbId + '\', \'out\')"><i data-lucide="truck"></i> جاهز للتوصيل</button>';
   }
@@ -1078,16 +1115,62 @@ function openOrderModal(fbId){
   );
 }
 
-function updateOrderStatus(fbId, newStatus){
-  if (newStatus === 'confirmed' && window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS){
-    return ktWaitFirebase(function(){
-      KT_FB.acceptOrder(fbId).then(function(r){
-        if (window.KT_SOUND) KT_SOUND.success();
-        if (r.totalCorrected) toast('⚠️ تم تصحيح الإجمالي من ' + r.submittedTotal + ' إلى ' + r.confirmedTotal + ' ج.م حسب أسعار المتجر', 'error');
-        else toast('✅ تم تأكيد الطلب وخصم المخزون', 'success');
-        closeModal();
-      }).catch(function(e){ toast('⚠️ تعذّر التأكيد: ' + (e && e.message ? e.message : 'خطأ'), 'error'); });
+
+/* secure merchant auth: one-time activation (admin-issued code) */
+if (window.KT_CONFIG && KT_CONFIG.SECURE_MERCHANT_AUTH){ document.addEventListener('DOMContentLoaded', function(){ var l = document.getElementById('ktClaimLink'); if (l) l.style.display = 'block'; }); }
+function ktOpenClaim(){
+  openModal('<div class="k-modal-head"><h3>تفعيل الحساب</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-field"><label>رقم الهاتف المسجل</label><input type="tel" id="clPhone" maxlength="11"></div>' +
+    '<div class="k-field"><label>كود التفعيل</label><input id="clCode" style="direction:ltr" autocomplete="off"></div>' +
+    '<div class="k-field"><label>كلمة مرور جديدة (8 أحرف على الأقل)</label><input type="password" id="clPass" autocomplete="new-password"></div>' +
+    '<div id="clErr" class="k-login-err" style="display:none"></div>' +
+    '<button class="k-btn k-btn-success k-btn-block" id="clBtn" onclick="ktDoClaim()">تفعيل</button>');
+}
+function ktDoClaim(){
+  var phone = $('#clPhone').value.trim(); var code = $('#clCode').value.trim(); var pw = $('#clPass').value; var er = $('#clErr');
+  if (phone.startsWith('0')) phone = '+20' + phone.slice(1); else if (!phone.startsWith('+')) phone = '+20' + phone;
+  if (!code || !pw){ er.textContent = '❌ املأ جميع الحقول'; er.style.display = 'block'; return; }
+  if (pw.length < 8){ er.textContent = '❌ كلمة المرور 8 أحرف على الأقل'; er.style.display = 'block'; return; }
+  $('#clBtn').disabled = true;
+  ktWaitFirebase(function(init){
+    KT_MERCH_AUTH.claim(init.auth, init.db, code, phone, pw).then(function(r){
+      return init.db.collection('merchants').doc(r.merchantId).get().then(function(s){
+        MERCHANT = Object.assign({}, s.data(), { fbId: r.merchantId, ownerUid: r.uid }); delete MERCHANT.password;
+        LS_set('merchant_data', MERCHANT); closeModal(); toast('✅ تم تفعيل حسابك', 'success'); ktLoginSuccess();
+      });
+    }).catch(function(e){
+      var msg = '❌ الكود غير صالح أو منتهي أو مستخدم';
+      if (e && e.code === 'auth/wrong-password') msg = '❌ الحساب موجود بكلمة مرور مختلفة';
+      if (e && e.message === 'weak-password') msg = '❌ كلمة المرور ضعيفة';
+      er.textContent = msg; er.style.display = 'block'; $('#clBtn').disabled = false;
     });
+  });
+}
+
+
+var _ktOrderBusy = {};
+function ktSecureOrderAction(fbId, kind, agreedQuote){
+  if (_ktOrderBusy[fbId]) return;            // double-click guard
+  _ktOrderBusy[fbId] = true;
+  ktWaitFirebase(function(){
+    var p = kind === 'cancelled' ? KT_FB.cancelOrder2(fbId) : KT_FB.acceptOrder(fbId, { agreedQuote: !!agreedQuote });
+    p.then(function(r){
+      if (kind === 'cancelled'){ toast(r.stockRestored ? '✅ تم الإلغاء واسترجاع المخزون' : '✅ تم الإلغاء', 'success'); closeModal(); return; }
+      if (r.needsAgreement){
+        toast('⚠️ الإجمالي حسب أسعار المتجر ' + r.quotedTotal + ' ج.م بدل ' + r.requestedTotal + ' ج.م — لم يُؤكد الطلب. اتفق مع العميل أولاً.', 'error');
+        closeModal(); return;
+      }
+      if (window.KT_SOUND) KT_SOUND.success();
+      toast(r.totalCorrected ? '✅ تم التأكيد بالإجمالي المتفق عليه ' + r.confirmedTotal + ' ج.م وخصم المخزون' : '✅ تم تأكيد الطلب وخصم المخزون', 'success');
+      closeModal();
+    }).catch(function(e){ toast('⚠️ تعذّر التنفيذ: ' + (e && e.message ? e.message : 'خطأ'), 'error'); })
+    .then(function(){ delete _ktOrderBusy[fbId]; });
+  });
+}
+
+function updateOrderStatus(fbId, newStatus){
+  if (window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS && (newStatus === 'confirmed' || newStatus === 'cancelled')){
+    return ktSecureOrderAction(fbId, newStatus, false);
   }
   ktWaitFirebase(function(){
     KT_FB.updateOrder(fbId, {
@@ -1528,7 +1611,7 @@ Object.assign(window, {
   ktMerchantLogin, ktMerchantRegister, ktShowRegister, ktBackToLogin,
   ktLoginSuccess, ktLogout, switchTab, toggleTheme,
   openAddProduct, saveNewProduct, openEditProduct, saveEditProduct, deleteProduct,
-  openOrderModal, updateOrderStatus, closeModal, openModal, ktToggleSound,
+  openOrderModal, updateOrderStatus, ktSecureOrderAction, ktOpenClaim, ktDoClaim, closeModal, openModal, ktToggleSound,
   ktMapUseMyLocation, ktMapSearchAddress, ktEditLocation, ktEditMapUseMyLoc, ktEditMapSave,
   ktInitRegisterMap, ktUpdateCoords
 });
