@@ -89,6 +89,33 @@ service cloud.firestore {
       return d.keys().hasOnly(['name','address','phone','lat','lng','products','hours','description',
                                'photoURL','category','deliveryFee','type','status','updatedAt','area','city']);
     }
+    // ═══ STOCK (merchant-private; decrement only through an order accept) ═══
+    match /merchants/{merchantId}/stock/{pid} {
+      function ownsShop() {
+        return isSignedIn() && get(/databases/$(database)/documents/merchants/$(merchantId)).data.ownerUid == request.auth.uid;
+      }
+      function acceptLink() {
+        let oid = request.resource.data.lastOrderId;
+        let op = /databases/$(database)/documents/orders/$(oid);
+        return oid is string
+          && get(op).data.merchantId == merchantId
+          && get(op).data.status == 'placed'
+          && getAfter(op).data.status == 'confirmed'
+          && pid in get(op).data.itemQty
+          && request.resource.data.qty >= 0
+          && resource.data.qty - request.resource.data.qty == get(op).data.itemQty[pid]
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty','lastOrderId']);
+      }
+      allow read: if isAdmin() || ownsShop();
+      allow create: if (isAdmin() || ownsShop()) && request.resource.data.keys().hasOnly(['qty']) && request.resource.data.qty is number && request.resource.data.qty >= 0;
+      allow update: if isAdmin()
+        || (ownsShop() && request.resource.data.keys().hasOnly(['qty','lastOrderId'])
+            && ((request.resource.data.qty is number && request.resource.data.qty >= resource.data.qty
+                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty']))
+                || acceptLink()));
+      allow delete: if isAdmin();
+    }
+
     match /merchantsPublic/{merchantId} {
       allow read: if true;
       allow create, update: if publicKeysOk(request.resource.data)
@@ -135,7 +162,9 @@ service cloud.firestore {
         && request.resource.data.total is number
         && request.resource.data.total > 0 && request.resource.data.total < 100000
         && request.resource.data.items is list
-        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50;
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50
+        && request.resource.data.itemQty is map
+        && request.resource.data.itemQty.size() > 0 && request.resource.data.itemQty.size() <= 50;
 
       allow update: if isAdmin()
         || (isSignedIn() && resource.data.driverId == request.auth.uid
@@ -144,7 +173,11 @@ service cloud.firestore {
                                   'statusHistory','paymentStatus']))
         || (isSignedIn() && resource.data.merchantId != null
             && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid
-            && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes','statusHistory']))
+            && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes','statusHistory',
+                                  'confirmedTotal','confirmedItems','totalCorrected'])
+            && (request.resource.data.status == resource.data.status
+                || (resource.data.status == 'placed' && request.resource.data.status in ['confirmed','cancelled'])
+                || (resource.data.status == 'confirmed' && request.resource.data.status in ['preparing','cancelled'])))
         || (isSignedIn() && resource.data.customerUid == request.auth.uid
             && onlyFieldsChanged(['status','cancelledAt','cancellationReason','statusHistory']));
 
@@ -201,7 +234,9 @@ service cloud.firestore {
         && request.resource.data.total is number
         && request.resource.data.total > 0 && request.resource.data.total < 100000
         && request.resource.data.items is list
-        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50;
+        && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 50
+        && request.resource.data.itemQty is map
+        && request.resource.data.itemQty.size() > 0 && request.resource.data.itemQty.size() <= 50;
       allow update, delete: if isAdmin();
     }
 

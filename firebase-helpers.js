@@ -619,6 +619,8 @@
     currentUser: fbCurrentUser,
     isAdmin: fbIsAdmin,
     // Orders
+    requestOrder: function (p) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.requestOrder(i.db, i.auth.currentUser, p); },
+    acceptOrder: function (id) { var i = fbInit(); if (!i || !window.KT_ORDERS) return Promise.reject(new Error('Firebase not ready')); return KT_ORDERS.acceptOrder(i.db, id); },
     placeOrder: fbPlaceOrder,
     cancelOrder: fbCancelOrder,
     merchantConfirmOrder: fbMerchantConfirmOrder,

@@ -11,10 +11,10 @@ let p=0,f=0;const T=async(n,exp,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r=
  console.log('RULES='+RULES);
  await T('EXISTING fbPlaceOrder: customer transaction reads merchant + decrements stock','DENY',async()=>{const d=cu();await d.runTransaction(async t=>{const r=d.doc('merchants/m1');const s=await t.get(r);const pr=s.data().products;pr[0].stock-=1;t.update(r,{products:pr});t.set(d.collection('orders').doc('o1'),{customerUid:'cust1',merchantId:'m1',status:'placed'});})});
  await T('customer reads merchant doc directly (old transaction first step)','DENY',()=>cu().doc('merchants/m1').get());
- await T('PENDING REQUEST: customer creates order status placed, no stock mutation','ALLOW',()=>cu().doc('orders/o2').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:10}],total:35}));
+ await T('PENDING REQUEST: customer creates order status placed, no stock mutation','ALLOW',()=>cu().doc('orders/o2').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:10}],itemQty:{p1:1},total:35}));
  await T('customer creates order for someone else uid','DENY',()=>cu().doc('orders/o3').set({customerUid:'other',merchantId:'m1',status:'placed'}));
  await T('customer creates order already status delivered','DENY',()=>cu().doc('orders/o4').set({customerUid:'cust1',merchantId:'m1',status:'delivered',total:0}));
- await T('KNOWN LIMIT: low tampered total (rules cannot price-check item arrays; accept step must verify)','ALLOW',()=>cu().doc('orders/o5').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:0.01}],total:0.01}));
+ await T('KNOWN LIMIT: low tampered total (rules cannot price-check item arrays; accept step must verify)','ALLOW',()=>cu().doc('orders/o5').set({customerUid:'cust1',merchantId:'m1',status:'placed',items:[{id:'p1',qty:1,price:0.01}],itemQty:{p1:1},total:0.01}));
  await T('customer reads own order','ALLOW',()=>cu().doc('orders/o2').get());
  await T('other customer reads that order','DENY',()=>env.authenticatedContext('c2').firestore().doc('orders/o2').get());
  await T('ACCEPT: merchant owner batch (order->confirmed + stock decrement)','ALLOW',async()=>{const d=env.authenticatedContext('own1').firestore();const b=d.batch();b.update(d.doc('orders/o2'),{status:'confirmed',confirmedAt:'x',statusHistory:[]});b.update(d.doc('merchants/m1'),{products:[{id:'p1',name:'A',price:10,stock:4}]});await b.commit()});

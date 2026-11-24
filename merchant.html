@@ -25,6 +25,7 @@
 <script src="config.js"></script>
 <script src="firebase-config.js"></script>
 <script src="firebase-helpers.js"></script>
+<script src="order-flow.js"></script>
 <script src="kt-sound.js"></script>
 
 <style>
@@ -1078,6 +1079,16 @@ function openOrderModal(fbId){
 }
 
 function updateOrderStatus(fbId, newStatus){
+  if (newStatus === 'confirmed' && window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS){
+    return ktWaitFirebase(function(){
+      KT_FB.acceptOrder(fbId).then(function(r){
+        if (window.KT_SOUND) KT_SOUND.success();
+        if (r.totalCorrected) toast('⚠️ تم تصحيح الإجمالي من ' + r.submittedTotal + ' إلى ' + r.confirmedTotal + ' ج.م حسب أسعار المتجر', 'error');
+        else toast('✅ تم تأكيد الطلب وخصم المخزون', 'success');
+        closeModal();
+      }).catch(function(e){ toast('⚠️ تعذّر التأكيد: ' + (e && e.message ? e.message : 'خطأ'), 'error'); });
+    });
+  }
   ktWaitFirebase(function(){
     KT_FB.updateOrder(fbId, {
       status: newStatus,

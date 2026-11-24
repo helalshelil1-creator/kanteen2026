@@ -9,6 +9,10 @@ window.KT_CONFIG = {
   SUPPORT_PHONE: '01124169656',
   EMAIL: 'hello@kanteen.app',
 
+  // OFF until firestore.rules.next is deployed and tested live (see MERCHANT_AUTH_MIGRATION.md)
+  SECURE_ORDERS: false,
+  SECURE_MERCHANT_AUTH: false,
+
   DELIVERY_FEE_DEFAULT: 25,
   FREE_DELIVERY_THRESHOLD: 500,
   DELIVERY_RADIUS_KM: 10,

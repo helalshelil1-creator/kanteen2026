@@ -1764,7 +1764,21 @@ function placeOrder(){
   var items = state.cart.map(function(i){ var p = findBy(i.id); return {id: p.id, nameAr: p.nameAr, nameEn: p.nameEn || p.nameAr, emoji: p.emoji, price: finalPrice(p), qty: i.qty}; });
   var order = { id: orderCode2, user: state.user ? state.user.id : 'guest', customer: Object.assign({}, checkoutData), items: items, subtotal: cartTotal(), delivery: deliveryFee(), discount: discountAmt(), total: grandTotal(), coupon: state.coupon ? state.coupon.code : null, payment: checkoutData.payment, paymentStatus: 'cod', status: 'placed', createdAt: new Date().toISOString() };
   state.orders.unshift(order); persist('orders');
-  if (window.KT_FB){
+  var ktSecure = !!(window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS && window.KT_FB && KT_FB.requestOrder);
+  if (ktSecure){
+    // Pending request only: the shop must confirm. Failure is shown, never reported as sent.
+    order.status = 'placed'; order.pendingConfirm = true; persist('orders');
+    var ktMids = {}, ktReqItems = [];
+    state.cart.forEach(function(ci){ var pp = findBy(ci.id); if (pp && pp.merchantId){ ktMids[pp.merchantId] = 1; ktReqItems.push({ id: String(pp.id).replace('merchant_' + pp.merchantId + '_', ''), nameAr: pp.nameAr, price: finalPrice(pp), qty: ci.qty }); } });
+    var ktMidList = Object.keys(ktMids);
+    var ktReq = (ktMidList.length === 1 && ktReqItems.length === state.cart.length)
+      ? KT_FB.requestOrder({ code: orderCode2, merchantId: ktMidList[0], items: ktReqItems, delivery: order.delivery, discount: order.discount, payment: 'cod', coupon: state.coupon ? state.coupon.code : null, customer: order.customer })
+      : Promise.reject(new Error('السلة تحتوي منتجات من أكثر من متجر أو منتجات غير مرتبطة بمتجر'));
+    ktReq
+      .then(function(){ ktToast('📨 تم إرسال طلبك — في انتظار تأكيد المتجر (لم يتأكد بعد)', 'success'); })
+      .catch(function(e){ order.saveFailed = true; persist('orders'); ktToast('⚠️ لم يُحفظ الطلب على الخادم: ' + (e && e.message ? e.message : 'خطأ') + ' — أرسله عبر واتساب', 'error'); });
+  }
+  if (window.KT_FB && !ktSecure){
     try {
       if (typeof KT_FB.saveOrder === 'function'){
         KT_FB.saveOrder(order).then(function(id){
@@ -1780,7 +1794,7 @@ function placeOrder(){
   if (window.KT_SOUND) KT_SOUND.success();
   try { window.open(ktSendOrderToWhatsApp(order), '_blank'); } catch(e){}
   ktClearCartAfterOrder();
-  ktToast('✅ تم استلام الطلب — في انتظار التأكيد', 'success');
+  if (!ktSecure) ktToast('✅ تم استلام الطلب — في انتظار التأكيد', 'success');
   checkoutStep = 1;
   navigate('/track/' + orderCode2);
 }
