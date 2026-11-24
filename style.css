@@ -1594,3 +1594,10 @@ img:not([loading]){
   #k-header button.k-icon-btn,#k-header .k-actions button,#k-header .k-actions a{width:36px!important;height:36px!important}
   #k-header #ktLangBtn{width:auto!important;padding:0 8px!important}
 }
+
+/* Page sections hard-coded 200px top padding left a large empty gap under the 70px fixed header */
+.k-sec[style*="padding-top:200px"]{padding-top:110px!important}
+@media(min-width:900px){.k-sec[style*="padding-top:200px"]{padding-top:130px!important}}
+/* Firebase debug pill is not for end users: show only errors, and keep it above the bottom nav */
+.k-fb-status:not(.err){display:none!important}
+.k-fb-status{bottom:84px}
