@@ -1587,3 +1587,10 @@ img:not([loading]){
   aspect-ratio:1;
   width:100%;
 }
+/* Narrow phones (<=380px): keep every header button inside the viewport */
+@media(max-width:380px){
+  .k-actions{gap:3px!important;min-width:0}
+  #k-header .k-actions > *{flex-shrink:1;min-width:0}
+  #k-header button.k-icon-btn,#k-header .k-actions button,#k-header .k-actions a{width:36px!important;height:36px!important}
+  #k-header #ktLangBtn{width:auto!important;padding:0 8px!important}
+}
