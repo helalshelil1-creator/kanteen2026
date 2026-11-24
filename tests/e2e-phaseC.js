@@ -32,13 +32,14 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  const upd=async(id,d)=>env.withSecurityRulesDisabled(async c=>{await c.firestore().doc('orders/'+id).update(d)});
  const A=await mkC('a@x.com'),B=await mkC('b@x.com');
  await A.pg.setViewportSize({width:390,height:844});
- const CODE='KTN-T-1';
- const res=await A.pg.evaluate(async(code)=>{
-   var o={id:code,user:'guest',customer:{name:'ع',phone:'0100',street:'s'},items:[{id:'merchant_mLeg_p1',nameAr:'لبن',nameEn:'Milk',emoji:'🥛',price:25,qty:2}],subtotal:25,delivery:25,discount:0,total:25,payment:'cod',paymentStatus:'cod',status:'placed',pendingConfirm:true,createdAt:new Date().toISOString()};
-   state.orders.unshift(o);persist('orders');
-   try{var r=await KT_FB.requestOrder({code:code,merchantId:'mLeg',items:[{id:'p1',qty:2,price:25,nameAr:'لبن'}],delivery:25,discount:0,payment:'cod',customer:o.customer});return r}catch(e){return {err:e.code||e.message}}},CODE);
- ok('customer A request stored',!!res.fbId,res);
- await A.pg.evaluate(c=>navigate('/track/'+c),CODE);await sleep(1500);
+ await A.pg.evaluate(()=>{window.open=()=>null;state.cart=[{id:'merchant_mLeg_p1',qty:2}];persist('cart');Object.assign(checkoutData,{name:'ع',phone:'0100',street:'s',payment:'cod'});});
+ const pre=await A.pg.evaluate(()=>({gt:grandTotal(),df:deliveryFee()}));
+ await A.pg.evaluate(()=>placeOrder());await sleep(2200);
+ const CODE=await A.pg.evaluate(()=>state.orders[0].id);
+ const res=await env.withSecurityRulesDisabled(async c=>{const q=await c.firestore().collection('orders').where('id','==',CODE).get();return q.empty?{}:{fbId:q.docs[0].id,total:q.docs[0].data().total,status:q.docs[0].data().status}});
+ ok('REAL placeOrder() UI path: order stored in Firestore with local total binding',!!res.fbId&&res.total===pre.gt&&res.status==='placed',{res,pre});
+ const loc0=await A.pg.evaluate(()=>({url:location.hash,cartLeft:state.cart.length,o:state.orders[0].pendingConfirm}));
+ ok('storefront navigated to tracking, cart cleared, order marked pending',/#\/track\//.test(loc0.url)&&loc0.cartLeft===0&&loc0.o===true,loc0);
  const txt=()=>A.pg.evaluate(()=>document.body.innerText);
  let t=await txt();ok('track: pending banner, not confirmed',/في انتظار تأكيد المتجر/.test(t),t.slice(0,300));
  await A.pg.screenshot({path:'/downloads/kanteen-e2e-track-pending.png'});
@@ -51,20 +52,26 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
    return out},{code:CODE,fb:res.fbId});
  ok('other customer: unfiltered query denied, direct read denied, own-filtered query empty, spoofed uid filter denied',/denied/.test(den.unfiltered)&&/denied/.test(den.direct)&&den.own===0&&/denied/.test(den.spoof),den);
  // requote
- await upd(res.fbId,{quoteStatus:'awaiting_customer',quotedTotal:75});await sleep(1500);
- t=await txt();ok('track: requote banner shows requested 25 and shop total 75, not confirmed',/غير مؤكد حتى تتفق/.test(t)&&/75/.test(t),t.slice(0,400));
+ await upd(res.fbId,{quoteStatus:'awaiting_customer',quotedTotal:90});await sleep(1500);
+ t=await txt();ok('track: requote banner shows requested 75 and shop total 90, not confirmed',/غير مؤكد حتى تتفق/.test(t)&&/90/.test(t)&&/75/.test(t),t.slice(0,400));
  await A.pg.screenshot({path:'/downloads/kanteen-e2e-track-requote.png'});
  // confirm (status confirmed)
- await upd(res.fbId,{status:'confirmed',stockTaken:true,confirmedTotal:75,quoteStatus:'agreed_recorded_by_merchant'});await sleep(1500);
+ await upd(res.fbId,{status:'confirmed',stockTaken:true,confirmedTotal:90,quoteStatus:'agreed_recorded_by_merchant'});await sleep(1500);
  let st=await A.pg.evaluate(c=>{const o=state.orders.find(x=>x.id===c);return {s:o.status,p:o.pendingConfirm,c:o.confirmedTotal}},CODE);
- t=await txt();ok('track: confirmed state synced, pending cleared, requote banner gone',st.s==='confirmed'&&!st.p&&st.c===75&&!/غير مؤكد حتى تتفق/.test(t)&&!/في انتظار تأكيد المتجر/.test(t),{st,t:t.slice(0,200)});
+ t=await txt();ok('track: confirmed state synced, pending cleared, banners gone, confirmed total 75 with original labeled',st.s==='confirmed'&&!st.p&&st.c===90&&!/غير مؤكد حتى تتفق/.test(t)&&!/في انتظار تأكيد المتجر/.test(t)&&/الإجمالي المؤكد/.test(t)&&/الإجمالي المطلوب أصلاً/.test(t),{st,t:t.slice(0,300)});
  // reload
  await A.pg.reload();await sleep(2200);await A.pg.evaluate(c=>navigate('/track/'+c),CODE);await sleep(1500);
  st=await A.pg.evaluate(c=>{const o=state.orders.find(x=>x.id===c);return o&&{s:o.status}},CODE);
- ok('after reload: order and confirmed status persist',st&&st.s==='confirmed',st);
+ t=await txt();ok('after reload: confirmed status and confirmed total 75 durable on track page',st&&st.s==='confirmed'&&/الإجمالي المؤكد/.test(t)&&/90/.test(t)&&/75/.test(t),{st,t:t.slice(0,250)});
+ await A.pg.evaluate(()=>navigate('/orders'));await sleep(900);t=await txt();ok('orders list shows confirmed total 90',/90/.test(t)&&!/75/.test(t.split('طلباتي').slice(-1)[0]),t.slice(0,250));await A.pg.evaluate(c=>navigate('/track/'+c),CODE);await sleep(900);
  // cancel while listening after reload
  await upd(res.fbId,{status:'cancelled'});await sleep(1500);
- st=await A.pg.evaluate(c=>state.orders.find(x=>x.id===c).status,CODE);ok('after reload the listener still updates (cancelled)',st==='cancelled',st);
+ st=await A.pg.evaluate(c=>state.orders.find(x=>x.id===c).status,CODE);t=await txt();
+ const cn=await A.pg.evaluate(()=>({note:!!document.querySelector('[data-testid="cancelled-note"]'),pill:(document.querySelector('.pill')||{}).innerText}));
+ ok('cancelled: durable badge says cancelled, cancellation note shown, no received/confirm timeline',st==='cancelled'&&cn.note&&/ملغي/.test(cn.pill||'')&&!/تم استلام الطلب/.test(t),{st,cn});
+ await A.pg.reload();await sleep(2200);await A.pg.evaluate(c=>navigate('/track/'+c),CODE);await sleep(1200);
+ const cn2=await A.pg.evaluate(()=>({note:!!document.querySelector('[data-testid="cancelled-note"]'),pill:(document.querySelector('.pill')||{}).innerText}));
+ ok('cancelled state is durable after a second reload',cn2.note&&/ملغي/.test(cn2.pill||''),cn2);
  await A.pg.screenshot({path:'/downloads/kanteen-e2e-track-cancelled.png'});
  const errs=[A,B].flatMap(x=>x.pg.errs);console.log('page errors:',[...new Set(errs)].slice(0,8));
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(0);
