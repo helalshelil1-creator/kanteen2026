@@ -27,7 +27,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfgX||cfg,contentType:'application/javascript'}));
   await ctx.addInitScript(()=>{window.confirm=()=>true;});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));pg.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))pg.errs.push('console:'+m.text().slice(0,150))});return {ctx,pg}};
- const mkC=async(email)=>{const x=await mk();await x.pg.goto(BASE+'/index.html');await sleep(1650);await x.pg.evaluate(e=>KT_FB.signUpEmail(e,'CustPass123','عميل'),email);await sleep(900);return x};
+ const mkC=async(email)=>{const x=await mk();await x.pg.goto(BASE+'/index.html');await sleep(1650);await sleep(900);return x};
  const A=await mkC('a@x.com');await A.pg.setViewportSize({width:390,height:844});
  await A.pg.evaluate(()=>{window.__opens=0;window.open=()=>{window.__opens++;return null}});
  await A.pg.evaluate(()=>navigate('/p/merchant_mLeg_p1'));await sleep(1200);

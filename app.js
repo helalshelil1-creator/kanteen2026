@@ -1725,7 +1725,7 @@ function viewCheckout(){
   var nextBtn = checkoutStep < 6
     ? '<button class="btn btn-primary" onclick="checkoutNext()">التالي</button>'
     : '<button class="btn btn-gold" style="flex:1;padding:15px 24px;font-size:15px" onclick="placeOrder()">✓ تأكيد الطلب</button>';
-  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">إتمام الطلب</h1>' + stepsHTML + '<div class="card" style="padding:22px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
+  return '<section class="k-sec" style="padding-top:200px"><div class="wrap" style="max-width:780px">' + ktBackBtn() + '<h1 class="h1" style="margin-bottom:32px">إتمام الطلب</h1>' + ((window.KT_CONFIG && KT_CONFIG.SHOWCASE_MODE) ? '<div data-testid="showcase-banner" class="card" style="padding:14px;margin-bottom:18px;color:var(--gold);font-weight:700;line-height:1.8">نسخة عرض تجريبية: لن يُرسَل أي طلب ولن يُسحب أي مبلغ.</div>' : '') + stepsHTML + '<div class="card" style="padding:22px">' + body + '<div style="display:flex;gap:12px;margin-top:28px;flex-wrap:wrap">' + navBtns + '<div style="flex:1;display:flex">' + nextBtn + '</div></div></div></div></section>';
 }
 function checkoutNext(){
   if(checkoutStep === 1){ var n = $('#co-name').value.trim(), p = $('#co-phone').value.trim(); if(!n || !p){ ktToast('املأ البيانات', 'error'); return; } checkoutData.name = n; checkoutData.phone = p; checkoutData.email = $('#co-email').value.trim(); }

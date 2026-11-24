@@ -11,7 +11,7 @@ window.KT_CONFIG = {
 
   // OFF until firestore.rules.next is deployed and tested live (see MERCHANT_AUTH_MIGRATION.md)
   // Personal showcase/demo (PAUSED, default off): when true, no real orders, payments or order messages are sent. Set false only for a real commercial launch.
-  SHOWCASE_MODE: false,
+  SHOWCASE_MODE: true,
   SECURE_ORDERS: false,
   SECURE_MERCHANT_AUTH: false,
 
