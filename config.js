@@ -10,8 +10,8 @@ window.KT_CONFIG = {
   EMAIL: 'hello@kanteen.app',
 
   // OFF until firestore.rules.next is deployed and tested live (see MERCHANT_AUTH_MIGRATION.md)
-  // Personal showcase/demo: no real orders, payments or order messages are sent. Set false only for a real commercial launch.
-  SHOWCASE_MODE: true,
+  // Personal showcase/demo (PAUSED, default off): when true, no real orders, payments or order messages are sent. Set false only for a real commercial launch.
+  SHOWCASE_MODE: false,
   SECURE_ORDERS: false,
   SECURE_MERCHANT_AUTH: false,
 
