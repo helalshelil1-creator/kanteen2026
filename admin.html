@@ -271,8 +271,8 @@ h1,h2,h3,h4,p{margin:0}
   </aside>
   <main class="k-main">
     <header class="k-topbar">
-      <button class="k-icon-btn k-burger" onclick="document.getElementById('sidebar').classList.toggle('open')"><i data-lucide="menu"></i></button>
-      <button class="k-icon-btn" id="adminBackBtn" onclick="ktAdminBack()" title="رجوع" style="display:none;color:var(--gold);border-color:rgba(255,184,0,.35);background:linear-gradient(135deg,rgba(255,184,0,.1),rgba(255,184,0,.02))"><i data-lucide="arrow-right"></i></button>
+      <button class="k-icon-btn k-burger" aria-label="القائمة" title="القائمة" onclick="document.getElementById('sidebar').classList.toggle('open')"><i data-lucide="menu"></i></button>
+      <button class="k-icon-btn" id="adminBackBtn" aria-label="رجوع" onclick="ktAdminBack()" title="رجوع" style="display:none;color:var(--gold);border-color:rgba(255,184,0,.35);background:linear-gradient(135deg,rgba(255,184,0,.1),rgba(255,184,0,.02))"><i data-lucide="arrow-right"></i></button>
       <div class="k-topbar-title">
         <span id="pageTitle">لوحة القيادة</span>
         <small id="pageSub">نظرة عامة</small>
@@ -283,7 +283,7 @@ h1,h2,h3,h4,p{margin:0}
           <span class="dot" id="notifDot" style="display:none">0</span>
         </button>
         <a href="index.html" class="k-icon-btn" title="الموقع"><i data-lucide="external-link"></i></a>
-        <button class="k-icon-btn" onclick="refresh()" title="تحديث"><i data-lucide="refresh-cw"></i></button>
+        <button class="k-icon-btn" onclick="refresh()" title="تحديث" aria-label="تحديث"><i data-lucide="refresh-cw"></i></button>
       </div>
     </header>
     <div class="k-content" id="content"></div>
@@ -650,7 +650,7 @@ function renderOrders(el){
         '<td><span class="k-pill ' + st.pill + '">' + st.label + '</span></td>' +
         '<td style="white-space:nowrap">' +
           (canConfirm ? '<button class="k-btn k-btn-success k-btn-sm" style="margin-inline-end:6px" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' : '') +
-          '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')"><i data-lucide="eye"></i></button>' +
+          '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')" aria-label="تفاصيل الطلب" title="تفاصيل الطلب"><i data-lucide="eye"></i> تفاصيل</button>' +
         '</td>' +
       '</tr>';
     });
@@ -704,7 +704,7 @@ function ktViewOrderDetails(fbId){
   var canConfirm = o.status === 'placed' || o.status === 'pending_payment';
 
   openModal(
-    '<div class="k-modal-head"><h3><i data-lucide="package"></i> ' + esc(o.id) + '</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-modal-head"><h3><i data-lucide="package"></i> ' + esc(o.id) + '</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
     '<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)"><span class="muted">الحالة:</span><span class="k-pill ' + statusLabels(o.status).pill + '">' + statusLabels(o.status).label + '</span></div>' +
     '<h4 style="margin:18px 0 10px;font-size:15px;font-weight:800">👤 العميل</h4>' +
     '<div style="background:var(--bg-3);border-radius:12px;padding:14px">' +
@@ -755,7 +755,7 @@ function renderNotifications(el){
     if (n.type === 'new_merchant') html += '<button class="k-btn k-btn-primary k-btn-sm" onclick="switchTab(\'pending\')">مراجعة</button>';
     if (n.type === 'new_driver') html += '<button class="k-btn k-btn-primary k-btn-sm" onclick="switchTab(\'drivers\')">مراجعة</button>';
     if (!n.read) html += '<button class="k-btn k-btn-glass k-btn-sm" onclick="KT_FB.markNotificationRead(\'' + n._fbId + '\')">✓</button>';
-    html += '<button class="k-btn k-btn-danger k-btn-sm" onclick="KT_FB.deleteNotification(\'' + n._fbId + '\')"><i data-lucide="trash-2"></i></button>';
+    html += '<button class="k-btn k-btn-danger k-btn-sm" onclick="KT_FB.deleteNotification(\'' + n._fbId + '\')" aria-label="حذف الإشعار"><i data-lucide="trash-2"></i> حذف</button>';
     html += '</div></div>';
   });
 
@@ -828,7 +828,7 @@ function renderMerchantCard(m, status){
   var statusPill = status === 'suspended' ? '<span class="k-pill k-pill-danger">⏸️ موقوف</span>' : '<span class="k-pill k-pill-fresh">✅ معتمد</span>';
   var actions = status === 'suspended'
     ? '<button class="k-btn k-btn-success k-btn-sm" onclick="activateMerchant(\'' + m._fbId + '\')"><i data-lucide="play-circle"></i> تنشيط</button><button class="k-btn k-btn-danger k-btn-sm" onclick="deleteMerchant(\'' + m._fbId + '\')"><i data-lucide="trash-2"></i></button>'
-    : '<button class="k-btn k-btn-gold k-btn-sm" onclick="suspendMerchant(\'' + m._fbId + '\')"><i data-lucide="pause-circle"></i> إيقاف</button><button class="k-btn k-btn-danger k-btn-sm" onclick="deleteMerchant(\'' + m._fbId + '\')"><i data-lucide="trash-2"></i></button>';
+    : '<button class="k-btn k-btn-gold k-btn-sm" onclick="suspendMerchant(\'' + m._fbId + '\')"><i data-lucide="pause-circle"></i> إيقاف</button><button class="k-btn k-btn-danger k-btn-sm" onclick="deleteMerchant(\'' + m._fbId + '\')" aria-label="حذف الإشعار"><i data-lucide="trash-2"></i> حذف</button>';
   return '<div class="k-merchant-card ' + status + '"><div class="k-merchant-avatar">🏪</div>' +
     '<div class="k-merchant-info"><h4>' + esc(m.name || '') + ' ' + statusPill + '</h4>' +
     '<div class="meta"><i data-lucide="user"></i> ' + esc(m.owner || '') + '</div>' +
@@ -860,7 +860,7 @@ function ktIssueCode(fbId){
   var i = KT_FB.init();
   KT_MERCH_AUTH.adminIssueCode(i.db, fbId, 48, firebase.firestore.FieldValue.serverTimestamp(), function(ms){ return firebase.firestore.Timestamp.fromMillis(ms); })
     .then(function(code){
-      openModal('<div class="k-modal-head"><h3>🔑 كود تفعيل</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+      openModal('<div class="k-modal-head"><h3>🔑 كود تفعيل</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
         '<p>أعطِ هذا الكود للتاجر شخصياً. صالح 48 ساعة ويُستخدم مرة واحدة. يدخل به صفحة التاجر ← "تفعيل حسابي" ويختار كلمة مرور جديدة.</p>' +
         '<div id="ktCodeBox" style="direction:ltr;font-family:monospace;word-break:break-all;background:var(--bg-3);padding:14px;border-radius:12px;font-size:15px">' + code + '</div>' +
         '<button class="k-btn k-btn-glass k-btn-block" style="margin-top:12px" onclick="closeModal()">إغلاق</button>');
@@ -891,7 +891,7 @@ function renderDrivers(el){
       '<div class="k-merchant-info"><h4>' + esc(d.name) + ' ' + (d.online ? '<span class="k-pill k-pill-fresh">🟢 متصل</span>' : '<span class="k-pill k-pill-danger">🔴 غير متصل</span>') + '</h4>' +
       '<div class="meta"><i data-lucide="phone"></i> ' + esc(d.phone || '') + '</div>' +
       '<div class="meta"><i data-lucide="map-pin"></i> ' + esc(d.area || '') + '</div></div>' +
-      '<div class="k-merchant-actions"><button class="k-btn k-btn-danger k-btn-sm" onclick="suspendDriver(\'' + d._fbId + '\')"><i data-lucide="pause-circle"></i></button></div></div>';
+      '<div class="k-merchant-actions"><button class="k-btn k-btn-danger k-btn-sm" onclick="suspendDriver(\'' + d._fbId + '\')" aria-label="إيقاف المندوب"><i data-lucide="pause-circle"></i> إيقاف</button></div></div>';
   }).join('');
   html += '</div>';
   el.innerHTML = html;
@@ -925,7 +925,7 @@ function renderProducts(el){
       html += '<div style="font-size:18px;font-weight:800;color:var(--gold);margin-bottom:10px">' + money(p.price) + '</div>';
       html += '<div style="display:flex;gap:8px">';
       html += '<button class="k-btn k-btn-glass k-btn-sm" style="flex:1" onclick="openEditGlobalProduct(\'' + p._fbId + '\')"><i data-lucide="edit-2"></i> تعديل</button>';
-      html += '<button class="k-btn k-btn-danger k-btn-sm" onclick="deleteGlobalProduct(\'' + p._fbId + '\')"><i data-lucide="trash-2"></i></button>';
+      html += '<button class="k-btn k-btn-danger k-btn-sm" onclick="deleteGlobalProduct(\'' + p._fbId + '\')" aria-label="حذف الإشعار"><i data-lucide="trash-2"></i> حذف</button>';
       html += '</div></div>';
     });
     html += '</div>';
@@ -938,7 +938,7 @@ function renderProducts(el){
 function openAddGlobalProduct(){
   var cats = [{id:'grocery',n:'بقالة'},{id:'beverages',n:'مشروبات'},{id:'dairy',n:'ألبان'},{id:'bakery',n:'مخبوزات'},{id:'fruits',n:'فواكه'},{id:'frozen',n:'مجمدات'},{id:'snacks',n:'سناكس'},{id:'cleaning',n:'منظفات'},{id:'personal',n:'عناية'},{id:'home',n:'منزلية'},{id:'pharmacy',n:'صيدلية'}];
   openModal(
-    '<div class="k-modal-head"><h3><i data-lucide="plus-circle"></i> إضافة منتج عام</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-modal-head"><h3><i data-lucide="plus-circle"></i> إضافة منتج عام</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
     '<div class="k-form-grid">' +
       '<div class="k-field"><label>اسم المنتج (عربي) *</label><input id="gpNameAr" placeholder="أرز مصري 1ك"></div>' +
       '<div class="k-field"><label>English Name</label><input id="gpNameEn" placeholder="Rice 1kg" dir="ltr"></div>' +
@@ -963,7 +963,7 @@ function openEditGlobalProduct(fbId){
   if (!p) return;
   var cats = [{id:'grocery',n:'بقالة'},{id:'beverages',n:'مشروبات'},{id:'dairy',n:'ألبان'},{id:'bakery',n:'مخبوزات'},{id:'fruits',n:'فواكه'},{id:'frozen',n:'مجمدات'},{id:'snacks',n:'سناكس'},{id:'cleaning',n:'منظفات'},{id:'personal',n:'عناية'},{id:'home',n:'منزلية'},{id:'pharmacy',n:'صيدلية'}];
   openModal(
-    '<div class="k-modal-head"><h3><i data-lucide="edit-2"></i> تعديل المنتج</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-modal-head"><h3><i data-lucide="edit-2"></i> تعديل المنتج</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
     '<div class="k-form-grid">' +
       '<div class="k-field"><label>اسم المنتج *</label><input id="gpNameAr" value="' + esc(p.nameAr || p.name || '') + '"></div>' +
       '<div class="k-field"><label>English Name</label><input id="gpNameEn" value="' + esc(p.nameEn || '') + '" dir="ltr"></div>' +
@@ -1098,7 +1098,7 @@ function renderSettings(el){
 function openAddMerchantModal(){
   var typeOptions = '<option value="grocery">بقالة</option><option value="supermarket">سوبر ماركت</option><option value="pharmacy">صيدلية</option><option value="restaurant">مطعم</option><option value="other">أخرى</option>';
   openModal(
-    '<div class="k-modal-head"><h3><i data-lucide="store"></i> إضافة تاجر جديد</h3><button class="k-modal-close" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
+    '<div class="k-modal-head"><h3><i data-lucide="store"></i> إضافة تاجر جديد</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
     '<div class="k-form-grid">' +
       '<div class="k-field"><label>اسم المتجر *</label><input id="amName"></div>' +
       '<div class="k-field"><label>اسم المالك *</label><input id="amOwner"></div>' +
