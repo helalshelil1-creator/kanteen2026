@@ -1,0 +1,28 @@
+const {initializeTestEnvironment,assertSucceeds,assertFails}=require('@firebase/rules-unit-testing');
+const fs=require('fs');
+(async()=>{
+ const env=await initializeTestEnvironment({projectId:'demo-kt',firestore:{rules:fs.readFileSync('firestore.rules','utf8'),host:'127.0.0.1',port:8085}});
+ await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();
+  await d.doc('merchants/m1').set({name:'A',phone:'+20100',status:'approved',password:'FAKE-TEST-PW',ownerUid:null});
+  await d.doc('merchants/m2').set({name:'B',phone:'+20101',status:'pending',password:'FAKE2',ownerUid:'u2'});
+  await d.doc('admins/adm').set({x:1});});
+ const anon=env.unauthenticatedContext().firestore();
+ const r=async(n,p)=>{try{const x=await p;console.log('ALLOW',n,x&&x.docs?x.docs.length+' docs':'');return x}catch(e){console.log('DENY ',n,e.code||e.message.slice(0,60))}};
+ await r('anon unfiltered merchants list',anon.collection('merchants').get());
+ const ap=await r('anon approved-only list (fixed listener)',anon.collection('merchants').where('status','==','approved').get());
+ if(ap) console.log('   approved doc exposes password field to anon:', ap.docs.map(d=>'password' in d.data()));
+ await r('anon phone lookup of approved merchant (merchant login)',anon.collection('merchants').where('phone','==','+20100').limit(1).get());
+ await r('anon phone lookup of pending merchant',anon.collection('merchants').where('phone','==','+20101').limit(1).get());
+ await r('anon read pending merchant doc',anon.doc('merchants/m2').get());
+ await r('anon update approved merchant',anon.doc('merchants/m1').update({name:'HACK'}));
+ await r('anon create pending merchant (register)',anon.doc('merchants/new').set({status:'pending',ownerUid:null,name:'N',password:'x'}));
+ await r('anon create approved merchant',anon.doc('merchants/new2').set({status:'approved',ownerUid:null}));
+ const owner=env.authenticatedContext('u2').firestore();
+ await r('owner read own pending',owner.doc('merchants/m2').get());
+ await r('owner update own allowed field',owner.doc('merchants/m2').update({name:'B2'}));
+ await r('owner change status',owner.doc('merchants/m2').update({status:'approved'}));
+ const adm=env.authenticatedContext('adm').firestore();
+ await r('admin list merchants',adm.collection('merchants').get());
+ await r('anon notifications create',anon.collection('notifications').add({a:1}));
+ await r('anon orders create',anon.collection('orders').add({customerUid:'x'}));
+ await env.cleanup();})();
