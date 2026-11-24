@@ -817,7 +817,7 @@ function renderMerchants(el){
   var approved = FB_MERCHANTS.filter(function(m){ return m.status === 'approved' || !m.status; });
   var suspended = FB_MERCHANTS.filter(function(m){ return m.status === 'suspended'; });
   el.innerHTML = '<div class="k-card kt-anim-1"><div class="k-card-head"><h3><i data-lucide="store"></i> التجار المعتمدون (' + approved.length + ')</h3>' +
-    '<span>' + (ktSecureM() ? '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktRunMigration()">ترحيل التجار</button> ' : '') + '<button class="k-btn k-btn-success k-btn-sm" onclick="openAddMerchantModal()"><i data-lucide="plus"></i> إضافة تاجر</button></span></div>' +
+    '<span>' + (ktSecureM() ? '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktRunMigration()">نشر النسخة العامة</button> <button class="k-btn k-btn-glass k-btn-sm" onclick="ktPreviewPasswords()">معاينة كلمات المرور</button> <button class="k-btn k-btn-glass k-btn-sm" onclick="ktDeletePasswords()">حذف كلمات المرور</button> ' : '') + '<button class="k-btn k-btn-success k-btn-sm" onclick="openAddMerchantModal()"><i data-lucide="plus"></i> إضافة تاجر</button></span></div>' +
     (approved.length ? approved.map(function(m){ return renderMerchantCard(m, 'approved'); }).join('') : '<div class="k-empty"><p>لا يوجد تجار معتمدون</p></div>') +
     (suspended.length ? '<div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--line)"><h4 style="margin-bottom:14px;color:var(--danger);font-size:15px">⏸️ الموقوفة (' + suspended.length + ')</h4>' + suspended.map(function(m){ return renderMerchantCard(m, 'suspended'); }).join('') + '</div>' : '') +
     '</div>';
@@ -867,11 +867,32 @@ function ktIssueCode(fbId){
     }).catch(function(e){ toast('❌ ' + (e.message || 'فشل إصدار الكود'), 'error'); });
 }
 function ktRunMigration(){
-  if (!confirm('ترحيل التجار: نشر النسخة العامة، حذف كلمات المرور القديمة، وتجهيز المخزون. هل تريد المتابعة؟')) return;
+  // Step 1 only: publish the public projection. Never deletes anything.
+  if (!confirm('نشر النسخة العامة للمحلات المعتمدة فقط (لا يتم حذف أي بيانات). متابعة؟')) return;
   var i = KT_FB.init();
-  KT_MERCH_AUTH.adminMigrate(i.db, firebase.firestore.FieldValue.delete(), KT_ORDERS.syncStock).then(function(r){
+  KT_MERCH_AUTH.adminPublishProjection(i.db, KT_ORDERS.syncStock).then(function(r){
     window._ktMigration = r;
-    toast('✅ تم الترحيل: نشر ' + r.published + '، حذف كلمات مرور ' + r.passwordsRemoved + (r.errors.length ? '، أخطاء ' + r.errors.length : ''), r.errors.length ? 'error' : 'success');
+    toast('✅ تم النشر: ' + r.published + ' محل' + (r.errors.length ? '، أخطاء ' + r.errors.length : ''), r.errors.length ? 'error' : 'success');
+  }).catch(function(e){ toast('❌ ' + e.message, 'error'); });
+}
+function ktPreviewPasswords(){
+  // Read-only: counts and ids only, never values.
+  var i = KT_FB.init();
+  KT_MERCH_AUTH.adminPreviewPasswordFields(i.db).then(function(r){
+    window._ktPwPreview = r;
+    alert('عدد المحلات: ' + r.merchants + '\nمحلات فيها خانة password: ' + r.withPassword + '\nمنها معتمدة (ظاهرة للعامة): ' + r.approvedWithPassword + '\n(لم تُعرض أي قيم)');
+  }).catch(function(e){ toast('❌ ' + e.message, 'error'); });
+}
+function ktDeletePasswords(){
+  // Destructive and separate. Needs a fresh preview and the exact count typed back.
+  var pv = window._ktPwPreview;
+  if (!pv || !pv.withPassword) { toast('شغّل "معاينة كلمات المرور" أولاً', 'error'); return; }
+  var typed = prompt('سيتم حذف خانة password من ' + pv.withPassword + ' محل نهائياً، ولن يستطيع التاجر الدخول بها. اكتب العدد للتأكيد:');
+  if (typed === null || parseInt(typed, 10) !== pv.withPassword) { toast('لم يتم الحذف: العدد غير مطابق', 'error'); return; }
+  var i = KT_FB.init();
+  KT_MERCH_AUTH.adminDeletePasswordFields(i.db, firebase.firestore.FieldValue.delete(), pv.docs.map(function(d){ return d.id; }), pv.withPassword).then(function(r){
+    window._ktPwPreview = null;
+    toast('تم حذف ' + r.removed + ' خانة' + (r.errors.length ? '، أخطاء ' + r.errors.length : ''), r.errors.length ? 'error' : 'success');
   }).catch(function(e){ toast('❌ ' + e.message, 'error'); });
 }
 function approveDriver(fbId){ KT_FB.init().db.collection('drivers').doc(fbId).update({ status: 'approved', approvedAt: new Date().toISOString() }); toast('✅ تم قبول المندوب', 'success'); }

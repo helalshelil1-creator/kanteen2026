@@ -75,15 +75,13 @@
     await db.collection('merchantsPublic').doc(merchantId).set(toPublic(stripSecrets(data)));
   }
   async function unpublish(db, merchantId) { try { await db.collection('merchantsPublic').doc(merchantId).delete(); } catch (e) { if (e.code !== 'not-found') throw e; } }
-  // Admin one-off: publish projections for approved merchants, delete legacy password fields, seed stock docs.
-  // `deleteField` is firebase.firestore.FieldValue.delete(); `syncStock` comes from order-flow.js. Idempotent.
-  async function adminMigrate(db, deleteField, syncStock) {
+  // Step 1 (no deletion): publish projections for approved merchants, unpublish the rest. Idempotent. Never touches `password`.
+  async function adminPublishProjection(db, syncStock) {
     var snap = await db.collection('merchants').get();
-    var r = { merchants: snap.size, published: 0, unpublished: 0, passwordsRemoved: 0, stockCreated: 0, errors: [] };
+    var r = { merchants: snap.size, published: 0, unpublished: 0, stockCreated: 0, errors: [] };
     for (var i = 0; i < snap.docs.length; i++) {
       var d = snap.docs[i], data = d.data();
       try {
-        if (data.password !== undefined) { await d.ref.update({ password: deleteField }); r.passwordsRemoved++; }
         if (data.status === 'approved') {
           await syncPublic(db, d.id, data); r.published++;
           if (syncStock) { var s = await syncStock(db, d.id, data.products || []); r.stockCreated += s.created; }
@@ -92,7 +90,24 @@
     }
     return r;
   }
+  // Step 2 (read-only preview): which merchant docs have a legacy password field. Returns ids, status and counts only, never values.
+  async function adminPreviewPasswordFields(db) {
+    var snap = await db.collection('merchants').get();
+    var withPw = [];
+    snap.docs.forEach(function (d) { var x = d.data(); if (x.password !== undefined) withPw.push({ id: d.id, status: x.status || null, approved: x.status === 'approved' }); });
+    return { merchants: snap.size, withPassword: withPw.length, approvedWithPassword: withPw.filter(function (x) { return x.approved; }).length, docs: withPw };
+  }
+  // Step 3 (destructive, separate): delete the password field only on the listed ids, and only if expectedCount matches the preview.
+  async function adminDeletePasswordFields(db, deleteField, ids, expectedCount) {
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length !== expectedCount) throw new Error('count-mismatch: preview and confirmation must agree');
+    var r = { removed: 0, errors: [] };
+    for (var i = 0; i < ids.length; i++) {
+      try { await db.collection('merchants').doc(ids[i]).update({ password: deleteField }); r.removed++; }
+      catch (e) { r.errors.push(ids[i] + ':' + (e.code || e.message)); }
+    }
+    return r;
+  }
 
-  var api = { toPublic: toPublic, syncPublic: syncPublic, unpublish: unpublish, adminMigrate: adminMigrate, emailFor: emailFor, register: register, login: login, claim: claim, adminIssueCode: adminIssueCode, normPhone: normPhone };
+  var api = { toPublic: toPublic, syncPublic: syncPublic, unpublish: unpublish, adminPublishProjection: adminPublishProjection, adminPreviewPasswordFields: adminPreviewPasswordFields, adminDeletePasswordFields: adminDeletePasswordFields, emailFor: emailFor, register: register, login: login, claim: claim, adminIssueCode: adminIssueCode, normPhone: normPhone };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.KT_MERCH_AUTH = api;
 })(typeof window !== 'undefined' ? window : globalThis);
