@@ -89,3 +89,9 @@ Tests: tests/rules/merchant-claim.rules.test.js (24), merchant-failclosed.rules.
 - Owner restock is a free increase (cap 100000) because it is the merchant's own inventory; order-driven decrement/restore are linked to the order and exact. Rules cannot stop an owner from raising stock after a cancel.
 - Online payments (InstaPay/Vodafone) path unchanged and still not stored in Firestore; the pending message says it awaits confirmation and does not claim payment was verified.
 - Rollout (needs owner access): deploy the flags-ON build and rules.next together (old clients read /merchants directly and would break), run the admin migration immediately, issue activation codes, then verify. Rollback = redeploy the old build and old rules; the legacy passwords are deleted by migration and are NOT restored.
+
+## Rollback warning (do NOT roll the rules back after migration)
+Migration deletes the legacy plaintext passwords. Under the OLD rules, migrated merchant docs are readable by anonymous clients and a legacy client would skip the password compare (tests/rules/rollback-hazard.rules.test.js, run against firestore.rules: hazard confirmed). Deploy the flags-ON build and firestore.rules.next together, then migrate. If something fails, disable via flags/hosting, never restore old rules or passwords. The new client also refuses a merchant doc with no password and no ownerUid ("الحساب غير مفعّل").
+
+## Real-browser tests (emulators, Firebase SDK 10.7.1 = production)
+tests/e2e-phaseA.js (18/18) and tests/e2e-phaseB.js (12/12). Mobile toast is top-centered, non-blocking, and the price warning stays in the order modal after the toast expires.

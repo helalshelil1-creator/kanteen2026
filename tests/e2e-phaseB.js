@@ -14,57 +14,24 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  const env0=await initializeTestEnvironment({projectId:'kanteen2026',firestore:{rules:fs.readFileSync('firestore.rules','utf8'),host:'127.0.0.1',port:8085}});
  const env={withSecurityRulesDisabled:async fn=>{let r;await env0.withSecurityRulesDisabled(async c=>{r=await fn(c)});return r},cleanup:()=>env0.cleanup()};
  const admUid=await signUp('admin@kanteen.app','AdminPass123');
+ const ownUid=await signUp('201000000001@merchants.kanteen.invalid','NewPass123');
  await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();
   await d.doc('admins/'+admUid).set({x:1});
-  await d.doc('merchants/mLeg').set({name:'متجر قديم',phone:'+201000000001',status:'approved',ownerUid:null,password:'PLAIN123',owner:'x',address:'a',products:[{id:'p1',name:'لبن',price:20,stock:5,emoji:'🥛'}],whatsapp:'+201000000001'});
-  await d.doc('merchants/mPend').set({name:'قيد المراجعة',phone:'+201000000002',status:'pending',ownerUid:null,password:'P2',products:[]});});
+  const prod=[{id:'p1',name:'لبن',price:25,stock:8,emoji:'🥛'}];
+  await d.doc('merchants/mLeg').set({name:'متجر قديم',phone:'+201000000001',status:'approved',ownerUid:ownUid,owner:'x',address:'a',products:prod,whatsapp:'+201000000001'});
+  await d.doc('merchantsPublic/mLeg').set({name:'متجر قديم',phone:'+201000000001',status:'approved',products:prod,whatsapp:'+201000000001'});
+  await d.doc('merchants/mLeg/stock/p1').set({qty:8});});
  const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
- const mk=async()=>{const ctx=await b.newContext({viewport:{width:1100,height:900},locale:'ar-EG'});
+ const mk=async(cfgX)=>{const ctx=await b.newContext({viewport:{width:1100,height:900},locale:'ar-EG'});
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/,r=>{const u=r.request().url();const m=u.match(/gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z-]+compat\.js)/);if(m)return r.fulfill({path:path.join(FB,m[1]),contentType:'application/javascript'});r.abort()});
-  await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfg,contentType:'application/javascript'}));
+  await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfgX||cfg,contentType:'application/javascript'}));
   await ctx.addInitScript(()=>{window.confirm=()=>true;});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));pg.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource|net::ERR/.test(m.text()))pg.errs.push('console:'+m.text().slice(0,150))});return {ctx,pg}};
- const anon=await mk();await anon.pg.goto(BASE+'/index.html');await sleep(1375);
+ const ad=await mk();await ad.pg.goto(BASE+'/admin.html');await ad.pg.fill('#inpEmail','admin@kanteen.app');await ad.pg.fill('#inpPass','AdminPass123');await ad.pg.click('#loginBtn');await sleep(1500);
+ const anon=await mk();await anon.pg.goto(BASE+'/index.html');await sleep(1500);
  const ev=(pg,fn,a)=>pg.evaluate(fn,a);
- // S1 fail-closed for anonymous storefront before migration
- let r=await ev(anon.pg,async()=>{const i=KT_FB.init();const out={};try{await i.db.collection('merchants').doc('mLeg').get();out.direct='allowed'}catch(e){out.direct=e.code}
-   try{await i.db.collection('merchants').where('status','==','approved').get();out.q='allowed'}catch(e){out.q=e.code}
-   const s=await i.db.collection('merchantsPublic').get();out.pub=s.size;return out});
- ok('anon direct get of legacy password doc denied',r.direct==='permission-denied',r);ok('anon approved-merchants query denied',r.q==='permission-denied',r);ok('merchantsPublic empty before migration',r.pub===0,r);
- // S2 admin migration via real UI
- const ad=await mk();await ad.pg.goto(BASE+'/admin.html');await ad.pg.fill('#inpEmail','admin@kanteen.app');await ad.pg.fill('#inpPass','AdminPass123');await ad.pg.click('#loginBtn');await sleep(1375);
- await ad.pg.evaluate(()=>switchTab('merchants'));await sleep(660);
- ok('admin sees migrate + code buttons',(await ad.pg.locator('button:has-text("ترحيل التجار")').count())===1);
- await ad.pg.click('button:has-text("ترحيل التجار")');await sleep(1650);
- const mig=await ad.pg.evaluate(()=>window._ktMigration);ok('migration result published=1 passwordsRemoved=2(legacy+pending) stock created',mig&&mig.published===1&&mig.passwordsRemoved===2&&mig.stockCreated===1&&mig.errors.length===0,mig);
- r=await ev(anon.pg,async()=>{const i=KT_FB.init();const s=await i.db.collection('merchantsPublic').get();return {n:s.size,hasPw:s.docs.some(d=>'password' in d.data()||'ownerUid' in d.data()),name:s.docs[0]&&s.docs[0].data().name}});
- ok('public projection now lists approved merchant without secrets',r.n===1&&!r.hasPw,r);
- const left=await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();return (await d.doc('merchants/mLeg').get()).data().password})
- // S3 code issue (UI)
- await ad.pg.evaluate(()=>ktIssueCode('mLeg'));await sleep(825);
- const code=(await ad.pg.locator('#ktCodeBox').innerText()).trim();ok('activation code issued (32 hex)',/^[0-9a-f]{32}$/.test(code),code.length);
- // S4 merchant claim via UI
- const mc=await mk();await mc.pg.goto(BASE+'/merchant.html');await sleep(825);
- ok('claim link visible with flag on',await mc.pg.locator('#ktClaimLink').isVisible());
- await mc.pg.click('#ktClaimLink a');await mc.pg.fill('#clPhone','01000000001');await mc.pg.fill('#clCode',code);await mc.pg.fill('#clPass','NewPass123');await mc.pg.click('#clBtn');await sleep(1925);
- let mid=await mc.pg.evaluate(()=>MERCHANT&&MERCHANT.fbId);ok('claim logs merchant in and binds ownerUid',mid==='mLeg',mid);
- const mrec=await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();const m=(await d.doc('merchants/mLeg').get()).data();const a=(await d.doc('merchantActivations/'+code).get()).data();return {own:!!m.ownerUid,pw:m.password,used:a.used}});
- ok('merchant doc owned, no password, code used',mrec.own&&mrec.pw===undefined&&mrec.used===true,mrec);
- const mc2=await mk();await mc2.pg.goto(BASE+'/merchant.html');await sleep(660);await mc2.pg.click('#ktClaimLink a');await mc2.pg.fill('#clPhone','01000000001');await mc2.pg.fill('#clCode',code);await mc2.pg.fill('#clPass','NewPass123');await mc2.pg.click('#clBtn');await sleep(1375);
- ok('replay of used code is refused',(await mc2.pg.locator('#clErr').innerText()).includes('الكود'));
- // login wrong / right
- const ml=await mk();await ml.pg.goto(BASE+'/merchant.html');await sleep(660);
- await ml.pg.fill('#inpPhone','01000000001');await ml.pg.fill('#inpPass','PLAIN123');await ml.pg.click('#loginBtn');await sleep(1100);
- ok('old plaintext password no longer logs in',(await ml.pg.locator('#errBox').isVisible()));
- await ml.pg.fill('#inpPass','NewPass123');await ml.pg.click('#loginBtn');await sleep(1650);
- mid=await ml.pg.evaluate(()=>MERCHANT&&MERCHANT.fbId);ok('login with new password works',mid==='mLeg',mid);
- // S5 products save + stock rules
- let st=await ml.pg.evaluate(async()=>{const i=KT_FB.init();const s=await i.db.collection('merchants').doc('mLeg').collection('stock').doc('p1').get();return s.data().qty});ok('stock doc seeded from product stock=5',st===5,st);
- await ml.pg.evaluate(()=>ktSaveProducts([{id:'p1',name:'لبن',price:25,stock:8,emoji:'🥛'}]));await sleep(1375);
- r=await ml.pg.evaluate(async()=>{const i=KT_FB.init();const s=await i.db.collection('merchants').doc('mLeg').collection('stock').doc('p1').get();const pub=await i.db.collection('merchantsPublic').doc('mLeg').get();return {q:s.data().qty,price:pub.data().products[0].price}});
- ok('restock raises stock, projection price updated',r.q===8&&r.price===25,r);
- await ml.pg.evaluate(()=>ktSaveProducts([{id:'p1',name:'لبن',price:25,stock:2,emoji:'🥛'}]));await sleep(1375);
- st=await ml.pg.evaluate(async()=>{const s=await KT_FB.init().db.collection('merchants').doc('mLeg').collection('stock').doc('p1').get();return s.data().qty});ok('manual stock decrease ignored (stays 8)',st===8,st);
+ const ml=await mk();await ml.pg.goto(BASE+'/merchant.html');await sleep(1000);await ml.pg.fill('#inpPhone','01000000001');await ml.pg.fill('#inpPass','NewPass123');await ml.pg.click('#loginBtn');await sleep(2000);
+ ok('merchant (claimed earlier) logs in',await ml.pg.evaluate(()=>MERCHANT&&MERCHANT.fbId)==='mLeg');
  // S6 storefront reads projection; customer requests orders
  const cu=await mk();await cu.pg.goto(BASE+'/index.html');await sleep(1650);
  r=await cu.pg.evaluate(()=>({n:ktMerchantsCache.length,pw:ktMerchantsCache.some(m=>'password' in m),prod:ktMerchantProducts.length}));ok('storefront shows merchant products from merchantsPublic',r.n===1&&!r.pw&&r.prod===1,r);
@@ -76,16 +43,20 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  // S7 merchant UI: orders
  await sleep(825);
  const ordersSeen=await ml.pg.evaluate(()=>FB_ORDERS.map(o=>o.id+':'+o.status));ok('merchant UI listener receives both orders under rules',ordersSeen.length===2,ordersSeen);
- // forged: confirm -> quote, not confirmed
+ // forged: confirm -> quote, not confirmed (MOBILE viewport for the proof)
+ await ml.pg.setViewportSize({width:390,height:844});
  await ml.pg.evaluate(id=>openOrderModal(id),forged.fbId);await sleep(300);
- await ml.pg.click('button:has-text("مراجعة الأسعار وتأكيد الطلب")');await sleep(1375);
+ await ml.pg.click('button:has-text("مراجعة الأسعار وتأكيد الطلب")');await sleep(1400);
  const odoc=async id=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc('orders/'+id).get()).data());
  const sq=async()=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc('merchants/mLeg/stock/p1').get()).data().qty);
  let fo=await odoc(forged.fbId);ok('forged order NOT confirmed; quoted 75 (25*2+25) awaiting customer; stock unchanged 8',fo.status==='placed'&&fo.quoteStatus==='awaiting_customer'&&fo.quotedTotal===75&&await sq()===8,{s:fo.status,q:fo.quoteStatus,t:fo.quotedTotal});
- await ml.pg.evaluate(id=>openOrderModal(id),forged.fbId);await sleep(300);
+ const geo=await ml.pg.evaluate(()=>{const tt=document.querySelector('.k-toast');const box=[...document.querySelectorAll('div')].filter(d=>/بانتظار موافقة العميل/.test(d.innerText)&&d.children.length<8&&d.offsetHeight>0).pop();const r=e=>e&&e.getBoundingClientRect();const T=r(tt),B=r(box);return {toast:T&&{t:T.top,b:T.bottom},box:B&&{t:B.top,b:B.bottom},overlap:!!(T&&B&&T.bottom>B.top&&T.top<B.bottom)}});
+ await ml.pg.screenshot({path:'/downloads/kanteen-e2e-quote-mobile-toast.png'});
+ ok('mobile: toast visible and does NOT overlap the awaiting-customer price box',geo.toast&&geo.box&&!geo.overlap,geo);
+ await ml.pg.waitForFunction(()=>!document.querySelector('.k-toast'),null,{timeout:9000}).catch(()=>{});
  const txt=await ml.pg.locator('#modalContent, .k-modal').first().innerText().catch(()=>'');
- ok('merchant UI shows requested and quoted totals + awaiting-customer wording',/بانتظار موافقة العميل/.test(txt)&&/75/.test(txt),txt.slice(0,200));
- await ml.pg.screenshot({path:'/downloads/kanteen-e2e-quote.png'});
+ ok('after toast expires the modal still shows requested + quoted totals and awaiting-customer wording',/بانتظار موافقة العميل/.test(txt)&&/75/.test(txt),txt.slice(0,200));
+ await ml.pg.screenshot({path:'/downloads/kanteen-e2e-quote-mobile.png'});
  await ml.pg.click('button:has-text("العميل وافق")');await ml.pg.dblclick('button:has-text("العميل وافق")').catch(()=>{});await sleep(1375);
  fo=await odoc(forged.fbId);ok('after merchant records agreement: confirmed at 75, stock 6, stockTaken',fo.status==='confirmed'&&fo.confirmedTotal===75&&fo.stockTaken===true&&await sq()===6,{s:fo.status,t:fo.confirmedTotal,q:await sq()});
  // honest: confirm directly
@@ -98,6 +69,6 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  // eligibility: suspend via admin UI -> projection removed, orders can't be accepted
  await ad.pg.evaluate(()=>suspendMerchant('mLeg'));await sleep(1375);
  r=await ev(anon.pg,async()=>(await KT_FB.init().db.collection('merchantsPublic').get()).size);ok('suspend removes merchant from public projection',r===0,r);
- const errs=[ad,mc,ml,cu,anon].flatMap(x=>x.pg.errs);console.log('page errors:',[...new Set(errs)].slice(0,8));
+ const errs=[ad,ml,cu,anon].flatMap(x=>x.pg.errs);console.log('page errors:',[...new Set(errs)].slice(0,8));
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(0);
 })().catch(e=>{console.log('FATAL',e);process.exit(1)});

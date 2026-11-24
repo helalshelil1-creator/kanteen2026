@@ -209,7 +209,8 @@ h1,h2,h3,h4,p{margin:0}
 .k-empty h3{font-size:18px;color:var(--ink);margin-bottom:8px;font-weight:700}
 .k-empty p{font-size:14px;margin-bottom:16px}
 
-.k-toast{position:fixed;bottom:100px;inset-inline-end:20px;padding:16px 22px;background:rgba(2,6,15,.96);backdrop-filter:blur(20px);border:1px solid var(--line-2);border-radius:16px;color:#fff;font-weight:600;font-size:14.5px;z-index:9999;display:flex;align-items:center;gap:12px;animation:ktSlideIn .4s var(--ease-out);box-shadow:0 20px 50px rgba(0,0,0,.5);max-width:calc(100vw - 40px)}
+.k-toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:max-content;pointer-events:none;padding:16px 22px;background:rgba(2,6,15,.96);backdrop-filter:blur(20px);border:1px solid var(--line-2);border-radius:16px;color:#fff;font-weight:600;font-size:14.5px;z-index:9999;display:flex;align-items:center;gap:12px;animation:ktToastIn .35s var(--ease-out);box-shadow:0 20px 50px rgba(0,0,0,.5);max-width:calc(100vw - 28px)}
+@keyframes ktToastIn{from{opacity:0;transform:translate(-50%,-20px)}to{opacity:1;transform:translate(-50%,0)}}
 [data-theme="light"] .k-toast{background:#fff;color:var(--ink)}
 @keyframes ktSlideIn{from{transform:translateX(120px);opacity:0}to{transform:none;opacity:1}}
 .k-toast::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--gold);flex:none}
@@ -418,12 +419,14 @@ function toast(msg, type){
   var t = document.createElement('div');
   t.className = 'k-toast' + (type ? ' ' + type : '');
   t.innerHTML = '<span>' + msg + '</span>';
+  var n = document.querySelectorAll('.k-toast').length;
+  t.style.top = (14 + n * 64) + 'px';
   document.body.appendChild(t);
   setTimeout(function(){
     t.style.transition='opacity .3s';
     t.style.opacity='0';
     setTimeout(function(){ t.remove(); }, 300);
-  }, 3200);
+  }, type === 'error' ? 6000 : 3200);
 }
 function ktShowFbStatus(text, isError){
   var el = document.getElementById('kFbStatus'); if (!el) return;
@@ -541,6 +544,12 @@ function ktMerchantLogin(){
         var doc = snap.docs[0];
         var data = doc.data();
 
+        if (!data.password && !data.ownerUid){
+          err.textContent = '🔒 الحساب غير مفعّل — اطلب كود تفعيل من الإدارة';
+          err.style.display = 'block';
+          btn.disabled = false; btn.innerHTML = '<svg data-lucide="log-in"></svg> دخول'; refreshIcons();
+          return;
+        }
         if (data.password && data.password !== pass){
           err.textContent = '❌ كلمة المرور غير صحيحة';
           err.style.display = 'block';
@@ -1158,7 +1167,7 @@ function ktSecureOrderAction(fbId, kind, agreedQuote){
       if (kind === 'cancelled'){ toast(r.stockRestored ? '✅ تم الإلغاء واسترجاع المخزون' : '✅ تم الإلغاء', 'success'); closeModal(); return; }
       if (r.needsAgreement){
         toast('⚠️ الإجمالي حسب أسعار المتجر ' + r.quotedTotal + ' ج.م بدل ' + r.requestedTotal + ' ج.م — لم يُؤكد الطلب. اتفق مع العميل أولاً.', 'error');
-        closeModal(); return;
+        setTimeout(function(){ openOrderModal(fbId); }, 700); return;   // reopen: the persistent awaiting-customer box shows both totals
       }
       if (window.KT_SOUND) KT_SOUND.success();
       toast(r.totalCorrected ? '✅ تم التأكيد بالإجمالي المتفق عليه ' + r.confirmedTotal + ' ج.م وخصم المخزون' : '✅ تم تأكيد الطلب وخصم المخزون', 'success');
