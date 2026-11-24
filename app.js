@@ -1712,6 +1712,7 @@ function viewCheckout(){
       {id:'instapay', ic:'🏦', t:'InstaPay', s:INSTAPAY_NUMBER},
       {id:'vodafone', ic:'📱', t:'فودافون كاش', s:VODAFONE_NUMBER}
     ];
+    if (window.KT_CONFIG && KT_CONFIG.SHOWCASE_MODE) payMethods = payMethods.filter(function(m){ return m.id === 'cod'; });
     body = payMethods.map(function(o){ return '<label style="display:flex;align-items:center;gap:18px;padding:20px;border:2px solid ' + (checkoutData.payment === o.id ? 'var(--gold)' : 'var(--line-2)') + ';border-radius:var(--r-lg);cursor:pointer;margin-bottom:14px" onclick="checkoutData.payment=\'' + o.id + '\';render()"><span style="font-size:36px">' + o.ic + '</span><div><b>' + o.t + '</b><br><span class="muted tiny">' + o.s + '</span></div></label>'; }).join('');
   } else if(checkoutStep === 5){
     var items5 = state.cart.map(function(i){ return {item:i, p:findBy(i.id)}; }).filter(function(x){ return x.p; });
@@ -1736,6 +1737,11 @@ function checkoutNext(){
 function ktClearCartAfterOrder(){ state.cart = []; state.coupon = null; persist('cart'); persist('coupon'); ktUpdateBadges(); }
 
 function placeOrder(){
+  if (window.KT_CONFIG && KT_CONFIG.SHOWCASE_MODE){
+    // Personal showcase: nothing is saved, sent or charged.
+    window.openModal('<div data-testid="showcase-notice" style="text-align:center;padding:16px 0"><div style="font-size:56px">🧪</div><h2 class="h2">نسخة عرض تجريبية</h2><p class="muted" style="line-height:1.9">هذا الموقع عرض شخصي للتجربة فقط. لم يُرسَل أي طلب، ولم يُحفظ، ولم يُسحب أي مبلغ.</p></div><button class="btn btn-primary btn-block" onclick="closeModal()">حسناً</button>');
+    return;
+  }
   // دفع إلكتروني → نافذة إيصال
   if (checkoutData.payment !== 'cod'){
     var total = grandTotal();
