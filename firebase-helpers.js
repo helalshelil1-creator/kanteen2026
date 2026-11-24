@@ -417,6 +417,8 @@
     if (opts && opts.approvedOnly) q = q.where('status', '==', 'approved');
     return q.onSnapshot(function (snap) {
       var arr = snap.docs.map(function (d) { return Object.assign({ _fbId: d.id }, d.data()); });
+      // Never keep merchant credentials in the public storefront's memory
+      if (opts && opts.approvedOnly) arr.forEach(function (m) { delete m.password; });
       if (typeof cb === 'function') cb(arr);
     }, function (e) { console.error('listenMerchants:', e); });
   }
