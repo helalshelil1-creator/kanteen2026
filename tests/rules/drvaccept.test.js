@@ -1,0 +1,10 @@
+const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');const fs=require('fs');
+const RULES=process.env.RULES;let p=0;const T=async(n,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r='DENY'}console.log(r+'  '+n)};
+(async()=>{const env=await initializeTestEnvironment({projectId:'demo-kt10',firestore:{rules:fs.readFileSync(RULES,'utf8'),host:'127.0.0.1',port:8085}});
+ await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();await d.doc('drivers/drvA').set({status:'approved',online:true});
+  await d.doc('orders/oOpen').set({customerUid:'c1',merchantId:'m1',status:'placed',paymentStatus:'cod',total:50});});
+ const d=env.authenticatedContext('drvA').firestore();
+ await T('approved driver lists open orders (where status==placed)',()=>d.collection('orders').where('status','==','placed').get());
+ await T('approved driver reads an unassigned order',()=>d.doc('orders/oOpen').get());
+ await T('approved driver self-accepts (sets driverId=self)',()=>d.doc('orders/oOpen').update({driverId:'drvA',acceptedAt:1}));
+ await env.cleanup();process.exit(0)})();
