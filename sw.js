@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    🍊 Kanteen — Service Worker (PWA)
    ═══════════════════════════════════════════════════════════ */
-const CACHE_NAME = 'kanteen-v2.0.0';
+const CACHE_NAME = 'kanteen-v2.0.1';
 const CACHE_URLS = [
   '/', '/index.html', '/admin.html', '/merchant.html', '/driver.html',
   '/logo.png', '/manifest.json'
@@ -37,10 +37,13 @@ self.addEventListener('fetch', function(event){
 
   event.respondWith(
     fetch(req).then(function(res){
-      var resClone = res.clone();
-      caches.open(CACHE_NAME).then(function(cache){
-        cache.put(req, resClone).catch(function(){});
-      });
+      // Cache only good same-origin responses: a transient 404/500 must not become the offline copy.
+      if (res && res.ok && res.type === 'basic'){
+        var resClone = res.clone();
+        caches.open(CACHE_NAME).then(function(cache){
+          cache.put(req, resClone).catch(function(){});
+        });
+      }
       return res;
     }).catch(function(){
       return caches.match(req).then(function(cached){
