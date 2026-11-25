@@ -4,12 +4,12 @@ const {chromium}=require(process.env.PW||'/tmp/kanteen2026/node_modules/playwrig
 const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');
 const fs=require('fs'),path=require('path'),cp=require('child_process');
 const ROOT=process.env.ROOT||'/tmp/kanteen2026',FB=process.env.FBJS||'/tmp/fbemu/node_modules/firebase';
-const BASE='http://127.0.0.1:8332';let p=0,f=0;
+const BASE='http://127.0.0.1:8334';let p=0,f=0;
 const ok=(n,c,x)=>{c?p++:f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':' :: '+JSON.stringify(x)))};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=x',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password:pw,returnSecureToken:true})});return (await r.json()).localId}
 (async()=>{
- const srv=cp.spawn('python3',['-m','http.server','8332','-d',ROOT],{stdio:'ignore'});await sleep(440);
+ const srv=cp.spawn('python3',['-m','http.server','8334','-d',ROOT],{stdio:'ignore'});await sleep(440);
  {const h=require('crypto').createHash('sha256');const live=await (await fetch(BASE+'/app.js')).text();const want=fs.readFileSync(path.join(ROOT,'app.js'),'utf8');const same=h.update(live).digest('hex')===require('crypto').createHash('sha256').update(want).digest('hex');console.log('SERVED_TREE_CHECK',same,ROOT);if(!same){srv.kill();process.exit(3)}}
  const cfg=fs.readFileSync(path.join(ROOT,'config.js'),'utf8')+"\nwindow.KT_EMULATOR={fsHost:'127.0.0.1',fsPort:8085,authUrl:'http://127.0.0.1:9099'};";
  const env0=await initializeTestEnvironment({projectId:'kanteen2026',firestore:{rules:fs.readFileSync('firestore.rules','utf8'),host:'127.0.0.1',port:8085}});

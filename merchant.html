@@ -532,10 +532,15 @@ function ktMerchantLogin(){
     });
   }
   ktWaitFirebase(function(init){
-    init.db.collection('merchants').where('phone', '==', phone).where('status', '==', 'approved').limit(1).get()
+    init.db.collection('merchants').where('phone', '==', phone).limit(1).get()
+      .catch(function(e){
+        // Some rule sets only allow reading approved merchants: retry with that filter (pending/suspended merchants then cannot log in there).
+        if (e && e.code === 'permission-denied') return init.db.collection('merchants').where('phone', '==', phone).where('status', '==', 'approved').limit(1).get();
+        throw e;
+      })
       .then(function(snap){
         if (snap.empty){
-          err.textContent = '❌ لا يوجد متجر مفعّل بهذا الرقم (أو الحساب قيد المراجعة)';
+          err.textContent = '❌ لا يوجد متجر بهذا الرقم (أو الحساب غير معتمد)';
           err.style.display = 'block';
           btn.disabled = false;
           btn.innerHTML = '<svg data-lucide="log-in"></svg> دخول';
