@@ -27,7 +27,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   await d.doc('orders/unpaid1').set({...base,id:'K-UNPAID',status:'confirmed',paymentStatus:'pending'});});
  const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
  const mk=async()=>{const ctx=await b.newContext({viewport:{width:390,height:844},locale:'ar-EG'});
-  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/,r=>{const u=r.request().url();const m=u.match(/gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z-]+compat\.js)/);if(m)return r.fulfill({path:path.join(FB,m[1]),contentType:'application/javascript'});r.abort()});
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/,r=>{const u=r.request().url();const m=u.match(/gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z-]+compat\.js)/);if(m)return r.fulfill({path:path.join(FB,m[1]),contentType:'application/javascript'});if(/unpkg\.com\/lucide/.test(u))return r.fulfill({path:'/tmp/fbemu/lucide.min.js',contentType:'application/javascript'});r.abort()});
   await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfg,contentType:'application/javascript'}));
   await ctx.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));return {ctx,pg}};
@@ -70,4 +70,5 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  await P.pg.screenshot({path:'/downloads/kanteen-driver-pending-390.png'});
  ok('no permission-denied errors for approved drivers A and B (no red Rules status)',A.pg.perm.length+B.pg.perm.length===0,[A.pg.perm,B.pg.perm]);
  ok('no page errors (A,B,P)',A.pg.errs.length+B.pg.errs.length+P.pg.errs.length===0,[A.pg.errs,B.pg.errs,P.pg.errs]);
+ await A.pg.evaluate(()=>switchTab('leaderboard'));await sleep(1500);ok('leaderboard shows honest unavailable state, no zero podium, no prize amounts',await A.pg.evaluate(()=>{const t=document.querySelector('#content').innerText;return !!document.getElementById('ktLbUnavailable')&&!/0 طلب|بونص|500/.test(t)}),null);await A.pg.screenshot({path:'/downloads/kanteen-driver-leaderboard-390.png'});
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(f?1:0)})();

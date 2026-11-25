@@ -25,7 +25,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   await d.doc('orders/o1').set({id:'K-1',customerUid:'cu',status:'placed',total:100,items:[{nameAr:'لبن',qty:1,price:100}],customer:{name:'عميل',phone:'01111111111'},createdAt:new Date().toISOString(),_serverCreatedAt:new Date()});});
  const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
  const mk=async()=>{const ctx=await b.newContext({viewport:{width:390,height:844},locale:'ar-EG'});
-  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/,r=>{const u=r.request().url();const m=u.match(/gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z-]+compat\.js)/);if(m)return r.fulfill({path:path.join(FB,m[1]),contentType:'application/javascript'});r.abort()});
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost)/,r=>{const u=r.request().url();const m=u.match(/gstatic\.com\/firebasejs\/[^/]+\/(firebase-[a-z-]+compat\.js)/);if(m)return r.fulfill({path:path.join(FB,m[1]),contentType:'application/javascript'});if(/unpkg\.com\/lucide/.test(u))return r.fulfill({path:'/tmp/fbemu/lucide.min.js',contentType:'application/javascript'});r.abort()});
   await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfg,contentType:'application/javascript'}));
   await ctx.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));return {ctx,pg}};

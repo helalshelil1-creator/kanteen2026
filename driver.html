@@ -2347,6 +2347,12 @@ function ktLoadLeaderboard(){
 
 function renderLeaderboard(){
   var drivers = ktLeaderboardCache;
+  // Counters are not verified data yet (driver cannot write them; no ledger). Show an honest unavailable state and no prize amounts until the owner sets the rule.
+  var KT_LB_VERIFIED = false;
+  if (!KT_LB_VERIFIED){
+    $('#content').innerHTML = '<div class="k-card kt-anim-1"><div class="k-card-head"><h3><i data-lucide="trophy"></i> المتصدرين</h3></div><div class="k-lb-empty" id="ktLbUnavailable">الترتيب غير متاح حاليًا. سيظهر عند اعتماد بيانات الطلبات المسلّمة.</div></div>';
+    refreshIcons(); return;
+  }
   var html = '<div class="k-card kt-anim-1">';
   html += '<div class="k-card-head"><h3><i data-lucide="trophy"></i> أفضل المناديب — الشهر ده</h3></div>';
   if (!drivers.length){
