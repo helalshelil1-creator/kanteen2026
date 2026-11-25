@@ -70,5 +70,6 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  await P.pg.screenshot({path:'/downloads/kanteen-driver-pending-390.png'});
  ok('no permission-denied errors for approved drivers A and B (no red Rules status)',A.pg.perm.length+B.pg.perm.length===0,[A.pg.perm,B.pg.perm]);
  ok('no page errors (A,B,P)',A.pg.errs.length+B.pg.errs.length+P.pg.errs.length===0,[A.pg.errs,B.pg.errs,P.pg.errs]);
- await A.pg.evaluate(()=>switchTab('leaderboard'));await sleep(1500);ok('leaderboard shows honest unavailable state, no zero podium, no prize amounts',await A.pg.evaluate(()=>{const t=document.querySelector('#content').innerText;return !!document.getElementById('ktLbUnavailable')&&!/0 طلب|بونص|500/.test(t)}),null);await A.pg.screenshot({path:'/downloads/kanteen-driver-leaderboard-390.png'});
+ await A.pg.evaluate(()=>switchTab('leaderboard'));await sleep(1500);{const r=await A.pg.evaluate(()=>({none:ktRatingText(undefined),zero:ktRatingText(0),real:ktRatingText(4.5)}));ok('rating: absent/0 shows dash (no invented 5.0), real value shows',r.none==='—'&&r.zero==='—'&&r.real==='4.5★',r);}
+ ok('leaderboard shows honest unavailable state, no zero podium, no prize amounts',await A.pg.evaluate(()=>{const t=document.querySelector('#content').innerText;return !!document.getElementById('ktLbUnavailable')&&!/0 طلب|بونص|500/.test(t)}),null);await A.pg.screenshot({path:'/downloads/kanteen-driver-leaderboard-390.png'});
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(f?1:0)})();

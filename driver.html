@@ -2331,7 +2331,7 @@ function ktLoadLeaderboard(){
             id: doc.id, name: d.name || 'مندوب',
             profilePhoto: d.profilePhoto || null,
             completedToday: d.completedToday || 0, earnings: d.earnings || 0,
-            rating: d.rating || 5.0, monthlyOrders: d.monthlyOrders || d.completedToday || 0
+            rating: Number(d.rating) > 0 ? Number(d.rating) : 0, monthlyOrders: d.monthlyOrders || d.completedToday || 0
           });
         });
         drivers.sort(function(a, b){
@@ -2345,6 +2345,8 @@ function ktLoadLeaderboard(){
   });
 }
 
+// A rating exists only when a real numeric rating is stored. No invented default.
+function ktRatingText(r){ var n = Number(r); return (isFinite(n) && n > 0) ? n.toFixed(1) + '★' : '—'; }
 function renderLeaderboard(){
   var drivers = ktLeaderboardCache;
   // Counters are not verified data yet (driver cannot write them; no ledger). Show an honest unavailable state and no prize amounts until the owner sets the rule.
@@ -2409,7 +2411,7 @@ function renderProfile(){
   if (DRIVER.email) html += '<p style="color:var(--ink-3);font-size:13.5px;margin-top:3px" dir="ltr">✉️ ' + esc(DRIVER.email) + '</p>';
   html += '<div style="display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap">';
   html += '<span class="k-pill k-pill-blue">🛵 مندوب</span>';
-  html += '<span class="k-pill k-pill-gold">⭐ ' + (DRIVER.rating || 5).toFixed(1) + '</span>';
+  html += '<span class="k-pill k-pill-gold">⭐ ' + ktRatingText(DRIVER.rating) + '</span>';
   html += '<span class="k-pill k-pill-fresh">✅ معتمد</span>';
   html += '</div></div>';
 
