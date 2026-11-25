@@ -48,7 +48,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  await ad.pg.evaluate(()=>switchTab('orders'));await sleep(1000);
  txt=await ad.pg.locator('#content').innerText();
  ok('all-orders tab lists both orders (K-1 confirmed, K-2 preparing)',txt.includes('K-1')&&txt.includes('K-2'),txt.slice(0,300));
- await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
+ await sleep(6000);await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
  const vis=await ad.pg.evaluate(()=>{const w=innerWidth;return [...document.querySelectorAll('.k-table-stack td[data-label="الحالة"],.k-table-stack td[data-label="الإجمالي"]')].map(td=>{const r=td.getBoundingClientRect();return {l:td.dataset.label,in:r.left>=0&&r.right<=w+1&&r.width>0,t:td.innerText.trim()}})});
  ok('390px: every status and total cell is fully inside the viewport (stacked cards, no clipped columns)',vis.length>=6&&vis.every(x=>x.in&&x.t),vis);
  const cardVis=await ad.pg.evaluate(()=>{const w=innerWidth;return [...document.querySelectorAll('.k-merchant-card .k-merchant-actions > *')].map(x=>{const r=x.getBoundingClientRect();return r.left>=0&&r.right<=w+1})});
@@ -57,6 +57,6 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  ok('merchant order K-3 (placed): no admin confirm button, shows merchant-confirms note',!(await ad.pg.locator('.k-table-stack tr:has-text("K-3") button:has-text("تأكيد")').count()),'');
  await ad.pg.evaluate(()=>ktAdminConfirmOrder('o3'));await sleep(800);
  ok('direct admin confirm call on merchant order is refused, status stays placed, no stock bypass',(await st('orders/o3')).status==='placed',await st('orders/o3'));
- await ad.pg.evaluate(()=>switchTab('orders'));await sleep(800);await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
+ await ad.pg.evaluate(()=>switchTab('orders'));await sleep(6000);await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
  ok('no page errors',ad.pg.errs.length===0,ad.pg.errs);
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(f?1:0)})();
