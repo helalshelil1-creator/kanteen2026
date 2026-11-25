@@ -11,6 +11,16 @@ service cloud.firestore {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
+    function isApprovedDriver() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.status == 'approved';
+    }
+    // Open pool: merchant-confirmed, unclaimed, cash or paid orders. Approved drivers only.
+    function inDriverPool() {
+      return resource.data.status == 'confirmed'
+        && resource.data.paymentStatus in ['cod','confirmed']
+        && !('driverId' in resource.data && resource.data.driverId != null);
+    }
     function onlyFieldsChanged(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
     }
@@ -169,6 +179,7 @@ service cloud.firestore {
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.customerUid == request.auth.uid)
         || (isSignedIn() && resource.data.driverId == request.auth.uid)
+        || (isApprovedDriver() && inDriverPool())
         || (isSignedIn() && resource.data.merchantId != null
             && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid);
 
@@ -186,10 +197,18 @@ service cloud.firestore {
         && request.resource.data.itemQty.size() > 0 && request.resource.data.itemQty.size() <= 50;
 
       allow update: if isAdmin()
+        || (isApprovedDriver() && inDriverPool()
+            && request.resource.data.driverId == request.auth.uid
+            && request.resource.data.status == 'preparing'
+            && onlyFieldsChanged(['driverId','driver','status','acceptedAt','statusHistory']))
         || (isSignedIn() && resource.data.driverId == request.auth.uid
+            && get(/databases/$(database)/documents/drivers/$(request.auth.uid)).data.status == 'approved'
             && onlyFieldsChanged(['status','pickedAt','deliveredAt','acceptedAt',
                                   'driverLat','driverLng','driverNotes','cancellationReason',
-                                  'statusHistory','paymentStatus']))
+                                  'statusHistory','paymentStatus'])
+            && (request.resource.data.status == resource.data.status
+                || (resource.data.status in ['confirmed','preparing'] && request.resource.data.status == 'out')
+                || (resource.data.status == 'out' && request.resource.data.status == 'delivered')))
         || (isSignedIn() && resource.data.merchantId != null
             && get(/databases/$(database)/documents/merchants/$(resource.data.merchantId)).data.ownerUid == request.auth.uid
             && onlyFieldsChanged(['status','confirmedAt','preparingAt','merchantNotes','statusHistory',

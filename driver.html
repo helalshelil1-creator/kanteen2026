@@ -1722,6 +1722,7 @@ function ktStartDashboard(){
 
   try { if (window.KT_SOUND) setTimeout(function(){ KT_SOUND.welcome(); }, 400); } catch(e){}
   toast('✅ مرحباً بك يا ' + (DRIVER.name || ''), 'success');
+  ktSyncOnlineUI();
 
   ktStartLateChecker();
   ktLoadLeaderboard();
@@ -1742,13 +1743,28 @@ function ktStartDashboard(){
   setTimeout(refreshIcons, 800);
 }
 
+/* Orders a driver may claim: merchant-confirmed when SECURE_ORDERS is on, placed in the legacy flow. */
+function ktPoolStatus(){ return (window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS) ? 'confirmed' : 'placed'; }
+function ktListenDriverOrders(init, onOrders){
+  var uid = init.auth.currentUser && init.auth.currentUser.uid;
+  var mine = {}, pool = {};
+  function emit(){
+    var m = {}; Object.keys(pool).forEach(function(k){ m[k] = pool[k]; }); Object.keys(mine).forEach(function(k){ m[k] = mine[k]; });
+    onOrders(Object.keys(m).map(function(k){ return m[k]; }));
+  }
+  function toMap(snap){ var r = {}; snap.docs.forEach(function(d){ r[d.id] = Object.assign({ _fbId: d.id }, d.data()); }); return r; }
+  var u1 = uid ? init.db.collection('orders').where('driverId', '==', uid).limit(200).onSnapshot(function(s){ mine = toMap(s); emit(); }, function(e){ console.warn('my orders:', e && e.code); }) : null;
+  var u2 = init.db.collection('orders').where('status', '==', ktPoolStatus()).where('paymentStatus', 'in', ['cod','confirmed']).limit(100).onSnapshot(function(s){ pool = toMap(s); emit(); }, function(e){ console.warn('pool orders:', e && e.code); });
+  return function(){ if (u1) u1(); if (u2) u2(); };
+}
+
 function ktInitListeners(){
   ktWaitFirebase(function(init){
     try {
-      _unsubs.orders = KT_FB.listenOrders(function(orders){
+      _unsubs.orders = ktListenDriverOrders(init, function(orders){
         FB_ORDERS = orders || [];
         var available = FB_ORDERS.filter(function(o){
-          return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+          return o.status === ktPoolStatus() && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
         }).length;
         if (_lastOrdersCount > 0 && available > _lastOrdersCount && DRIVER.online){
           try { if (window.KT_SOUND) KT_SOUND.chime(); } catch(e){}
@@ -1768,7 +1784,7 @@ function ktInitListeners(){
 
 function updateOrdersBadge(){
   var available = FB_ORDERS.filter(function(o){
-    return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+    return o.status === ktPoolStatus() && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
   }).length;
   var b = $('#ordersBadge');
   if (b){ if (available > 0){ b.style.display='grid'; b.textContent = available; } else b.style.display='none'; }
@@ -1786,6 +1802,13 @@ function switchTab(tab){
 }
 
 /* ═══ Online / GPS ═══ */
+/* Reflect the stored online value in the header pill on load (the pill used to start as offline regardless). */
+function ktSyncOnlineUI(){
+  var btn = $('#statusBtn'), txt = $('#statusText');
+  if (!btn || !txt) return;
+  if (DRIVER.online){ btn.classList.remove('offline'); btn.classList.add('online'); txt.textContent = 'متصل الآن'; try { ktStartGpsTracking(); } catch(e){} }
+  else { btn.classList.remove('online'); btn.classList.add('offline'); txt.textContent = 'غير متصل'; }
+}
 function ktToggleOnline(){
   DRIVER.online = !DRIVER.online;
   var btn = $('#statusBtn'), txt = $('#statusText');
@@ -1807,7 +1830,7 @@ function ktRegisterDriver(){
   if (!DRIVER.uid) return;
   ktWaitFirebase(function(init){
     init.db.collection('drivers').doc(DRIVER.uid).set({
-      id: DRIVER.uid, name: DRIVER.name, phone: DRIVER.phone, email: DRIVER.email,
+      name: DRIVER.name, phone: DRIVER.phone, email: DRIVER.email,
       online: DRIVER.online, lat: DRIVER.lat, lng: DRIVER.lng,
       lastSeen: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(function(e){ console.warn(e); });
@@ -1898,7 +1921,7 @@ function ktStartLateChecker(){
 /* ═══ Radius ═══ */
 function ktGetRadiusOrders(){
   var all = FB_ORDERS.filter(function(o){
-    return o.status === 'placed' && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
+    return o.status === ktPoolStatus() && !o.driverId && (o.paymentStatus === 'cod' || o.paymentStatus === 'confirmed');
   });
   if (!DRIVER.lat || !DRIVER.lng) return { inRadius: all, outRadius: [], hasLocation: false };
   var inR = [], outR = [];
@@ -2037,7 +2060,7 @@ function openOrderModal(fbId){
     '<a href="https://www.google.com/maps/dir/?api=1&destination=' + c.lat + ',' + c.lng + '" target="_blank" class="k-btn k-btn-glass k-btn-block" style="margin-top:10px"><i data-lucide="navigation"></i> افتح في Google Maps</a>'
     : '<div class="k-card" style="text-align:center;padding:16px"><p style="color:var(--ink-3);font-size:13.5px">📍 لا يوجد موقع محدد — اتصل بالعميل</p></div>';
   var acceptBtn = '';
-  if (o.status === 'placed' && !o.driverId){
+  if (o.status === ktPoolStatus() && !o.driverId){
     acceptBtn = '<button class="k-btn k-btn-success k-btn-block k-btn-lg" style="margin-top:16px" onclick="ktAcceptOrder(\'' + fbId + '\')"><i data-lucide="check-circle-2"></i> قبول الطلب</button>';
   }
 
@@ -2077,7 +2100,7 @@ function ktAcceptOrder(fbId){
         if (!doc.exists) throw new Error('غير موجود');
         var data = doc.data();
         if (data.driverId) throw new Error('مقبول مسبقاً');
-        if (['placed','confirmed'].indexOf(data.status) === -1) throw new Error('غير متاح');
+        if (data.status !== ktPoolStatus()) throw new Error('غير متاح');
         t.update(orderRef, {
           driverId: DRIVER.uid,
           driver: { name: DRIVER.name, phone: DRIVER.phone, lat: DRIVER.lat, lng: DRIVER.lng, profilePhoto: DRIVER.profilePhoto },

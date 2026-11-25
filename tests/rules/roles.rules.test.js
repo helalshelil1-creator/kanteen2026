@@ -11,7 +11,7 @@ const T=async(n,exp,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r='DENY'}const
   const o={customerUid:'cust1',merchantId:'m1',status:'placed',total:50,items:[{id:'p',qty:1}],itemQty:{p:1}};
   await d.doc('orders/oPlaced').set(o);
   await d.doc('orders/oOut').set({...o,status:'out',driverId:'drvA'});
-  await d.doc('orders/oPendDrv').set({...o,status:'out',driverId:'drvP'});});
+  await d.doc('orders/oPendDrv').set({...o,status:'out',driverId:'drvQ'});await d.doc('drivers/drvQ').set({status:'pending'});await d.doc('drivers/drvS').set({status:'suspended'});await d.doc('orders/oSusp').set({...o,status:'out',driverId:'drvS'});});
  await seed();
  const as=u=>env.authenticatedContext(u).firestore(), anon=()=>env.unauthenticatedContext().firestore();
  console.log('RULES='+RULES);
@@ -33,8 +33,13 @@ const T=async(n,exp,fn)=>{let r;try{await fn();r='ALLOW'}catch(e){r='DENY'}const
  await T('driver changes total','DENY',()=>as('drvA').doc('orders/oOut').update({total:1}));
  await T('driver reassigns driverId','DENY',()=>as('drvA').doc('orders/oOut').update({driverId:'drvA2'}));
  await T('driver updates order not assigned to them','DENY',()=>as('drvA').doc('orders/oPlaced').update({status:'delivered'}));
- await T('assigned driver jumps placed->delivered (no transition guard; GAP)','DENY',async()=>{await env.withSecurityRulesDisabled(c=>c.firestore().doc('orders/oJump').set({customerUid:'cust1',merchantId:'m1',status:'placed',driverId:'drvA',total:5}));await as('drvA').doc('orders/oJump').update({status:'delivered'})});
- await T('PENDING (unapproved) driver assigned to order can still update it (GAP: rules do not check driver status)','DENY',()=>as('drvP').doc('orders/oPendDrv').update({status:'delivered'}));
+ await T('assigned driver jumps placed->delivered','DENY',async()=>{await env.withSecurityRulesDisabled(c=>c.firestore().doc('orders/oJump').set({customerUid:'cust1',merchantId:'m1',status:'placed',driverId:'drvA',total:5}));await as('drvA').doc('orders/oJump').update({status:'delivered'})});
+ await T('PENDING (unapproved) driver assigned to order cannot update it','DENY',()=>as('drvQ').doc('orders/oPendDrv').update({status:'delivered'}));
+ await T('driver out->delivered after confirmed->out path: preparing->out','ALLOW',async()=>{await env.withSecurityRulesDisabled(c=>c.firestore().doc('orders/oPrep').set({customerUid:'cust1',merchantId:'m1',status:'preparing',driverId:'drvA',total:5}));await as('drvA').doc('orders/oPrep').update({status:'out',pickedAt:1})});
+ await T('driver backwards out->preparing','DENY',()=>as('drvA').doc('orders/oPrep').update({status:'preparing'}));
+ await T('driver sets cancelled','DENY',()=>as('drvA').doc('orders/oPrep').update({status:'cancelled'}));
+ await T('driver posts location/notes without status change','ALLOW',()=>as('drvA').doc('orders/oPrep').update({driverLat:1,driverLng:2,driverNotes:'x'}));
+ await T('SUSPENDED driver assigned to order cannot update it','DENY',()=>as('drvS').doc('orders/oSusp').update({status:'delivered'}));
  // customer
  await T('customer reads own order','ALLOW',()=>as('cust1').doc('orders/oPlaced').get());
  await T('other customer reads order','DENY',()=>as('c2').doc('orders/oPlaced').get());
