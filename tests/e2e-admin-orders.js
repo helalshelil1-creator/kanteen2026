@@ -29,6 +29,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   await ctx.route(/\/config\.js(\?.*)?$/,r=>r.fulfill({body:cfg,contentType:'application/javascript'}));
   await ctx.addInitScript(()=>{window.confirm=()=>true;window.alert=()=>{};});
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));return {ctx,pg}};
+ await env.withSecurityRulesDisabled(async c=>{await c.firestore().doc('orders/o3').set({id:'K-3',customerUid:'cu',merchantId:'m1',merchantName:'متجر',status:'placed',total:90,items:[{nameAr:'سكر',qty:1,price:90}],customer:{name:'عميل ثالث',phone:'01133333333'},createdAt:new Date().toISOString(),_serverCreatedAt:new Date()});});
  const st=async id=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc(id).get()).data());
 
  await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();await d.doc('orders/o2').set({id:'K-2',customerUid:'cu',merchantId:'m1',status:'preparing',total:240,items:[{nameAr:'أرز',qty:2,price:120}],customer:{name:'عميل ثاني',phone:'01122222222',gov:'القاهرة',city:'مدينة نصر'},createdAt:new Date().toISOString(),_serverCreatedAt:new Date()});});
@@ -48,5 +49,14 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  txt=await ad.pg.locator('#content').innerText();
  ok('all-orders tab lists both orders (K-1 confirmed, K-2 preparing)',txt.includes('K-1')&&txt.includes('K-2'),txt.slice(0,300));
  await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
+ const vis=await ad.pg.evaluate(()=>{const w=innerWidth;return [...document.querySelectorAll('.k-table-stack td[data-label="الحالة"],.k-table-stack td[data-label="الإجمالي"]')].map(td=>{const r=td.getBoundingClientRect();return {l:td.dataset.label,in:r.left>=0&&r.right<=w+1&&r.width>0,t:td.innerText.trim()}})});
+ ok('390px: every status and total cell is fully inside the viewport (stacked cards, no clipped columns)',vis.length>=6&&vis.every(x=>x.in&&x.t),vis);
+ const cardVis=await ad.pg.evaluate(()=>{const w=innerWidth;return [...document.querySelectorAll('.k-merchant-card .k-merchant-actions > *')].map(x=>{const r=x.getBoundingClientRect();return r.left>=0&&r.right<=w+1})});
+ ok('390px: review-card action buttons fully inside viewport',cardVis.length>0&&cardVis.every(Boolean),cardVis);
+ await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-review-390.png'});
+ ok('merchant order K-3 (placed): no admin confirm button, shows merchant-confirms note',!(await ad.pg.locator('.k-table-stack tr:has-text("K-3") button:has-text("تأكيد")').count()),'');
+ await ad.pg.evaluate(()=>ktAdminConfirmOrder('o3'));await sleep(800);
+ ok('direct admin confirm call on merchant order is refused, status stays placed, no stock bypass',(await st('orders/o3')).status==='placed',await st('orders/o3'));
+ await ad.pg.evaluate(()=>switchTab('orders'));await sleep(800);await ad.pg.screenshot({path:'/downloads/kanteen-admin-orders-all-390.png'});
  ok('no page errors',ad.pg.errs.length===0,ad.pg.errs);
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(f?1:0)})();

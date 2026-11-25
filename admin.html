@@ -136,6 +136,14 @@ h1,h2,h3,h4,p{margin:0}
 .k-table th{padding:14px 16px;text-align:start;background:var(--bg-3);font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);white-space:nowrap}
 .k-table td{padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
 .k-table tr:last-child td{border-bottom:none}
+@media(max-width:640px){
+  .k-table-stack thead{display:none}
+  .k-table-stack,.k-table-stack tbody,.k-table-stack tr,.k-table-stack td{display:block;width:100%}
+  .k-table-stack tr{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .k-table-stack td{border-bottom:none;padding:5px 0;display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:end}
+  .k-table-stack td::before{content:attr(data-label);color:var(--ink-3);font-size:12px;font-weight:700;text-align:start;flex:0 0 auto}
+  .k-table-stack td[data-label="إجراءات"]{justify-content:flex-start;flex-wrap:wrap;gap:8px}
+}
 .k-table tr:hover{background:var(--glass)}
 .k-merchant-card{background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:var(--r-lg);padding:20px;margin-bottom:14px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:flex-start;transition:all .25s}
 .k-merchant-card:hover{border-color:var(--brand);transform:translateY(-2px)}
@@ -599,7 +607,7 @@ function statusLabels(s){
 function renderOrderCardForConfirm(o){
   var c = o.customer || {};
   var address = [c.gov, c.city, c.area].filter(Boolean).join(' — ');
-  return '<div class="k-merchant-card pending" style="grid-template-columns:auto 1fr auto">' +
+  return '<div class="k-merchant-card pending" style="grid-template-columns:auto 1fr">' +
     '<div class="k-merchant-avatar" style="background:linear-gradient(135deg,var(--brand),var(--gold))">📦</div>' +
     '<div class="k-merchant-info">' +
       '<h4>' + esc(o.id) + ' <span class="k-pill k-pill-gold">' + (o.status === 'pending_payment' ? '⏳ دفع معلق' : '🆕 جديد') + '</span></h4>' +
@@ -608,8 +616,8 @@ function renderOrderCardForConfirm(o){
       '<div class="meta"><i data-lucide="shopping-bag"></i> ' + ((o.items||[]).length) + ' منتج · <b style="color:var(--gold)">' + money(o.total) + '</b></div>' +
       '<div class="meta"><i data-lucide="clock"></i> ' + ktTimeAgo(o.createdAt) + '</div>' +
     '</div>' +
-    '<div class="k-merchant-actions">' +
-      '<button class="k-btn k-btn-success k-btn-sm" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' +
+    '<div class="k-merchant-actions" style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+      (ktAdminCanConfirm(o) ? '<button class="k-btn k-btn-success k-btn-sm" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' : '<span class="meta" style="font-size:12px">يؤكده التاجر</span>') +
       '<button class="k-btn k-btn-glass k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')"><i data-lucide="eye"></i> تفاصيل</button>' +
     '</div>' +
   '</div>';
@@ -638,17 +646,17 @@ function renderOrders(el){
   html += '<div class="k-card">';
   html += '<div class="k-card-head"><h3><i data-lucide="list"></i> كل الطلبات (' + FB_ORDERS.length + ')</h3></div>';
   if (FB_ORDERS.length){
-    html += '<div class="k-table-wrap"><table class="k-table"><thead><tr><th>رقم الطلب</th><th>العميل</th><th>المتجر</th><th>الإجمالي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
+    html += '<div class="k-table-wrap"><table class="k-table k-table-stack"><thead><tr><th>رقم الطلب</th><th>العميل</th><th>المتجر</th><th>الإجمالي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>';
     FB_ORDERS.forEach(function(o){
       var st = statusLabels(o.status);
-      var canConfirm = o.status === 'placed' || o.status === 'pending_payment';
+      var canConfirm = ktAdminCanConfirm(o);
       html += '<tr>' +
-        '<td><b style="color:var(--brand);cursor:pointer" onclick="ktViewOrderDetails(\'' + o._fbId + '\')">' + esc(o.id) + '</b><br><span style="font-size:11px;color:var(--ink-4)">' + ktTimeAgo(o.createdAt) + '</span></td>' +
-        '<td>' + esc((o.customer && o.customer.name) || '—') + '<br><span style="font-size:12px;color:var(--ink-3)">' + esc((o.customer && o.customer.phone) || '') + '</span></td>' +
-        '<td>' + esc(o.merchantName || '—') + '</td>' +
-        '<td><b style="color:var(--gold)">' + money(o.total) + '</b></td>' +
-        '<td><span class="k-pill ' + st.pill + '">' + st.label + '</span></td>' +
-        '<td style="white-space:nowrap">' +
+        '<td data-label="رقم الطلب"><b style="color:var(--brand);cursor:pointer" onclick="ktViewOrderDetails(\'' + o._fbId + '\')">' + esc(o.id) + '</b><br><span style="font-size:11px;color:var(--ink-4)">' + ktTimeAgo(o.createdAt) + '</span></td>' +
+        '<td data-label="العميل">' + esc((o.customer && o.customer.name) || '—') + '<br><span style="font-size:12px;color:var(--ink-3)">' + esc((o.customer && o.customer.phone) || '') + '</span></td>' +
+        '<td data-label="المتجر">' + esc(o.merchantName || '—') + '</td>' +
+        '<td data-label="الإجمالي"><b style="color:var(--gold)">' + money(o.total) + '</b></td>' +
+        '<td data-label="الحالة"><span class="k-pill ' + st.pill + '">' + st.label + '</span></td>' +
+        '<td data-label="إجراءات" style="white-space:nowrap">' +
           (canConfirm ? '<button class="k-btn k-btn-success k-btn-sm" style="margin-inline-end:6px" onclick="ktAdminConfirmOrder(\'' + o._fbId + '\')"><i data-lucide="check"></i> تأكيد</button>' : '') +
           '<button class="k-btn k-btn-primary k-btn-sm" onclick="ktViewOrderDetails(\'' + o._fbId + '\')" aria-label="تفاصيل الطلب" title="تفاصيل الطلب"><i data-lucide="eye"></i> تفاصيل</button>' +
         '</td>' +
@@ -664,12 +672,24 @@ function renderOrders(el){
   refreshIcons();
 }
 
+/* With secure orders on, a merchant's order is confirmed by that merchant: the merchant accept step takes stock atomically.
+   An admin confirm would skip the stock step, so it is blocked for merchant orders (platform orders with no merchant are unaffected). */
+function ktAdminMerchantConfirmBlocked(o){
+  return !!(window.KT_CONFIG && KT_CONFIG.SECURE_ORDERS && o && o.merchantId);
+}
+function ktAdminCanConfirm(o){
+  return (o.status === 'placed' || o.status === 'pending_payment') && !ktAdminMerchantConfirmBlocked(o);
+}
 function ktAdminConfirmOrder(orderFbId, notifFbId){
   if (!orderFbId){ toast('⚠️ معرف الطلب غير موجود', 'error'); return; }
   var order = FB_ORDERS.find(function(o){ return o._fbId === orderFbId; });
   if (!order){ toast('⚠️ الطلب غير موجود', 'error'); return; }
   if (order.status !== 'placed' && order.status !== 'pending_payment'){
     toast('ℹ️ الطلب مؤكد بالفعل');
+    return;
+  }
+  if (ktAdminMerchantConfirmBlocked(order)){
+    toast('⚠️ طلبات التجار يؤكدها التاجر من لوحته حتى يُخصم المخزون صح. التأكيد من الإدارة موقوف لهذا الطلب.', 'error');
     return;
   }
   if (!confirm('✅ تأكيد الطلب #' + order.id + '؟')) return;
@@ -701,7 +721,7 @@ function ktViewOrderDetails(fbId){
     '</div>';
   }).join('');
   var address = [c.gov, c.city, c.area, c.street].filter(Boolean).join(' — ');
-  var canConfirm = o.status === 'placed' || o.status === 'pending_payment';
+  var canConfirm = ktAdminCanConfirm(o);
 
   openModal(
     '<div class="k-modal-head"><h3><i data-lucide="package"></i> ' + esc(o.id) + '</h3><button class="k-modal-close" aria-label="إغلاق" title="إغلاق" onclick="closeModal()"><i data-lucide="x"></i></button></div>' +
@@ -736,7 +756,7 @@ function renderNotifications(el){
     var typeIcon = {payment_pending:'💳',new_merchant:'🏪',new_driver:'🛵',new_order:'📦',late_driver:'🚨'}[n.type] || '🔔';
     var typeTitle = {payment_pending:'طلب دفع',new_merchant:'تاجر جديد',new_driver:'مندوب جديد',new_order:'طلب جديد',late_driver:'🚨 مندوب متأخر'}[n.type] || 'إشعار';
     var orderObj = n.orderId ? FB_ORDERS.find(function(o){ return o.id === n.orderId; }) : null;
-    var canConfirm = (n.type === 'new_order' || n.type === 'payment_pending') && orderObj && (orderObj.status === 'placed' || orderObj.status === 'pending_payment');
+    var canConfirm = (n.type === 'new_order' || n.type === 'payment_pending') && orderObj && ktAdminCanConfirm(orderObj);
 
     html += '<div class="k-merchant-card ' + (n.read ? '' : 'pending') + '" style="grid-template-columns:auto 1fr auto">';
     html += '<div class="k-merchant-avatar" style="background:linear-gradient(135deg,var(--gold),var(--brand))">' + typeIcon + '</div>';
