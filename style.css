@@ -236,7 +236,7 @@ h1,h2,h3,h4,h5,p{margin:0}
 .k-search-btn{display:none !important}
 .k-search-desktop{display:flex}
 @media(max-width:768px){
-  .k-search-btn{display:grid !important}
+  .k-search-btn{display:grid !important;flex:0 0 auto;width:40px;min-width:40px;height:40px}
   .k-search-desktop{display:none !important}
 }
 .k-actions{display:flex;align-items:center;gap:6px;margin-inline-start:auto}
@@ -1588,11 +1588,12 @@ img:not([loading]){
   width:100%;
 }
 /* Narrow phones (<=380px): keep every header button inside the viewport */
-@media(max-width:380px){
+@media(max-width:420px){
   .k-actions{gap:3px!important;min-width:0}
   #k-header .k-actions > *{flex-shrink:1;min-width:0}
   #k-header button.k-icon-btn,#k-header .k-actions button,#k-header .k-actions a{width:36px!important;height:36px!important}
   #k-header #ktLangBtn{width:auto!important;padding:0 8px!important}
+  #k-header .k-search-btn{width:34px!important;min-width:34px!important;height:36px!important}
 }
 
 /* Page sections hard-coded 200px top padding left a large empty gap under the 70px fixed header */
@@ -1606,3 +1607,7 @@ img:not([loading]){
 .k-pwa-banner-close .k-pwa-x{font-size:24px;line-height:1}
 .k-pwa-manual{font-size:13px;line-height:1.7;color:var(--ink-2,#cbd5e1);background:var(--glass);border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;margin-bottom:12px}
 .k-pwa-manual[hidden]{display:none}
+
+/* Mobile product search: the header magnifier opens the bar, which now leads with a product search field (desktop keeps the header field). */
+.kt-locbar-psearch{display:none;width:100%}
+@media(max-width:768px){.kt-locbar-psearch{display:block}.kt-locbar-psearch input{width:100%;height:42px;padding:0 16px;border-radius:var(--r-pill);background:var(--glass);border:1px solid var(--line-2);color:var(--ink);font-size:14px}.kt-locbar-psearch input:focus{outline:none;border-color:var(--brand)}}

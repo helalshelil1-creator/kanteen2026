@@ -893,6 +893,8 @@ function applyLang(){
   if (langBtn){ langBtn.innerHTML = 'EN'; }
   var searchInput = document.getElementById('ktAddressInput');
   if (searchInput) searchInput.placeholder = t('loc_search_placeholder');
+  var headerSearchM = document.getElementById('k-search-input-m');
+  if (headerSearchM) headerSearchM.placeholder = KT_LANG === 'en' ? 'Search products...' : 'ابحث عن منتج...';
   var headerSearch = document.getElementById('k-search-input');
   if (headerSearch) headerSearch.placeholder = KT_LANG === 'en' ? 'Search products...' : 'ابحث عن منتج...';
   var chatInput = document.getElementById('kt-chat-input');
@@ -1239,7 +1241,7 @@ function ktToggleSearchBar(){
   var isHidden = locBar.classList.contains('k-hidden');
   if (isHidden){
     locBar.classList.remove('k-hidden');
-    setTimeout(function(){ var inp = document.getElementById('ktAddressInput'); if (inp) inp.focus(); }, 350);
+    setTimeout(function(){ var pm = document.getElementById('k-search-input-m'); var inp = (pm && pm.offsetParent) ? pm : document.getElementById('ktAddressInput'); if (inp) inp.focus(); }, 350);
   } else {
     locBar.classList.add('k-hidden');
   }
@@ -2464,6 +2466,8 @@ function ktInit(){
   if(wishBtn) wishBtn.addEventListener('click', function(){ navigate('/wishlist'); });
   var userBtn = $('#k-user-btn');
   if(userBtn) userBtn.addEventListener('click', function(){ ktShowAuthChoice(); });
+  var searchInputM = $('#k-search-input-m');
+  if(searchInputM) searchInputM.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ var q = e.target.value.trim(); var lb = document.getElementById('ktLocBar'); if (lb) lb.classList.add('k-hidden'); navigate('/search?q=' + encodeURIComponent(q)); e.target.blur(); } });
   var searchInput = $('#k-search-input');
   if(searchInput) searchInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ navigate('/search?q=' + encodeURIComponent(e.target.value.trim())); e.target.blur(); } });
   var chatClose = $('#kt-chat-close');
