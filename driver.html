@@ -1979,7 +1979,7 @@ function renderOrders(){
   html += '<div class="k-stats">';
   html += '<div class="k-stat green" onclick="switchTab(\'wallet\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="check-circle-2"></i></div><div class="k-stat-label">اليوم</div><div class="k-stat-value">' + todayCompleted + '</div><div class="k-stat-progress"><div class="k-stat-progress-fill" style="width:' + progressToday + '%"></div></div><div class="k-stat-progress-label">' + progressToday + '% من هدف 10</div></div>';
   html += '<div class="k-stat gold" onclick="switchTab(\'wallet\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="coins"></i></div><div class="k-stat-label">أرباح اليوم</div><div class="k-stat-value">' + todayEarnings + '</div></div>';
-  html += '<div class="k-stat purple" onclick="switchTab(\'leaderboard\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="star"></i></div><div class="k-stat-label">تقييمي</div><div class="k-stat-value">' + (DRIVER.rating || 5).toFixed(1) + '★</div></div>';
+  html += '<div class="k-stat purple" onclick="switchTab(\'leaderboard\')"><span class="k-stat-arrow">↗</span><div class="k-stat-icon"><i data-lucide="star"></i></div><div class="k-stat-label">تقييمي</div><div class="k-stat-value">' + ktRatingText(DRIVER.rating) + '</div></div>';
   html += '</div></div>';
 
   html += ktRenderRadiusControl();
