@@ -723,8 +723,8 @@ var KT_T = {
     near_can_deliver: 'متجر يوصّل لك في نطاق 10 كم', near_inside: '✅ يوصّل لك',
     near_outside: '❌ خارج النطاق', near_no_stores: 'لا توجد متاجر مسجلة',
     near_register: 'سجّل متجرك', near_km: 'كم', near_products: 'منتج',
-    loc_current: '📍 موقعي الحالي', loc_detecting: 'جاري تحديد موقعك...',
-    loc_enter_address: 'ادخل عنوان التوصيل', loc_nearby_stores: '🏪 المتاجر القريبة',
+    loc_current: 'موقعي الحالي', loc_detecting: 'جاري تحديد موقعك...',
+    loc_enter_address: 'ادخل عنوان التوصيل', loc_nearby_stores: 'المتاجر القريبة',
     loc_search_placeholder: 'ابحث عن منطقة، شارع، معلم...',
     chat_title: 'مساعد كانتِين', chat_online: 'متصل — يرد فوراً', chat_input: 'اسألني...',
     chat_greeting: 'أهلاً وسهلاً! 👋 كيف أقدر أساعدك؟',
@@ -829,8 +829,8 @@ var KT_T = {
     near_can_deliver: 'stores can deliver within 10 km', near_inside: '✅ Can deliver',
     near_outside: '❌ Out of range', near_no_stores: 'No registered stores',
     near_register: 'Register your store', near_km: 'km', near_products: 'products',
-    loc_current: '📍 My Location', loc_detecting: 'Detecting location...',
-    loc_enter_address: 'Enter delivery address', loc_nearby_stores: '🏪 Nearby Stores',
+    loc_current: 'My Location', loc_detecting: 'Detecting location...',
+    loc_enter_address: 'Enter delivery address', loc_nearby_stores: 'Nearby Stores',
     loc_search_placeholder: 'Search area, street, landmark...',
     chat_title: 'Kanteen Assistant', chat_online: 'Online — replies instantly', chat_input: 'Ask me...',
     chat_greeting: 'Welcome! 👋 How can I help you?',
@@ -907,9 +907,9 @@ function applyLang(){
   var kcb = document.getElementById('kt-chat-body'); if (kcb && kcb.children.length === 1 && kcb.children[0].className.indexOf('bot') !== -1){ kcb.innerHTML = ''; var kh = new Date().getHours(); var kg = kh < 12 ? t('general_good_morning') : t('general_good_evening'); ktAddMsg('bot', KT_LANG === 'en' ? kg + '! 👋 I am the Kanteen assistant.<br><br>How can I help you?' : kg + '! 👋 أنا مساعد كانتِين.<br><br>كيف أقدر أساعدك؟'); }
   document.querySelectorAll('#kt-chat-quick button').forEach(function(b, i){ b.textContent = t('chat_quick_' + (i + 1)); });
   var locBarBtn = document.querySelector('.kt-locbar-btn');
-  if (locBarBtn) locBarBtn.textContent = t('loc_current');
+  if (locBarBtn) ktSetIconLabel(locBarBtn, 'map-pin', t('loc_current'));
   var nearbyBtn = document.querySelectorAll('.kt-locbar-submit')[1];
-  if (nearbyBtn) nearbyBtn.textContent = t('loc_nearby_stores');
+  if (nearbyBtn) ktSetIconLabel(nearbyBtn, 'store', t('loc_nearby_stores'));
   var submitBtn = document.querySelectorAll('.kt-locbar-submit')[0];
   if (submitBtn) submitBtn.textContent = t('loc_enter_address');
   var menuLinks = document.querySelectorAll('.k-menu a');
@@ -1234,6 +1234,12 @@ function ktPickSearchProduct(pid){
 function ktHideSearchSuggestions(){
   var s = document.getElementById('ktSearchSuggest');
   if (s) setTimeout(function(){ s.classList.remove('open'); }, 200);
+}
+// Bar buttons use a bundled lucide SVG instead of an emoji glyph (emoji need a system emoji font).
+function ktSetIconLabel(btn, icon, text){
+  btn.innerHTML = '<svg data-lucide="' + icon + '"></svg><span></span>';
+  btn.lastChild.textContent = text;
+  if (typeof refreshIcons === 'function') refreshIcons();
 }
 function ktToggleSearchBar(){
   var locBar = document.getElementById('ktLocBar');

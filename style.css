@@ -1621,3 +1621,6 @@ img:not([loading]){
 }
 /* Mobile: the load-time GPS failure line is not shown in the bar that also holds product search. Address and nearby-store buttons stay. */
 @media(max-width:768px){.kt-locbar:not(.kt-loc-asked) .kt-locbar-location.err{display:none!important}}
+
+.kt-locbar-btn svg,.kt-locbar-submit svg{width:16px;height:16px;flex:none}
+.kt-locbar-submit{display:inline-flex;align-items:center;justify-content:center;gap:8px}

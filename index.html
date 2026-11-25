@@ -53,7 +53,7 @@
 <!-- LOCATION BAR -->
 <div class="kt-locbar k-hidden" id="ktLocBar">
   <div class="kt-locbar-psearch"><input type="search" id="k-search-input-m" placeholder="ابحث عن منتج..." autocomplete="off" enterkeyhint="search" aria-label="بحث عن منتج"></div>
-  <button type="button" class="kt-locbar-btn" onclick="ktUseCurrentLocation()">📍 موقعي الحالي</button>
+  <button type="button" class="kt-locbar-btn" onclick="ktUseCurrentLocation()"><svg data-lucide="map-pin"></svg><span>موقعي الحالي</span></button>
   <div class="kt-locbar-location loading" id="ktLocStatus">
     <svg data-lucide="loader"></svg>
     <span id="ktLocText">جاري تحديد موقعك...</span>
@@ -66,7 +66,7 @@
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;width:100%">
     <button type="button" class="kt-locbar-submit" onclick="ktSubmitAddress()" style="flex:1">ادخل عنوان التوصيل</button>
-    <button type="button" class="kt-locbar-submit" onclick="ktOpenNearbyStores()" style="flex:1;background:linear-gradient(135deg,var(--fresh),var(--fresh-2))">🏪 المتاجر القريبة</button>
+    <button type="button" class="kt-locbar-submit" onclick="ktOpenNearbyStores()" style="flex:1;background:linear-gradient(135deg,var(--fresh),var(--fresh-2))"><svg data-lucide="store"></svg><span>المتاجر القريبة</span></button>
   </div>
 </div>
 
