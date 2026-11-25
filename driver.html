@@ -914,7 +914,7 @@ var DRIVER = {
   id: null, uid: null, name: '', phone: '', email: '', whatsapp: '',
   vehicle: 'motorcycle', area: '', online: false, lat: null, lng: null,
   locationAddress: '', status: 'new', currentOrderId: null, earnings: 0, completedToday: 0,
-  rating: 5.0, commissionPerOrder: 15, watchId: null,
+  rating: null, commissionPerOrder: 15, watchId: null,
   profilePhoto: null, idCardFront: null, idCardBack: null
 };
 var currentTab = 'orders';
@@ -1580,7 +1580,7 @@ function ktSubmitRegistration(){
       idCardFront: DRIVER.idCardFront,
       idCardBack: DRIVER.idCardBack,
       status: 'pending', online: false,
-      rating: 5.0, commissionPerOrder: 15,
+      commissionPerOrder: 15,
       completedToday: 0, earnings: 0, monthlyOrders: 0, completedTotal: 0,
       createdAt: new Date().toISOString(),
       _serverCreatedAt: firebase.firestore.FieldValue.serverTimestamp()
