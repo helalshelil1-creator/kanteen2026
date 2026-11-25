@@ -1611,3 +1611,13 @@ img:not([loading]){
 /* Mobile product search: the header magnifier opens the bar, which now leads with a product search field (desktop keeps the header field). */
 .kt-locbar-psearch{display:none;width:100%}
 @media(max-width:768px){.kt-locbar-psearch{display:block}.kt-locbar-psearch input{width:100%;height:42px;padding:0 16px;border-radius:var(--r-pill);background:var(--glass);border:1px solid var(--line-2);color:var(--ink);font-size:14px}.kt-locbar-psearch input:focus{outline:none;border-color:var(--brand)}}
+/* <=340px: tighter header so all six controls keep >=30px tap targets */
+@media(max-width:340px){
+  .k-header{gap:4px!important;padding:0 8px!important}
+  .k-logo{padding:6px 4px!important}
+  #k-header .k-actions > *,#k-header button.k-icon-btn,#k-header .k-actions button{min-width:30px!important}
+  #k-header .k-search-btn{width:30px!important;min-width:30px!important}
+  .k-actions{gap:2px!important}
+}
+/* Mobile: the load-time GPS failure line is not shown in the bar that also holds product search. Address and nearby-store buttons stay. */
+@media(max-width:768px){.kt-locbar-location.err{display:none!important}}
