@@ -1620,4 +1620,4 @@ img:not([loading]){
   .k-actions{gap:2px!important}
 }
 /* Mobile: the load-time GPS failure line is not shown in the bar that also holds product search. Address and nearby-store buttons stay. */
-@media(max-width:768px){.kt-locbar-location.err{display:none!important}}
+@media(max-width:768px){.kt-locbar:not(.kt-loc-asked) .kt-locbar-location.err{display:none!important}}

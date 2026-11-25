@@ -1241,6 +1241,7 @@ function ktToggleSearchBar(){
   var isHidden = locBar.classList.contains('k-hidden');
   if (isHidden){
     locBar.classList.remove('k-hidden');
+    locBar.classList.remove('kt-loc-asked');
     setTimeout(function(){ var pm = document.getElementById('k-search-input-m'); var inp = (pm && pm.offsetParent) ? pm : document.getElementById('ktAddressInput'); if (inp) inp.focus(); }, 350);
   } else {
     locBar.classList.add('k-hidden');
@@ -2444,6 +2445,11 @@ function ktInit(){
     }, {passive: true});
   }
 
+  // An explicit tap on a location button in the bar means the user asked for location: keep its failure feedback visible.
+  document.addEventListener('click', function(e){
+    var lb = document.getElementById('ktLocBar');
+    if (lb && e.target && e.target.closest && e.target.closest('.kt-locbar-btn, .kt-locbar-submit') && lb.contains(e.target)) lb.classList.add('kt-loc-asked');
+  }, true);
   var headerSearchBtn = $('#k-search-btn');
   if (headerSearchBtn){ headerSearchBtn.addEventListener('click', function(e){ e.preventDefault(); ktToggleSearchBar(); }); }
 
