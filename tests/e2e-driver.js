@@ -33,7 +33,7 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
   const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message.slice(0,150)));return {ctx,pg}};
 
  const st=async id=>env.withSecurityRulesDisabled(async c=>(await c.firestore().doc(id).get()).data());
- const mkD=async()=>{const x=await mk();await x.ctx.grantPermissions(['geolocation']);await x.ctx.setGeolocation({latitude:30.05,longitude:31.34});return x};
+ const mkD=async()=>{const x=await mk();x.pg.perm=[];x.pg.on('console',m=>{const t=m.text();if(/permission-denied|Missing or insufficient/.test(t))x.pg.perm.push(t.slice(0,160))});await x.ctx.grantPermissions(['geolocation']);await x.ctx.setGeolocation({latitude:30.05,longitude:31.34});return x};
  const login=async(x,e)=>{await x.pg.goto(BASE+'/driver.html');await x.pg.fill('#loginEmail',e);await x.pg.fill('#loginPass','DrvPass123');await x.pg.click('#loginBtn');await sleep(2500);const w=x.pg.locator('button:has-text("ابدأ العمل الآن")');if(await w.count()){await w.first().click();await sleep(1500)}};
  const A=await mkD();await login(A,'drva@k.app');
  ok('header pill reflects stored online=true on load',(await A.pg.locator('#statusText').innerText()).includes('متصل الآن'),await A.pg.locator('#statusText').innerText());
@@ -68,5 +68,6 @@ async function signUp(email,pw){const r=await fetch('http://127.0.0.1:9099/ident
  const P=await mkD();try{await login(P,'drvp@k.app')}catch(e){await sleep(1500)}txt=await P.pg.locator('body').innerText();
  ok('pending driver sees pending screen, no orders',/قيد المراجعة|انتظار|المراجعة/.test(txt)&&!txt.includes('K-PLACED'),txt.slice(0,160));
  await P.pg.screenshot({path:'/downloads/kanteen-driver-pending-390.png'});
+ ok('no permission-denied errors for approved drivers A and B (no red Rules status)',A.pg.perm.length+B.pg.perm.length===0,[A.pg.perm,B.pg.perm]);
  ok('no page errors (A,B,P)',A.pg.errs.length+B.pg.errs.length+P.pg.errs.length===0,[A.pg.errs,B.pg.errs,P.pg.errs]);
  console.log('SUMMARY pass='+p+' fail='+f);await b.close();srv.kill();await env.cleanup();process.exit(f?1:0)})();

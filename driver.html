@@ -1729,7 +1729,7 @@ function ktStartDashboard(){
   setInterval(ktLoadLeaderboard, 5 * 60 * 1000);
 
   ktWaitFirebase(function(init){
-    init.db.collection('orders').limit(1).get()
+    init.db.collection('orders').where('status', '==', ktPoolStatus()).where('paymentStatus', 'in', ['cod','confirmed']).limit(1).get()
       .then(function(){ ktShowFbStatus('🔥 Firebase متصل', false); })
       .catch(function(e){
         if (e && e.code === 'permission-denied') ktShowFbStatus('⚠️ راجع Rules', true);
@@ -1777,7 +1777,7 @@ function ktInitListeners(){
       });
     } catch(e){ console.warn('orders:', e); }
     try {
-      _unsubs.notifs = KT_FB.listenNotifications(function(notifs){ FB_NOTIFS = notifs || []; });
+      /* notifications are admin-only by rules; the driver app never used FB_NOTIFS, so no listener here */
     } catch(e){ console.warn('notifs:', e); }
   });
 }
