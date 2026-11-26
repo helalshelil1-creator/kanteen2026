@@ -43,12 +43,15 @@ function ktToast(msg, type){
     setTimeout(function(){ el.remove(); }, 300);
   }, 2600);
 }
+var KT_FB_LAST = null;
 function ktShowFbStatus(text, isError){
   var el = document.getElementById('kFbStatus'); if (!el) return;
+  var tok = (KT_FB_LAST ? KT_FB_LAST.token : 0) + 1;
+  KT_FB_LAST = { text: text, isError: isError, token: tok };
   el.textContent = ktToastText(text);
   el.classList.add('show');
   if (isError) el.classList.add('err'); else el.classList.remove('err');
-  setTimeout(function(){ el.classList.remove('show'); }, 3000);
+  setTimeout(function(){ el.classList.remove('show'); if (KT_FB_LAST && KT_FB_LAST.token === tok) KT_FB_LAST = null; }, 3000);
 }
 
 var KT_MED_IMG = {
@@ -650,7 +653,7 @@ if (window.KT_FB){
   setTimeout(function(){
     KT_FB.test().then(function(ok){
       if (ok) ktShowFbStatus('🔥 Firebase متصل', false);
-      else ktShowFbStatus(KT_LANG === 'en' ? '⚠️ Firebase failed' : '⚠️ Firebase فشل', true);
+      else ktShowFbStatus('⚠️ Firebase فشل', true);
     });
   }, 1500);
 }
@@ -889,6 +892,8 @@ function ktToggleLang(){
 function applyLang(){
   document.documentElement.lang = KT_LANG;
   document.documentElement.dir = KT_LANG === 'ar' ? 'rtl' : 'ltr';
+  var fbStatus = document.getElementById('kFbStatus');
+  if (fbStatus && fbStatus.classList.contains('show') && KT_FB_LAST) fbStatus.textContent = ktToastText(KT_FB_LAST.text); // re-render live status in the newly selected locale
   var langBtn = document.getElementById('ktLangBtn');
   if (langBtn){ langBtn.innerHTML = 'EN'; }
   var searchInput = document.getElementById('ktAddressInput');
@@ -1813,7 +1818,7 @@ function placeOrder(){
       if (typeof KT_FB.saveOrder === 'function'){
         KT_FB.saveOrder(order).then(function(id){
           if (id) ktShowFbStatus('✅ تم حفظ الطلب', false);
-          else ktShowFbStatus(KT_LANG === 'en' ? '⚠️ Save failed' : '⚠️ فشل الحفظ', true);
+          else ktShowFbStatus('⚠️ فشل الحفظ', true);
         }).catch(function(e){ console.warn('saveOrder:', e); });
       }
       if (typeof KT_FB.saveNotification === 'function'){
