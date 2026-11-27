@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════
    🍊 Kanteen — Service Worker (PWA)
    ═══════════════════════════════════════════════════════════ */
-const CACHE_NAME = 'kanteen-v2.0.1';
+const CACHE_NAME = 'kanteen-v2.0.2';
 const CACHE_URLS = [
   '/', '/index.html', '/admin.html', '/merchant.html', '/driver.html',
   '/logo.png', '/manifest.json'

@@ -944,6 +944,25 @@ function applyLang(){
     });
     spans.forEach(function(sp){ sp.textContent = bnavTexts[nav]; });
   });
+  // 🍔 burger menu links + section labels
+  var burgerLinkTexts = {
+    '#/': 'Home', '#/categories': 'Categories', '#/search?deals=1': "Today's Deals",
+    '#/search?sort=popular': 'Best Sellers', '#/wishlist': 'Favorites', '#/cart': 'Cart',
+    '#/account': 'My Account', '#/orders': 'My Orders',
+    'merchant.html': 'Merchant Dashboard', 'driver.html': 'Driver Dashboard', 'admin.html': 'Admin Dashboard'
+  };
+  document.querySelectorAll('.kt-burger-nav a').forEach(function(a){
+    var span = a.querySelector('span'); if (!span) return;
+    var href = a.getAttribute('href');
+    if (!span.dataset.ar) span.dataset.ar = span.textContent;
+    span.textContent = (KT_LANG === 'en') ? (burgerLinkTexts[href] || span.dataset.ar) : span.dataset.ar;
+  });
+  var burgerSepTexts = { 'تسوّق': 'Shop', 'حسابي': 'Account', 'لوحات التحكم': 'Dashboards', 'تواصل معنا': 'Contact us' };
+  document.querySelectorAll('.kt-burger-sep').forEach(function(d){
+    if (!d.dataset.ar) d.dataset.ar = d.textContent;
+    if (KT_LANG === 'en') d.textContent = burgerSepTexts[d.dataset.ar] || d.dataset.ar;
+    else d.textContent = d.dataset.ar;
+  });
   if (typeof render === 'function') render();
   refreshIcons();
 }
